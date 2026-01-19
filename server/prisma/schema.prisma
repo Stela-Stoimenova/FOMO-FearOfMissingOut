@@ -4,6 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -20,13 +21,26 @@ model User {
   name      String?
   role      Role
 
-  events    Event[]  @relation("EventCreator")
-  tickets   Ticket[]
+  // Core
+  events  Event[]  @relation("EventCreator")
+  tickets Ticket[]
+
+  // Loyalty
+  loyaltyAccount      LoyaltyAccount?
+  loyaltyTransactions LoyaltyTransaction[]
+
+  // Social
+  followers Follow[] @relation("UserFollowers")
+  following Follow[] @relation("UserFollowing")
+
+  // Messaging
+  sentMessages     Message[] @relation("UserSentMessages")
+  receivedMessages Message[] @relation("UserReceivedMessages")
 }
 
 model Event {
-  id          Int      @id @default(autoincrement())
-  createdAt   DateTime @default(now())
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
 
   title       String
   description String?
@@ -35,23 +49,77 @@ model Event {
   endAt       DateTime?
   priceCents  Int
 
-  creatorId   Int
-  creator     User     @relation("EventCreator", fields: [creatorId], references: [id])
+  creatorId Int
+  creator   User @relation("EventCreator", fields: [creatorId], references: [id])
 
-  tickets     Ticket[]
+  tickets Ticket[]
 }
 
 model Ticket {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
 
-  userId    Int
-  eventId   Int
-
+  userId     Int
+  eventId    Int
   priceCents Int
 
-  user      User   @relation(fields: [userId], references: [id])
-  event     Event  @relation(fields: [eventId], references: [id])
+  user  User  @relation(fields: [userId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
+
+  transaction Transaction?
 
   @@unique([userId, eventId])
+}
+
+model LoyaltyAccount {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  points    Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model LoyaltyTransaction {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  points    Int
+  reason    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Transaction {
+  id              Int      @id @default(autoincrement())
+  ticketId        Int      @unique
+  grossCents      Int
+  commissionCents Int
+  netCents        Int
+  createdAt       DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+}
+
+model Follow {
+  followerId  Int
+  followingId Int
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id])
+  following User @relation("UserFollowers", fields: [followingId], references: [id])
+
+  @@id([followerId, followingId])
+}
+
+model Message {
+  id         Int       @id @default(autoincrement())
+  senderId   Int
+  receiverId Int
+  content    String
+  createdAt  DateTime  @default(now())
+  readAt     DateTime?
+
+  sender   User @relation("UserSentMessages", fields: [senderId], references: [id])
+  receiver User @relation("UserReceivedMessages", fields: [receiverId], references: [id])
 }
