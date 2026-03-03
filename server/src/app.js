@@ -3,6 +3,7 @@ import rateLimit from "express-rate-limit";
 import express from "express";
 import cors from "cors";
 
+import { sanitizeBody } from "./middleware/sanitize.js";
 import authRoutes from "./routes/auth.js";
 import eventRoutes from "./routes/events.js";
 
@@ -12,23 +13,27 @@ app.use(helmet());
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, 
+  max: 200,
   standardHeaders: true,
   legacyHeaders: false,
+  message: { error: { message: "Too many requests, please try again later.", status: 429 } },
 });
 app.use(limiter);
 
 app.use(cors());
 app.use(express.json());
+app.use(sanitizeBody);
 
 // Health check
 app.get("/api/dance", (req, res) => {
-    res.json({ ok: true, message: "Server is running" });
+  res.json({ ok: true, message: "Server is running" });
 });
 
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
+
+// Centralized error handler (must be last)
 app.use((err, req, res, next) => {
   const status = err.status || 500;
   res.status(status).json({
@@ -40,3 +45,4 @@ app.use((err, req, res, next) => {
 });
 
 export default app;
+

@@ -2,14 +2,26 @@ export function validate(schema) {
   return (req, res, next) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
-      return res.status(400).json({
-        error: {
-          message: "Validation error",
-          details: result.error.issues,
-        },
-      });
+      const message = result.error.errors.map((e) => e.message).join("; ");
+      const err = new Error(message);
+      err.status = 400;
+      return next(err);
     }
     req.body = result.data;
-    next();
+    return next();
+  };
+}
+
+export function validateQuery(schema) {
+  return (req, res, next) => {
+    const result = schema.safeParse(req.query);
+    if (!result.success) {
+      const message = result.error.errors.map((e) => e.message).join("; ");
+      const err = new Error(message);
+      err.status = 400;
+      return next(err);
+    }
+    req.query = result.data;
+    return next();
   };
 }
