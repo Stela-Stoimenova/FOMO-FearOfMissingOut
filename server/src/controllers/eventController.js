@@ -1,5 +1,6 @@
 import {
     listEvents,
+    getPopularEvents,
     getEventById,
     createEvent,
     updateEvent,
@@ -15,6 +16,16 @@ export async function list(req, res) {
     } catch (err) {
         const status = err.status || 500;
         return res.status(status).json({ message: err.message || "Failed to list events" });
+    }
+}
+
+export async function popular(req, res) {
+    try {
+        const events = await getPopularEvents();
+        return res.json(events);
+    } catch (err) {
+        const status = err.status || 500;
+        return res.status(status).json({ message: err.message || "Failed to get popular events" });
     }
 }
 
