@@ -1,6 +1,7 @@
 import {
     listEvents,
     getPopularEvents,
+    getNearbyEvents,
     getEventById,
     createEvent,
     updateEvent,
@@ -9,86 +10,87 @@ import {
     getUserTickets,
 } from "../services/eventService.js";
 
-export async function list(req, res) {
+export async function list(req, res, next) {
     try {
         const result = await listEvents(req.query);
         return res.json(result);
     } catch (err) {
-        const status = err.status || 500;
-        return res.status(status).json({ message: err.message || "Failed to list events" });
+        return next(err);
     }
 }
 
-export async function popular(req, res) {
+export async function popular(req, res, next) {
     try {
         const events = await getPopularEvents();
         return res.json(events);
     } catch (err) {
-        const status = err.status || 500;
-        return res.status(status).json({ message: err.message || "Failed to get popular events" });
+        return next(err);
     }
 }
 
-export async function getById(req, res) {
+export async function nearby(req, res, next) {
+    try {
+        const events = await getNearbyEvents(req.query);
+        return res.json(events);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+export async function getById(req, res, next) {
     try {
         const id = Number(req.params.id);
         const event = await getEventById(id);
         return res.json(event);
     } catch (err) {
-        const status = err.status || 500;
-        return res.status(status).json({ message: err.message || "Failed to get event" });
+        return next(err);
     }
 }
 
-export async function create(req, res) {
+export async function create(req, res, next) {
     try {
         const event = await createEvent(req.body, req.user.userId);
         return res.status(201).json(event);
     } catch (err) {
-        const status = err.status || 500;
-        return res.status(status).json({ message: err.message || "Create event failed" });
+        return next(err);
     }
 }
 
-export async function update(req, res) {
+export async function update(req, res, next) {
     try {
         const id = Number(req.params.id);
         const updated = await updateEvent(id, req.body, req.user.userId);
         return res.json(updated);
     } catch (err) {
-        const status = err.status || 500;
-        return res.status(status).json({ message: err.message || "Update event failed" });
+        return next(err);
     }
 }
 
-export async function remove(req, res) {
+export async function remove(req, res, next) {
     try {
         const id = Number(req.params.id);
         await deleteEvent(id, req.user.userId);
         return res.status(204).send();
     } catch (err) {
-        const status = err.status || 500;
-        return res.status(status).json({ message: err.message || "Delete event failed" });
+        return next(err);
     }
 }
 
-export async function buyTicket(req, res) {
+export async function buyTicket(req, res, next) {
     try {
         const eventId = Number(req.params.id);
-        const ticket = await purchaseTicket(eventId, req.user.userId);
-        return res.status(201).json(ticket);
+        const result = await purchaseTicket(eventId, req.user.userId);
+        return res.status(201).json(result);
     } catch (err) {
-        const status = err.status || 500;
-        return res.status(status).json({ message: err.message || "Ticket purchase failed" });
+        return next(err);
     }
 }
 
-export async function myTickets(req, res) {
+export async function myTickets(req, res, next) {
     try {
         const tickets = await getUserTickets(req.user.userId);
         return res.json(tickets);
     } catch (err) {
-        const status = err.status || 500;
-        return res.status(status).json({ message: err.message || "Failed to get tickets" });
+        return next(err);
     }
 }

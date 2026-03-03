@@ -1,8 +1,11 @@
 import { Router } from "express";
 import { requireAuth, requireRole } from "../middleware/auth.js";
+import { validate, validateQuery } from "../middleware/validate.js";
+import { createEventSchema, updateEventSchema, nearbyQuerySchema } from "../validators/eventValidators.js";
 import {
   list,
   popular,
+  nearby,
   getById,
   create,
   update,
@@ -19,6 +22,9 @@ router.get("/", list);
 // GET /api/events/popular (public)
 router.get("/popular", popular);
 
+// GET /api/events/nearby?lat=&lng=&radius= (public)
+router.get("/nearby", validateQuery(nearbyQuerySchema), nearby);
+
 // GET /api/events/me/tickets (DANCER sees own tickets)
 router.get("/me/tickets", requireAuth, requireRole(["DANCER"]), myTickets);
 
@@ -26,10 +32,10 @@ router.get("/me/tickets", requireAuth, requireRole(["DANCER"]), myTickets);
 router.get("/:id", getById);
 
 // POST /api/events (STUDIO/AGENCY only)
-router.post("/", requireAuth, requireRole(["STUDIO", "AGENCY"]), create);
+router.post("/", requireAuth, requireRole(["STUDIO", "AGENCY"]), validate(createEventSchema), create);
 
 // PUT /api/events/:id (creator only)
-router.put("/:id", requireAuth, requireRole(["STUDIO", "AGENCY"]), update);
+router.put("/:id", requireAuth, requireRole(["STUDIO", "AGENCY"]), validate(updateEventSchema), update);
 
 // DELETE /api/events/:id (creator only)
 router.delete("/:id", requireAuth, requireRole(["STUDIO", "AGENCY"]), remove);

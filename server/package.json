@@ -3,9 +3,14 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon index.js",
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --forceExit"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "transform": {},
+    "globalSetup": "./tests/setup.js"
   },
   "keywords": [],
   "author": "",
