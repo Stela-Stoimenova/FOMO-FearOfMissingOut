@@ -1,5 +1,9 @@
 import jwt from "jsonwebtoken";
+import { validate } from "../middleware/validate.js";
+import { registerSchema, loginSchema } from "../validators/authValidators.js";
 
+router.post("/register", validate(registerSchema), register);
+router.post("/login", validate(loginSchema), login);
 export function requireAuth(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : null;

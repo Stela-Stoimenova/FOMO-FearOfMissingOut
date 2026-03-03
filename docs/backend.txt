@@ -1,0 +1,140 @@
+BACKEND (5 layers)
+1.Routes: define URLs like /api/events/:id/tickets
+2.Middleware: checks JWT and role (RBAC)
+RBAC - Role Based Access Control is a policy-neutral access control mechanism defined around roles and privileges
+3. Controller: reads req, calls service, returns res 
+4.Service: business logic (commission, loyalty pricing) + Prisma DB actions
+5.Database: Prisma schema + migrations +contraints (unique ticket)
+
+Step 1: Show server running
+
+npm run dev
+
+open GET /api/events in browser or Postman
+
+Step 2: Register/login STUDIO
+
+register → login → copy token
+
+Step 3: Create event with capacity + price
+
+POST /api/events with studio token
+
+Step 4: Register/login DANCER
+
+copy dancer token
+
+Step 5: Buy ticket
+
+POST /api/events/:id/tickets with dancer token
+Teacher should see response includes:
+
+ticket created
+
+commission transaction created (gross/commission/net)
+
+loyalty points updated
+
+pricing info (if you implemented dynamic pricing)
+
+REST API - Representational State Transfer Application Programming Interface
+This is an architectural style that is commonly seen as the standard for designing and building the networked
+applications that power the web
+This BACKEND is REST API built with Express since it exposes endpoints under /api/*
+
+* index.js(server entry) -> This file boots the application
+-loads environment variables (dotenv/config) dotenv is a Node.js command that loads environment variables from a .env file into process.env
+this enhance security and flexibility
+-imports app 
+-starts server on port 5000
+
+* app.js (Express app) - This file defines the web server and connects routemodules
+-sets middleware: cors, express.json()
+-defines a health-check endpoint: /api/dance
+
+* routes: what enpoints exist and why
+Routes applu authentication/role middleware and delegate to controllers
+PUBLIC
+GET /api/events → list events
+GET /api/events/popular → ranking
+GET /api/events/:id → event details
+
+PROTECTED
+GET /api/events/me/tickets → dancer only
+POST /api/events → STUDIO/AGENCY only
+PUT /api/events/:id → STUDIO/AGENCY only (and ownership checked later)
+DELETE /api/events/:id → STUDIO/AGENCY only
+POST /api/events/:id/tickets → DANCER only
+
+* middleware: security
+middleware/auth.js
+requireAuth 
+reads Authorization : Bearer <token>
+verifies JWT with JWT_secret
+sets req.user to decoded payload
+rejects with 401 if missing/invalid
+
+requireRole([...roles])
+checks req.user.roleis in allowed roles
+rejects with 403 forbidden otherwise
+
+JWT - Jason Web Token 
+
+eventService.js - contains business logic and databse calls using Prisma 
+-> Event listing (public)
+listEvents()
+supports filters: q, city, date, range, price range
+supports pagination: page, limit
+returns {items, total, page, limit}
+
+-> Popular events ranking 
+Here we used aggregation + a weighted scoring algorithm to rank events
+getPopularEvents()
+counts tickets sold per event with groupBy
+fetches eventscalculate score=ticketsSold x recencyWeight
+recencyWeight = 1/ (1+ daysSinceEvent)
+
+->Nearby events / map support 
+getNearbyEvents({lat, lng, radius})
+validates inputs
+fetches events with coordinates
+calculates distance with Haversinde formula
+filters and sorts by distance
+This helps for the map discovery, we computed the geographis distance without PostGIS to keep implementation simple
+Post GIS - is an open source extension for the PostgreSQL relational databse 
+
+! Ticket purchase with economics !
+purchaseTicket(eventId, userId) is implementing commission model, dynamic pricing, loyalty program 
+First we validate if event exists if not found 404. After we implement the Dynamic pricing
+if event has capacity: count sold tickets, if sold out -> 409 and if >50% sold ->price=base*1.15
+Then we have the commission where grossCents=final price, commissionCents=10%, netCents=gross-commissions.
+Inside prisma.$transaction() ticket is created, transaction is recorded and then we update the loyalty.
+If any fails, none is saved. We have duplicate ticket protection. Unique constraint on Ticket (@@unique([userId, eventId])) prevents buying twice.
+You catch it and return 409 with a friendly message.
+
+Every API call goes through the same pipline
+Route -> Middleware -> Controller -> Service -> Prisma (DB) -> Controller -> Response 
+Controllers are thiin. They validate request flow and return HTTP responses, while services contains business logic and database operations
+req.user.userId - JWT payload includes userId, and middleware stores it in req.user
+RBAC is enforced in the routes layer using middleware that checks JWT and allowed roles.
+Auth endpoints delegate to an auth service that handles hashing and token generation.
+
+“Node.js allows asynchronous non-blocking I/O, which is suitable for real-time and scalable web applications. Express provides lightweight routing and middleware support, which fits a modular REST API architecture.”
+
+“PostgreSQL is a relational database suitable for transactional systems. Since ticket purchase requires consistency and atomic transactions, a relational model with constraints is appropriate.”
+
+“Prisma ORM provides type-safe database queries and migration management, reducing SQL injection risk and improving maintainability.”
+
+“JWT allows stateless authentication, which simplifies horizontal scaling and removes the need for server-side session storage.”
+
+“To preserve economic consistency. If the event price changes later, historical transactions must remain accurate.”
+
+Password hashing is necessary so that raw passwords are never stored in the database. If the database is compromised, attackers cannot directly read user passwords. Bcrypt also uses salting, which protects against rainbow table attacks.
+
+Without a database transaction, the system could create a ticket but fail to create the commission record or loyalty update. That would leave the database in an inconsistent state. Using $transaction guarantees atomicity: either all operations succeed, or none are applied.
+
+The unique constraint enforces a business rule at the database level. Even if application logic fails, the database itself prevents duplicate ticket purchases for the same event by the same user.
+
+Database-level constraints are stronger than application logic.
+
+The frontend cannot be trusted because users can modify client-side code. Authorization must be enforced on the backend to prevent privilege escalation or malicious requests.
