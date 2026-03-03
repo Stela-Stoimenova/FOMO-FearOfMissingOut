@@ -1,5 +1,30 @@
 import { prisma } from "../db.js";
 
+function validateCoordinates(latitude, longitude) {
+    if (latitude != null && (typeof latitude !== "number" || latitude < -90 || latitude > 90)) {
+        const err = new Error("latitude must be a number between -90 and 90");
+        err.status = 400;
+        throw err;
+    }
+    if (longitude != null && (typeof longitude !== "number" || longitude < -180 || longitude > 180)) {
+        const err = new Error("longitude must be a number between -180 and 180");
+        err.status = 400;
+        throw err;
+    }
+}
+
+// Haversine distance in km
+function haversineKm(lat1, lon1, lat2, lon2) {
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const R = 6371; // Earth radius in km
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export async function listEvents({ q, city, from, to, minPrice, maxPrice, page = "1", limit = "10" }) {
     const where = {
         AND: [
@@ -83,6 +108,51 @@ export async function getPopularEvents() {
     return scored;
 }
 
+export async function getNearbyEvents({ lat, lng, radius = 10 }) {
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+    const maxKm = Number(radius);
+
+    if (Number.isNaN(latitude) || latitude < -90 || latitude > 90) {
+        const err = new Error("lat is required and must be between -90 and 90");
+        err.status = 400;
+        throw err;
+    }
+    if (Number.isNaN(longitude) || longitude < -180 || longitude > 180) {
+        const err = new Error("lng is required and must be between -180 and 180");
+        err.status = 400;
+        throw err;
+    }
+    if (Number.isNaN(maxKm) || maxKm <= 0) {
+        const err = new Error("radius must be a positive number (km)");
+        err.status = 400;
+        throw err;
+    }
+
+    // Fetch only events that have coordinates
+    const events = await prisma.event.findMany({
+        where: {
+            latitude: { not: null },
+            longitude: { not: null },
+        },
+        include: {
+            creator: { select: { id: true, name: true, role: true } },
+            _count: { select: { tickets: true } },
+        },
+    });
+
+    // Filter by Haversine distance and sort by nearest
+    const nearby = events
+        .map((event) => {
+            const distanceKm = haversineKm(latitude, longitude, event.latitude, event.longitude);
+            return { ...event, distanceKm: Math.round(distanceKm * 100) / 100 };
+        })
+        .filter((e) => e.distanceKm <= maxKm)
+        .sort((a, b) => a.distanceKm - b.distanceKm);
+
+    return nearby;
+}
+
 export async function getEventById(id) {
     if (!Number.isInteger(id)) {
         const err = new Error("Invalid id");
@@ -107,12 +177,14 @@ export async function getEventById(id) {
     return event;
 }
 
-export async function createEvent({ title, description, location, startAt, endAt, priceCents, capacity }, userId) {
+export async function createEvent({ title, description, location, startAt, endAt, priceCents, capacity, latitude, longitude }, userId) {
     if (!title || !location || !startAt || typeof priceCents !== "number") {
         const err = new Error("title, location, startAt, priceCents are required");
         err.status = 400;
         throw err;
     }
+
+    validateCoordinates(latitude, longitude);
 
     const event = await prisma.event.create({
         data: {
@@ -123,6 +195,8 @@ export async function createEvent({ title, description, location, startAt, endAt
             endAt: endAt ? new Date(endAt) : null,
             priceCents,
             capacity: typeof capacity === "number" ? capacity : null,
+            latitude: typeof latitude === "number" ? latitude : null,
+            longitude: typeof longitude === "number" ? longitude : null,
             creatorId: userId,
         },
     });
@@ -150,7 +224,9 @@ export async function updateEvent(id, data, userId) {
         throw err;
     }
 
-    const { title, description, location, startAt, endAt, priceCents, capacity } = data;
+    const { title, description, location, startAt, endAt, priceCents, capacity, latitude, longitude } = data;
+
+    validateCoordinates(latitude, longitude);
 
     const updated = await prisma.event.update({
         where: { id },
@@ -162,6 +238,8 @@ export async function updateEvent(id, data, userId) {
             endAt: endAt === null ? null : endAt ? new Date(endAt) : existing.endAt,
             priceCents: typeof priceCents === "number" ? priceCents : existing.priceCents,
             capacity: typeof capacity === "number" ? capacity : existing.capacity,
+            latitude: typeof latitude === "number" ? latitude : existing.latitude,
+            longitude: typeof longitude === "number" ? longitude : existing.longitude,
         },
     });
 
