@@ -49,6 +49,8 @@ model Event {
   endAt       DateTime?
   priceCents  Int
   capacity    Int?
+  latitude    Float?
+  longitude   Float?
 
   creatorId Int
   creator   User @relation("EventCreator", fields: [creatorId], references: [id])
