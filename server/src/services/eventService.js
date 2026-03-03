@@ -163,7 +163,7 @@ export async function purchaseTicket(eventId, userId) {
     const netCents = grossCents - commissionCents;
 
     try {
-        // Atomic: create ticket + transaction together
+        // Atomic: create ticket + transaction + loyalty together
         const result = await prisma.$transaction(async (tx) => {
             const ticket = await tx.ticket.create({
                 data: {
@@ -182,7 +182,34 @@ export async function purchaseTicket(eventId, userId) {
                 },
             });
 
-            return { ticket, transaction };
+            // Loyalty: 5% of gross ticket value
+            const pointsEarned = Math.round(grossCents * 0.05);
+
+            // Ensure loyalty account exists (create if first purchase)
+            const loyaltyAccount = await tx.loyaltyAccount.upsert({
+                where: { userId },
+                create: { userId, points: pointsEarned },
+                update: { points: { increment: pointsEarned } },
+            });
+
+            // Record the loyalty transaction
+            const loyaltyTransaction = await tx.loyaltyTransaction.create({
+                data: {
+                    userId,
+                    points: pointsEarned,
+                    reason: `Ticket purchase for event #${eventId}`,
+                },
+            });
+
+            return {
+                ticket,
+                transaction,
+                loyalty: {
+                    pointsEarned,
+                    totalPoints: loyaltyAccount.points,
+                    loyaltyTransactionId: loyaltyTransaction.id,
+                },
+            };
         });
 
         return result;
