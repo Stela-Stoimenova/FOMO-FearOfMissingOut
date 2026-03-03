@@ -48,6 +48,7 @@ model Event {
   startAt     DateTime
   endAt       DateTime?
   priceCents  Int
+  capacity    Int?
 
   creatorId Int
   creator   User @relation("EventCreator", fields: [creatorId], references: [id])
