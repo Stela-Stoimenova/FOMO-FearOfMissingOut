@@ -37,6 +37,52 @@ export async function listEvents({ q, city, from, to, minPrice, maxPrice, page =
     return { items, total, page: Number(page), limit: take };
 }
 
+export async function getPopularEvents() {
+    // Aggregate ticket counts per event using groupBy
+    const ticketCounts = await prisma.ticket.groupBy({
+        by: ["eventId"],
+        _count: { eventId: true },
+        orderBy: { _count: { eventId: "desc" } },
+        take: 20, // fetch extra to allow recency reranking
+    });
+
+    if (ticketCounts.length === 0) return [];
+
+    const eventIds = ticketCounts.map((t) => t.eventId);
+
+    // Fetch full event data for the candidates
+    const events = await prisma.event.findMany({
+        where: { id: { in: eventIds } },
+        include: {
+            creator: { select: { id: true, name: true, role: true } },
+            _count: { select: { tickets: true } },
+        },
+    });
+
+    // Build a map for quick lookup
+    const eventMap = new Map(events.map((e) => [e.id, e]));
+
+    // Score: ticketCount * recencyWeight
+    // recencyWeight = 1 / (1 + daysSinceEvent), so upcoming/recent events rank higher
+    const now = Date.now();
+    const scored = ticketCounts
+        .map((tc) => {
+            const event = eventMap.get(tc.eventId);
+            if (!event) return null;
+
+            const daysDiff = Math.abs(event.startAt.getTime() - now) / (1000 * 60 * 60 * 24);
+            const recencyWeight = 1 / (1 + daysDiff);
+            const score = tc._count.eventId * recencyWeight;
+
+            return { ...event, score, ticketsSold: tc._count.eventId };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 10);
+
+    return scored;
+}
+
 export async function getEventById(id) {
     if (!Number.isInteger(id)) {
         const err = new Error("Invalid id");

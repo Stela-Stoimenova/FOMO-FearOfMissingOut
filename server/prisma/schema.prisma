@@ -70,6 +70,7 @@ model Ticket {
   transaction Transaction?
 
   @@unique([userId, eventId])
+  @@index([eventId])
 }
 
 model LoyaltyAccount {

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import {
   list,
+  popular,
   getById,
   create,
   update,
@@ -14,6 +15,9 @@ const router = Router();
 
 // GET /api/events (public)
 router.get("/", list);
+
+// GET /api/events/popular (public)
+router.get("/popular", popular);
 
 // GET /api/events/me/tickets (DANCER sees own tickets)
 router.get("/me/tickets", requireAuth, requireRole(["DANCER"]), myTickets);
