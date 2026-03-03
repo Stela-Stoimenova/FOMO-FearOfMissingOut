@@ -6,6 +6,8 @@ import cors from "cors";
 import { sanitizeBody } from "./middleware/sanitize.js";
 import authRoutes from "./routes/auth.js";
 import eventRoutes from "./routes/events.js";
+import userRoutes from "./routes/users.js";
+import messageRoutes from "./routes/messages.js";
 
 const app = express();
 
@@ -32,6 +34,8 @@ app.get("/api/dance", (req, res) => {
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/messages", messageRoutes);
 
 // Centralized error handler (must be last)
 app.use((err, req, res, next) => {
