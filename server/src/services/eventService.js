@@ -157,16 +157,35 @@ export async function purchaseTicket(eventId, userId) {
         throw err;
     }
 
+    // Commission calculation
+    const grossCents = event.priceCents;
+    const commissionCents = Math.round(grossCents * 0.1);
+    const netCents = grossCents - commissionCents;
+
     try {
-        const ticket = await prisma.ticket.create({
-            data: {
-                userId,
-                eventId,
-                priceCents: event.priceCents,
-            },
+        // Atomic: create ticket + transaction together
+        const result = await prisma.$transaction(async (tx) => {
+            const ticket = await tx.ticket.create({
+                data: {
+                    userId,
+                    eventId,
+                    priceCents: grossCents,
+                },
+            });
+
+            const transaction = await tx.transaction.create({
+                data: {
+                    ticketId: ticket.id,
+                    grossCents,
+                    commissionCents,
+                    netCents,
+                },
+            });
+
+            return { ticket, transaction };
         });
 
-        return ticket;
+        return result;
     } catch (err) {
         if (String(err).includes("Unique constraint")) {
             const dupErr = new Error("You already have a ticket for this event");
