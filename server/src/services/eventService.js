@@ -61,7 +61,7 @@ export async function getEventById(id) {
     return event;
 }
 
-export async function createEvent({ title, description, location, startAt, endAt, priceCents }, userId) {
+export async function createEvent({ title, description, location, startAt, endAt, priceCents, capacity }, userId) {
     if (!title || !location || !startAt || typeof priceCents !== "number") {
         const err = new Error("title, location, startAt, priceCents are required");
         err.status = 400;
@@ -76,6 +76,7 @@ export async function createEvent({ title, description, location, startAt, endAt
             startAt: new Date(startAt),
             endAt: endAt ? new Date(endAt) : null,
             priceCents,
+            capacity: typeof capacity === "number" ? capacity : null,
             creatorId: userId,
         },
     });
@@ -103,7 +104,7 @@ export async function updateEvent(id, data, userId) {
         throw err;
     }
 
-    const { title, description, location, startAt, endAt, priceCents } = data;
+    const { title, description, location, startAt, endAt, priceCents, capacity } = data;
 
     const updated = await prisma.event.update({
         where: { id },
@@ -114,6 +115,7 @@ export async function updateEvent(id, data, userId) {
             startAt: startAt ? new Date(startAt) : existing.startAt,
             endAt: endAt === null ? null : endAt ? new Date(endAt) : existing.endAt,
             priceCents: typeof priceCents === "number" ? priceCents : existing.priceCents,
+            capacity: typeof capacity === "number" ? capacity : existing.capacity,
         },
     });
 
@@ -157,8 +159,27 @@ export async function purchaseTicket(eventId, userId) {
         throw err;
     }
 
-    // Commission calculation
-    const grossCents = event.priceCents;
+    // Dynamic pricing: +15% when >50% of capacity is sold
+    let finalPrice = event.priceCents;
+    let surgeApplied = false;
+
+    if (event.capacity != null && event.capacity > 0) {
+        const ticketsSold = await prisma.ticket.count({ where: { eventId } });
+
+        if (ticketsSold >= event.capacity) {
+            const err = new Error("Event is sold out");
+            err.status = 409;
+            throw err;
+        }
+
+        if (ticketsSold > event.capacity * 0.5) {
+            finalPrice = Math.round(event.priceCents * 1.15);
+            surgeApplied = true;
+        }
+    }
+
+    // Commission calculation (on the final/dynamic price)
+    const grossCents = finalPrice;
     const commissionCents = Math.round(grossCents * 0.1);
     const netCents = grossCents - commissionCents;
 
@@ -208,6 +229,11 @@ export async function purchaseTicket(eventId, userId) {
                     pointsEarned,
                     totalPoints: loyaltyAccount.points,
                     loyaltyTransactionId: loyaltyTransaction.id,
+                },
+                pricing: {
+                    basePriceCents: event.priceCents,
+                    finalPriceCents: grossCents,
+                    surgeApplied,
                 },
             };
         });
