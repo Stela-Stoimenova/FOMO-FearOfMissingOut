@@ -1,8 +1,7 @@
-/**
- * Prisma Seed Script
- * Run with: npm run seed
- *
- * Idempotent - safe to re-run, will not create duplicates.
+/*
+  Prisma Seed Script
+  Run with: npm run seed
+  Idempotent - safe to re-run, will not create duplicates.
  */
 
 import "dotenv/config";
@@ -221,7 +220,7 @@ async function main() {
         console.log(`\n  ↩  ${skipped} event(s) already existed – skipped.`);
     }
 
-    console.log(`\n✅ Done! ${createdUsers.length} users, ${created} new events seeded.\n`);
+    console.log(`\nDone! ${createdUsers.length} users, ${created} new events seeded.\n`);
     console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     console.log("  DANCER  → dancer@fomo.dev   / dancer123");
     console.log("  STUDIO  → studio@fomo.dev   / studio123");
@@ -231,7 +230,7 @@ async function main() {
 
 main()
     .catch((e) => {
-        console.error("❌ Seed failed:", e);
+        console.error("Seed failed:", e);
         process.exit(1);
     })
     .finally(() => prisma.$disconnect());
