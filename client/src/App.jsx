@@ -1,35 +1,42 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+// App.jsx — defines all routes for the application
+// BrowserRouter wraps everything so all pages can use React Router
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-function App() {
-  const [count, setCount] = useState(0)
+import Navbar from "./components/Navbar.jsx";
 
+// Import all pages
+import HomePage from "./pages/HomePage.jsx";
+import EventDetailPage from "./pages/EventDetailPage.jsx";
+import LoginPage from "./pages/LoginPage.jsx";
+import RegisterPage from "./pages/RegisterPage.jsx";
+import DashboardPage from "./pages/DashboardPage.jsx";
+import CreateEventPage from "./pages/CreateEventPage.jsx";
+import MyTicketsPage from "./pages/MyTicketsPage.jsx";
+
+export default function App() {
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
-}
+    <BrowserRouter>
+      {/* Navbar appears on every page */}
+      <Navbar />
 
-export default App
+      {/* Routes — only one <Route> matches at a time */}
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/events/:id" element={<EventDetailPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/create-event" element={<CreateEventPage />} />
+        <Route path="/my-tickets" element={<MyTicketsPage />} />
+
+        {/* Catch-all for unknown routes */}
+        <Route path="*" element={
+          <main className="page page-narrow">
+            <h1>404 – Page not found</h1>
+            <a href="/">Go home</a>
+          </main>
+        } />
+      </Routes>
+    </BrowserRouter>
+  );
+}
