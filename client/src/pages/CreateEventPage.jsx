@@ -1,9 +1,13 @@
 // Create Event page — form for STUDIO / AGENCY to post a new event
-// Will call POST /api/events when backend is connected
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { createEvent } from "../api/events.js";
 
 export default function CreateEventPage() {
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+
     const [form, setForm] = useState({
         title: "",
         description: "",
@@ -12,22 +16,55 @@ export default function CreateEventPage() {
         endAt: "",
         priceCents: "",
         capacity: "",
+        latitude: "",
+        longitude: "",
     });
 
     function handleChange(e) {
         setForm({ ...form, [e.target.name]: e.target.value });
     }
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault();
-        // TODO: call POST /api/events with form data (convert priceCents to number)
-        alert(`Event "${form.title}" created! (backend not connected yet)`);
+        setLoading(true);
+        setError(null);
+
+        // Convert string inputs to proper types for the API
+        const payload = {
+            ...form,
+            priceCents: Number(form.priceCents),
+        };
+
+        // Optional numbers
+        if (form.capacity) payload.capacity = Number(form.capacity);
+        else delete payload.capacity;
+
+        if (form.latitude) payload.latitude = Number(form.latitude);
+        else delete payload.latitude;
+
+        if (form.longitude) payload.longitude = Number(form.longitude);
+        else delete payload.longitude;
+
+        if (!form.description) delete payload.description;
+        if (!form.endAt) delete payload.endAt;
+
+        try {
+            const data = await createEvent(payload);
+            // Redirect to the newly created event's detail page
+            navigate(`/events/${data.id}`);
+        } catch (err) {
+            setError(err.message || "Failed to create event");
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
         <main className="page page-narrow">
             <h1>Create Event</h1>
             <p className="subtitle">Only Studios and Agencies can create events.</p>
+
+            {error && <div className="form-error">{error}</div>}
 
             <form className="auth-form" onSubmit={handleSubmit}>
                 <label>
@@ -65,7 +102,20 @@ export default function CreateEventPage() {
                     <input type="number" name="capacity" value={form.capacity} onChange={handleChange} min={1} placeholder="50" />
                 </label>
 
-                <button type="submit" className="btn-primary">Create Event</button>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                    <label>
+                        Latitude
+                        <input type="number" step="any" name="latitude" value={form.latitude} onChange={handleChange} placeholder="42.6977" />
+                    </label>
+                    <label>
+                        Longitude
+                        <input type="number" step="any" name="longitude" value={form.longitude} onChange={handleChange} placeholder="23.3219" />
+                    </label>
+                </div>
+
+                <button type="submit" className="btn-primary" disabled={loading}>
+                    {loading ? "Creating…" : "Create Event"}
+                </button>
             </form>
 
             <p className="hint">
