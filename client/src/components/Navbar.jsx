@@ -13,9 +13,8 @@ export default function Navbar() {
 
     return (
         <nav className="navbar">
-            {/* Brand / Logo */}
             <NavLink to="/" className="navbar-brand">
-                🎵 FOMO
+                FOMO
             </NavLink>
 
             <div className="navbar-links">

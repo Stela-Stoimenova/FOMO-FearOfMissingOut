@@ -5,7 +5,7 @@ import { getEventById, buyTicket } from "../api/events.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 function formatPrice(cents) {
-    return `${(cents / 100).toFixed(2)} лв`;
+    return `€${(cents / 100).toFixed(2)}`;
 }
 
 function formatDate(isoString) {
@@ -114,13 +114,13 @@ export default function EventDetailPage() {
 
             {/* Details grid */}
             <div className="detail-grid">
-                <div className="detail-item">📍 <strong>Location:</strong> {event.location}</div>
-                <div className="detail-item">📅 <strong>Starts:</strong> {formatDate(event.startAt)}</div>
+                <div className="detail-item"><strong>Location:</strong> {event.location}</div>
+                <div className="detail-item"><strong>Starts:</strong> {formatDate(event.startAt)}</div>
                 {event.endAt && (
-                    <div className="detail-item">🏁 <strong>Ends:</strong> {formatDate(event.endAt)}</div>
+                    <div className="detail-item"><strong>Ends:</strong> {formatDate(event.endAt)}</div>
                 )}
                 <div className="detail-item">
-                    🎟 <strong>Price:</strong>{" "}
+                    <strong>Price:</strong>{" "}
                     <span className={surgeWarning && !isSoldOut ? "price-surge" : ""}>
                         {formatPrice(event.priceCents)}
                     </span>
@@ -130,12 +130,12 @@ export default function EventDetailPage() {
                 </div>
                 {event.capacity != null && (
                     <div className="detail-item">
-                        👥 <strong>Capacity:</strong> {ticketsSold} / {event.capacity} sold
+                        <strong>Capacity:</strong> {ticketsSold} / {event.capacity} sold
                     </div>
                 )}
                 {event.creator && (
                     <div className="detail-item">
-                        🎭 <strong>Organiser:</strong> {event.creator.name ?? event.creator.role}
+                        <strong>Organiser:</strong> {event.creator.name ?? event.creator.role}
                     </div>
                 )}
             </div>
@@ -149,8 +149,8 @@ export default function EventDetailPage() {
                 </button>
             ) : user.role === "DANCER" ? (
                 purchased ? (
-                    <div className="btn-primary" style={{ background: "#10b981", textAlign: "center", cursor: "default" }}>
-                        ✅ Ticket Purchased
+                    <div className="btn-primary">
+                        Ticket Purchased
                     </div>
                 ) : isSoldOut ? (
                     <button className="btn-primary btn-disabled" disabled>Sold Out</button>

@@ -14,7 +14,7 @@ function formatDate(isoString) {
 }
 
 function formatPrice(cents) {
-    return `${(cents / 100).toFixed(2)} лв`;
+    return `€${(cents / 100).toFixed(2)}`;
 }
 
 export default function MyTicketsPage() {
@@ -68,20 +68,20 @@ export default function MyTicketsPage() {
 
     return (
         <main className="page">
-            <h1>My Tickets 🎟</h1>
+            <h1>My Tickets</h1>
             <p className="subtitle">You have {tickets.length} ticket(s).</p>
 
             <div className="ticket-list">
                 {tickets.map((ticket) => (
                     <div key={ticket.id} className="ticket-card">
-                        <div className="ticket-card-left">🎶</div>
-                        <div className="ticket-card-body">
+                        <div className="event-card-img"></div>
+                        <div className="event-card-body">
                             <h3>{ticket.event.title}</h3>
-                            <p>📍 {ticket.event.location}</p>
-                            <p>📅 {formatDate(ticket.event.startAt)}</p>
-                        </div>
-                        <div className="ticket-card-price">
-                            {formatPrice(ticket.priceCents)}
+                            <p className="event-card-detail">{formatDate(ticket.event.startAt)} • {ticket.event.location}</p>
+                            <div className="event-card-footer">
+                                <p className="event-price">Paid: {formatPrice(ticket.event.priceCents)}</p>
+                                <span className="event-card-cta" style={{ color: "var(--success)" }}>Purchased</span>
+                            </div>
                         </div>
                     </div>
                 ))}
