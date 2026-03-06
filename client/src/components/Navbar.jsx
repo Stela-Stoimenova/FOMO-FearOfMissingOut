@@ -34,10 +34,10 @@ export default function Navbar() {
                         )}
 
                         {/* User info + logout */}
-                        <span className="navbar-user">
+                        <NavLink to="/profile" className="navbar-user" style={{ cursor: 'pointer', textDecoration: 'none' }}>
                             {user.name || user.email}
                             <span className="role-badge">{user.role}</span>
-                        </span>
+                        </NavLink>
                         <button className="navbar-logout" onClick={handleLogout}>
                             Logout
                         </button>
