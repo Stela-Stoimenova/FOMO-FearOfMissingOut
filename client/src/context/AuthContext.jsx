@@ -27,38 +27,46 @@ export function AuthProvider({ children }) {
     // user = the decoded JWT payload: { userId, email, role }
     // null means not logged in
     const [user, setUser] = useState(() => {
-        // On first render, try to restore session from localStorage
+        // Try to get explicit user object first
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+            try { return JSON.parse(storedUser); } catch { }
+        }
+        // Fallback to decoding token if user object is missing
         const token = localStorage.getItem("token");
         return token ? decodeToken(token) : null;
     });
 
     /**
-     * Login — calls the API, stores token, updates user state.
-     * Throws if credentials are wrong (so the Login page can show the error).
+     * Login — calls the API, stores token and user, updates state.
+     * Throws if credentials are wrong.
      */
     async function login(credentials) {
         const data = await loginUser(credentials); // throws on 401
         localStorage.setItem("token", data.token);
-        setUser(decodeToken(data.token));
+        localStorage.setItem("user", JSON.stringify(data.user));
+        setUser(data.user);
         return data;
     }
 
     /**
-     * Register — calls the API, stores token, updates user state.
-     * Throws on validation errors (so the Register page can show them).
+     * Register — calls the API, stores token and user, updates state.
+     * Throws on validation errors.
      */
     async function register(formData) {
         const data = await registerUser(formData); // throws on 400/409
         localStorage.setItem("token", data.token);
-        setUser(decodeToken(data.token));
+        localStorage.setItem("user", JSON.stringify(data.user));
+        setUser(data.user);
         return data;
     }
 
     /**
-     * Logout — clears token from localStorage and resets user to null.
+     * Logout — clears token and user from localStorage and resets state.
      */
     function logout() {
         localStorage.removeItem("token");
+        localStorage.removeItem("user");
         setUser(null);
     }
 

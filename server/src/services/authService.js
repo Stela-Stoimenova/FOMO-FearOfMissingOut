@@ -4,7 +4,7 @@ import { prisma } from "../db.js";
 
 function signToken(user) {
   return jwt.sign(
-    { userId: user.id, role: user.role, email: user.email },
+    { userId: user.id, role: user.role, email: user.email, name: user.name },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
