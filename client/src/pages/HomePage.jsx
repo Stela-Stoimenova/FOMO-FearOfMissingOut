@@ -2,7 +2,7 @@
 // Supports search (q param), loading state, and error state
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getEvents } from "../api/events.js";
+import { getEvents, getNearbyEvents } from "../api/events.js";
 
 // Format a price in cents to a readable string (e.g. 1500 → "15.00 лв")
 function formatPrice(cents) {
@@ -21,27 +21,31 @@ function formatDate(isoString) {
 }
 
 export default function HomePage() {
-    // The text the user is typing in the search box
+    // Search state
     const [searchInput, setSearchInput] = useState("");
-
-    // The query we actually send to the API (updated 400ms after the user stops typing)
     const [query, setQuery] = useState("");
 
-    // API response state
+    // Main events state
     const [events, setEvents] = useState([]);
     const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Debounce: wait 400ms after the user stops typing before sending the request
+    // Nearby events state
+    const [nearbyEvents, setNearbyEvents] = useState([]);
+    const [nearbyLoading, setNearbyLoading] = useState(false);
+    const [nearbyError, setNearbyError] = useState(null);
+    const [locationPermission, setLocationPermission] = useState("prompt"); // prompt, denied, granted
+
+    // Debounce search
     useEffect(() => {
         const timer = setTimeout(() => {
             setQuery(searchInput.trim());
         }, 400);
-        return () => clearTimeout(timer); // cancel the timer if user keeps typing
+        return () => clearTimeout(timer);
     }, [searchInput]);
 
-    // Fetch events whenever the search query changes
+    // Fetch all events on query change
     useEffect(() => {
         async function fetchEvents() {
             setLoading(true);
@@ -58,7 +62,51 @@ export default function HomePage() {
         }
 
         fetchEvents();
-    }, [query]); // re-runs every time `query` changes
+    }, [query]);
+
+    // Request location and fetch nearby events
+    function handleFindNearby() {
+        if (!navigator.geolocation) {
+            setNearbyError("Geolocation is not supported by your browser");
+            return;
+        }
+
+        setNearbyLoading(true);
+        setNearbyError(null);
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                setLocationPermission("granted");
+                try {
+                    const { latitude, longitude } = position.coords;
+                    const data = await getNearbyEvents(latitude, longitude, 10);
+                    setNearbyEvents(data);
+                } catch (err) {
+                    setNearbyError(err.message || "Failed to fetch nearby events");
+                } finally {
+                    setNearbyLoading(false);
+                }
+            },
+            (geoError) => {
+                setLocationPermission("denied");
+                setNearbyError("Location access denied or unavailable.");
+                setNearbyLoading(false);
+            }
+        );
+    }
+
+    // A reusable card component
+    const EventCard = ({ event }) => (
+        <Link key={event.id} to={`/events/${event.id}`} className="event-card">
+            <div className="event-card-img">🎶</div>
+            <div className="event-card-body">
+                <h3>{event.title}</h3>
+                <p>📍 {event.location}</p>
+                <p>📅 {formatDate(event.startAt)}</p>
+                <p className="event-price">{formatPrice(event.priceCents)}</p>
+            </div>
+        </Link>
+    );
 
     return (
         <main className="page">
@@ -75,10 +123,40 @@ export default function HomePage() {
                 />
             </div>
 
-            {/* Loading state */}
+            {/* Nearby Events Section */}
+            <section className="nearby-section" style={{ marginBottom: "3rem", padding: "1.5rem", background: "#161b27", borderRadius: "10px", border: "1px solid #1e2536" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+                    <h2 style={{ fontSize: "1.25rem", margin: 0, color: "#f1f5f9" }}>📍 Nearby Events (10km)</h2>
+                    {locationPermission !== "granted" && !nearbyLoading && (
+                        <button className="btn-primary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem" }} onClick={handleFindNearby}>
+                            Find near me
+                        </button>
+                    )}
+                </div>
+
+                {nearbyLoading && <p className="state-msg" style={{ margin: "1rem 0" }}>Locating & fetching events…</p>}
+                {nearbyError && <div className="form-error" style={{ margin: 0 }}>{nearbyError}</div>}
+
+                {locationPermission === "granted" && !nearbyLoading && nearbyEvents.length === 0 && !nearbyError && (
+                    <p className="state-msg" style={{ margin: "1rem 0" }}>No upcoming events found within 10km of your location.</p>
+                )}
+
+                {nearbyEvents.length > 0 && (
+                    <div className="event-grid" style={{ marginTop: "1rem" }}>
+                        {nearbyEvents.map(event => <EventCard key={event.id} event={event} />)}
+                    </div>
+                )}
+            </section>
+
+            {/* All Events Section */}
+            <h2 style={{ fontSize: "1.5rem", margin: "0 0 1rem 0", color: "#f1f5f9" }}>
+                {query ? "Search Results" : "All Upcoming Events"}
+            </h2>
+
+            {/* Main Events Loading state */}
             {loading && <p className="state-msg">Loading events…</p>}
 
-            {/* Error state */}
+            {/* Main Events Error state */}
             {!loading && error && (
                 <div className="state-error">
                     <p>⚠️ {error}</p>
@@ -98,18 +176,8 @@ export default function HomePage() {
 
             {/* Event cards grid */}
             {!loading && !error && events.length > 0 && (
-                <section className="event-grid">
-                    {events.map((event) => (
-                        <Link key={event.id} to={`/events/${event.id}`} className="event-card">
-                            <div className="event-card-img">🎶</div>
-                            <div className="event-card-body">
-                                <h3>{event.title}</h3>
-                                <p>📍 {event.location}</p>
-                                <p>📅 {formatDate(event.startAt)}</p>
-                                <p className="event-price">{formatPrice(event.priceCents)}</p>
-                            </div>
-                        </Link>
-                    ))}
+                <section className="event-grid" style={{ marginTop: "1rem" }}>
+                    {events.map((event) => <EventCard key={event.id} event={event} />)}
                 </section>
             )}
         </main>

@@ -32,6 +32,19 @@ export async function getEvents(params = {}) {
 }
 
 /**
+ * GET /api/events/nearby
+ * Fetch events near a specific location.
+ *
+ * @param {number} lat
+ * @param {number} lng
+ * @param {number} [radius=10]
+ * @returns {Event[]}
+ */
+export async function getNearbyEvents(lat, lng, radius = 10) {
+    return apiRequest(`/events/nearby?lat=${lat}&lng=${lng}&radius=${radius}`);
+}
+
+/**
  * GET /api/events/popular
  * Top 10 events ranked by ticket sales + recency.
  *
