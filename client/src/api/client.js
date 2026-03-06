@@ -2,7 +2,7 @@
 // Base API helper — all requests go through here.
 // Change BASE_URL once and it applies everywhere.
 
-const BASE_URL = "http://localhost:5000/api";
+const BASE_URL = "/api";
 
 /**
  * Makes a fetch request and returns parsed JSON.
