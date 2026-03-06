@@ -194,6 +194,46 @@ h1 {
   color: #94a3b8;
 }
 
+/* ─── Event detail page ──────────────────────────────────────────────────────── */
+.back-link {
+  display: inline-block;
+  color: #64748b;
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+  transition: color 0.2s;
+}
+
+.back-link:hover {
+  color: #94a3b8;
+}
+
+.btn-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-disabled:hover {
+  background: #818cf8;
+}
+
+/* prevent hover colour change */
+
+.price-surge {
+  color: #fb923c;
+}
+
+.surge-badge {
+  display: inline-block;
+  background: #431407;
+  color: #fb923c;
+  border: 1px solid #7c2d12;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
 
 /* ─── Event grid (Home page) ─────────────────────────────────────────────────── */
 .event-grid {
