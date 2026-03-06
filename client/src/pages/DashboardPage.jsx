@@ -56,6 +56,10 @@ export default function DashboardPage() {
             </div>
 
             <div className="dashboard-actions">
+                <Link to="/profile" className="action-card">
+                    My Profile
+                </Link>
+
                 {/* DANCER actions */}
                 {user.role === "DANCER" && (
                     <Link to="/my-tickets" className="action-card">
