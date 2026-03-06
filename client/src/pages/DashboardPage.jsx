@@ -18,25 +18,23 @@ export default function DashboardPage() {
             </div>
 
             <div className="dashboard-actions">
-                <div className="dashboard-actions">
-                    {/* DANCER actions */}
-                    {user.role === "DANCER" && (
-                        <Link to="/my-tickets" className="action-card">
-                            My Tickets
-                        </Link>
-                    )}
-
-                    {/* STUDIO / AGENCY actions */}
-                    {(user.role === "STUDIO" || user.role === "AGENCY") && (
-                        <Link to="/create-event" className="action-card">
-                            Create Event
-                        </Link>
-                    )}
-
-                    <Link to="/" className="action-card">
-                        Browse Events
+                {/* DANCER actions */}
+                {user.role === "DANCER" && (
+                    <Link to="/my-tickets" className="action-card">
+                        My Tickets
                     </Link>
-                </div>
+                )}
+
+                {/* STUDIO / AGENCY actions */}
+                {(user.role === "STUDIO" || user.role === "AGENCY") && (
+                    <Link to="/create-event" className="action-card">
+                        Create Event
+                    </Link>
+                )}
+
+                <Link to="/" className="action-card">
+                    Browse Events
+                </Link>
             </div>
         </main>
     );
