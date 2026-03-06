@@ -2,7 +2,7 @@
 // Supports search (q param), loading state, and error state
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getEvents, getNearbyEvents } from "../api/events.js";
+import { getEvents, getNearbyEvents, getPopularEvents } from "../api/events.js";
 
 // Format a price in cents to a readable string (e.g. 1500 → "15.00 лв")
 function formatPrice(cents) {
@@ -36,6 +36,26 @@ export default function HomePage() {
     const [nearbyLoading, setNearbyLoading] = useState(false);
     const [nearbyError, setNearbyError] = useState(null);
     const [locationPermission, setLocationPermission] = useState("prompt"); // prompt, denied, granted
+
+    // Popular events state
+    const [popularEvents, setPopularEvents] = useState([]);
+    const [popularLoading, setPopularLoading] = useState(true);
+    const [popularError, setPopularError] = useState(null);
+
+    // Fetch popular events on mount
+    useEffect(() => {
+        async function fetchPopular() {
+            try {
+                const data = await getPopularEvents();
+                setPopularEvents(data);
+            } catch (err) {
+                setPopularError(err.message || "Failed to fetch popular events");
+            } finally {
+                setPopularLoading(false);
+            }
+        }
+        fetchPopular();
+    }, []);
 
     // Debounce search
     useEffect(() => {
@@ -147,6 +167,26 @@ export default function HomePage() {
                     </div>
                 )}
             </section>
+
+            {/* Popular Events Section (hide when searching) */}
+            {!query && (
+                <section className="popular-section" style={{ marginBottom: "3rem" }}>
+                    <h2 style={{ fontSize: "1.5rem", margin: "0 0 1rem 0", color: "#f1f5f9" }}>🔥 Popular Events</h2>
+
+                    {popularLoading && <p className="state-msg">Loading popular events…</p>}
+                    {popularError && <div className="form-error">{popularError}</div>}
+
+                    {!popularLoading && !popularError && popularEvents.length === 0 && (
+                        <p className="state-msg" style={{ margin: "1rem 0" }}>No popular events available right now.</p>
+                    )}
+
+                    {!popularLoading && !popularError && popularEvents.length > 0 && (
+                        <div className="event-grid" style={{ marginTop: "1rem" }}>
+                            {popularEvents.map(event => <EventCard key={event.id} event={event} />)}
+                        </div>
+                    )}
+                </section>
+            )}
 
             {/* All Events Section */}
             <h2 style={{ fontSize: "1.5rem", margin: "0 0 1rem 0", color: "#f1f5f9" }}>
