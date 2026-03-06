@@ -1,13 +1,60 @@
 // My Tickets page — shows all tickets the logged-in dancer has purchased
-// Will call GET /api/events/me/tickets when backend is connected
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { getMyTickets } from "../api/events.js";
+
+function formatDate(isoString) {
+    return new Date(isoString).toLocaleString("bg-BG", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+}
+
+function formatPrice(cents) {
+    return `${(cents / 100).toFixed(2)} лв`;
+}
 
 export default function MyTicketsPage() {
-    // Placeholder tickets — will come from the API later
-    const tickets = [
-        { id: 1, eventTitle: "Urban Salsa Night", location: "Sofia", startAt: "2026-04-10 19:00", priceCents: 1500 },
-        { id: 2, eventTitle: "Bachata Social", location: "Plovdiv", startAt: "2026-04-20 20:00", priceCents: 800 },
-    ];
+    const [tickets, setTickets] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        async function fetchTickets() {
+            setLoading(true);
+            setError(null);
+            try {
+                const data = await getMyTickets();
+                setTickets(data);
+            } catch (err) {
+                setError(err.message || "Failed to load tickets");
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchTickets();
+    }, []);
+
+    if (loading) {
+        return (
+            <main className="page page-narrow">
+                <p className="state-msg">Loading tickets…</p>
+            </main>
+        );
+    }
+
+    if (error) {
+        return (
+            <main className="page page-narrow">
+                <div className="form-error">{error}</div>
+                <Link to="/dashboard">← Back to Dashboard</Link>
+            </main>
+        );
+    }
 
     if (tickets.length === 0) {
         return (
@@ -29,12 +76,12 @@ export default function MyTicketsPage() {
                     <div key={ticket.id} className="ticket-card">
                         <div className="ticket-card-left">🎶</div>
                         <div className="ticket-card-body">
-                            <h3>{ticket.eventTitle}</h3>
-                            <p>📍 {ticket.location}</p>
-                            <p>📅 {ticket.startAt}</p>
+                            <h3>{ticket.event.title}</h3>
+                            <p>📍 {ticket.event.location}</p>
+                            <p>📅 {formatDate(ticket.event.startAt)}</p>
                         </div>
                         <div className="ticket-card-price">
-                            {(ticket.priceCents / 100).toFixed(2)} лв
+                            {formatPrice(ticket.priceCents)}
                         </div>
                     </div>
                 ))}

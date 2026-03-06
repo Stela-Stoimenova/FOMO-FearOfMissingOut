@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
 
 import Navbar from "./components/Navbar.jsx";
+import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import HomePage from "./pages/HomePage.jsx";
 import EventDetailPage from "./pages/EventDetailPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
@@ -13,7 +14,6 @@ import MyTicketsPage from "./pages/MyTicketsPage.jsx";
 
 export default function App() {
   return (
-    // AuthProvider wraps everything — any component below can call useAuth()
     <AuthProvider>
       <BrowserRouter>
         <Navbar />
@@ -23,9 +23,11 @@ export default function App() {
           <Route path="/events/:id" element={<EventDetailPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/create-event" element={<CreateEventPage />} />
-          <Route path="/my-tickets" element={<MyTicketsPage />} />
+
+          {/* Protected routes */}
+          <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="/create-event" element={<ProtectedRoute><CreateEventPage /></ProtectedRoute>} />
+          <Route path="/my-tickets" element={<ProtectedRoute><MyTicketsPage /></ProtectedRoute>} />
 
           <Route path="*" element={
             <main className="page page-narrow">

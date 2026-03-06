@@ -1,7 +1,8 @@
 // Event detail page — fetches a single event from GET /api/events/:id
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
-import { getEventById } from "../api/events.js";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { getEventById, buyTicket } from "../api/events.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 function formatPrice(cents) {
     return `${(cents / 100).toFixed(2)} лв`;
@@ -20,10 +21,17 @@ function formatDate(isoString) {
 
 export default function EventDetailPage() {
     const { id } = useParams(); // reads :id from /events/:id
+    const { user, isLoggedIn } = useAuth();
+    const navigate = useNavigate();
 
     const [event, setEvent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
+    // Ticket purchase state
+    const [buying, setBuying] = useState(false);
+    const [buyError, setBuyError] = useState(null);
+    const [purchased, setPurchased] = useState(false);
 
     useEffect(() => {
         async function fetchEvent() {
@@ -41,6 +49,19 @@ export default function EventDetailPage() {
 
         fetchEvent();
     }, [id]); // re-runs if the id in the URL changes
+
+    async function handleBuyTicket() {
+        setBuying(true);
+        setBuyError(null);
+        try {
+            await buyTicket(id);
+            setPurchased(true);
+        } catch (err) {
+            setBuyError(err.message || "Failed to purchase ticket");
+        } finally {
+            setBuying(false);
+        }
+    }
 
     // ── Loading ──────────────────────────────────────────────────────────────────
     if (loading) {
@@ -119,19 +140,39 @@ export default function EventDetailPage() {
                 )}
             </div>
 
-            {/* Buy button */}
-            {isSoldOut ? (
-                <button className="btn-primary btn-disabled" disabled>Sold Out</button>
-            ) : (
-                <button
-                    className="btn-primary"
-                    onClick={() => alert("Login required — auth coming soon!")}
-                >
-                    Buy Ticket — {formatPrice(event.priceCents)}
-                </button>
-            )}
+            {buyError && <div className="form-error">{buyError}</div>}
 
-            <p className="hint">You need to be logged in as a DANCER to purchase tickets.</p>
+            {/* Role-based actions */}
+            {!isLoggedIn ? (
+                <button className="btn-primary" onClick={() => navigate("/login")}>
+                    Login to buy tickets
+                </button>
+            ) : user.role === "DANCER" ? (
+                purchased ? (
+                    <div className="btn-primary" style={{ background: "#10b981", textAlign: "center", cursor: "default" }}>
+                        ✅ Ticket Purchased
+                    </div>
+                ) : isSoldOut ? (
+                    <button className="btn-primary btn-disabled" disabled>Sold Out</button>
+                ) : (
+                    <button className="btn-primary" onClick={handleBuyTicket} disabled={buying}>
+                        {buying ? "Processing…" : `Buy Ticket — ${formatPrice(event.priceCents)}`}
+                    </button>
+                )
+            ) : (user.role === "STUDIO" || user.role === "AGENCY") ? (
+                <button className="btn-primary" style={{ background: "#475569" }} onClick={() => alert("Edit event coming soon!")}>
+                    Edit Event
+                </button>
+            ) : null}
+
+            {!isLoggedIn && (
+                <p className="hint">You need to be logged in as a DANCER to purchase tickets.</p>
+            )}
+            {purchased && (
+                <p className="hint" style={{ marginTop: "1rem" }}>
+                    <Link to="/my-tickets">View your tickets →</Link>
+                </p>
+            )}
         </main>
     );
 }
