@@ -71,3 +71,16 @@ export async function buyTicket(eventId) {
 export async function getMyTickets() {
     return apiRequest("/events/me/tickets");
 }
+
+/**
+ * POST /api/events
+ * Create a new event. Requires STUDIO or AGENCY role.
+ *
+ * @param {object} eventData
+ */
+export async function createEvent(eventData) {
+    return apiRequest("/events", {
+        method: "POST",
+        body: JSON.stringify(eventData),
+    });
+}
