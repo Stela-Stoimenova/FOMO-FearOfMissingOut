@@ -51,3 +51,23 @@ export async function getPopularEvents() {
 export async function getEventById(id) {
     return apiRequest(`/events/${id}`);
 }
+
+/**
+ * POST /api/events/:id/tickets
+ * Buy a ticket. Requires DANCER role.
+ *
+ * @param {number|string} eventId
+ */
+export async function buyTicket(eventId) {
+    return apiRequest(`/events/${eventId}/tickets`, {
+        method: "POST",
+    });
+}
+
+/**
+ * GET /api/events/me/tickets
+ * Get tickets for the logged in DANCER.
+ */
+export async function getMyTickets() {
+    return apiRequest("/events/me/tickets");
+}
