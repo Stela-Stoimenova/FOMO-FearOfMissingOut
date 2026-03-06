@@ -1,30 +1,46 @@
-// Register page — collect name, email, password, and role
-// Will call POST /api/auth/register when backend is connected
+// Register page — calls the real API and redirects on success
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function RegisterPage() {
+    const { register } = useAuth();
+    const navigate = useNavigate();
+
     const [form, setForm] = useState({
         name: "",
         email: "",
         password: "",
         role: "DANCER",
     });
+    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false);
 
-    // Generic change handler — updates whichever field changed
     function handleChange(e) {
         setForm({ ...form, [e.target.name]: e.target.value });
     }
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault();
-        // TODO: call POST /api/auth/register with form data
-        alert(`Register: ${form.email} as ${form.role} (backend not connected yet)`);
+        setError(null);
+        setLoading(true);
+
+        try {
+            await register(form);
+            navigate("/dashboard"); // redirect after successful registration
+        } catch (err) {
+            setError(err.message || "Registration failed");
+        } finally {
+            setLoading(false);
+        }
     }
 
     return (
         <main className="page page-narrow">
             <h1>Create Account</h1>
+
+            {/* Error message from the API (e.g. email already used) */}
+            {error && <div className="form-error">{error}</div>}
 
             <form className="auth-form" onSubmit={handleSubmit}>
                 <label>
@@ -72,7 +88,9 @@ export default function RegisterPage() {
                     </select>
                 </label>
 
-                <button type="submit" className="btn-primary">Create Account</button>
+                <button type="submit" className="btn-primary" disabled={loading}>
+                    {loading ? "Creating account…" : "Create Account"}
+                </button>
             </form>
 
             <p className="hint">
