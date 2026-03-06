@@ -93,8 +93,8 @@ export default function CreateEventPage() {
                 </label>
 
                 <label>
-                    Price (in stotinki, e.g. 1500 = 15.00 лв) *
-                    <input type="number" name="priceCents" value={form.priceCents} onChange={handleChange} min={0} placeholder="1500" required />
+                    Price (in cents, e.g. 2500 = €25.00) *
+                    <input type="number" name="priceCents" value={form.priceCents} onChange={handleChange} min={0} placeholder="2500" required />
                 </label>
 
                 <label>

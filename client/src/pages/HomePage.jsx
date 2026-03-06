@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getEvents, getNearbyEvents, getPopularEvents } from "../api/events.js";
 
-// Format a price in cents to a readable string (e.g. 1500 → "15.00 лв")
+// Format a price in cents to a readable string (e.g. 2500 → "€25.00")
 function formatPrice(cents) {
-    return `${(cents / 100).toFixed(2)} лв`;
+    return `€${(cents / 100).toFixed(2)}`;
 }
 
 // Format an ISO date string to a short readable form (e.g. "10 Apr 2026, 19:00")
@@ -118,19 +118,21 @@ export default function HomePage() {
     // A reusable card component
     const EventCard = ({ event }) => (
         <Link key={event.id} to={`/events/${event.id}`} className="event-card">
-            <div className="event-card-img">🎶</div>
+            <div className="event-card-img"></div>
             <div className="event-card-body">
                 <h3>{event.title}</h3>
-                <p>📍 {event.location}</p>
-                <p>📅 {formatDate(event.startAt)}</p>
-                <p className="event-price">{formatPrice(event.priceCents)}</p>
+                <p className="event-card-detail">{formatDate(event.startAt)} • {event.location}</p>
+                <div className="event-card-footer">
+                    <p className="event-price">{formatPrice(event.priceCents)}</p>
+                    <span className="event-card-cta">Get Tickets</span>
+                </div>
             </div>
         </Link>
     );
 
     return (
         <main className="page">
-            <h1>Welcome to FOMO 🎵</h1>
+            <h1>Welcome to FOMO</h1>
             <p className="subtitle">Discover dance events, buy tickets, and never miss out.</p>
 
             {/* Search input */}
@@ -146,7 +148,7 @@ export default function HomePage() {
             {/* Nearby Events Section */}
             <section className="nearby-section" style={{ marginBottom: "3rem", padding: "1.5rem", background: "#161b27", borderRadius: "10px", border: "1px solid #1e2536" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                    <h2 style={{ fontSize: "1.25rem", margin: 0, color: "#f1f5f9" }}>📍 Nearby Events (10km)</h2>
+                    <h2 style={{ fontSize: "1.25rem", margin: 0, color: "var(--text-main)" }}>📍 Nearby Events (10km)</h2>
                     {locationPermission !== "granted" && !nearbyLoading && (
                         <button className="btn-primary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem" }} onClick={handleFindNearby}>
                             Find near me
@@ -171,7 +173,7 @@ export default function HomePage() {
             {/* Popular Events Section (hide when searching) */}
             {!query && (
                 <section className="popular-section" style={{ marginBottom: "3rem" }}>
-                    <h2 style={{ fontSize: "1.5rem", margin: "0 0 1rem 0", color: "#f1f5f9" }}>🔥 Popular Events</h2>
+                    <h2 style={{ fontSize: "1.5rem", margin: "0 0 1rem 0", color: "var(--text-main)" }}>🔥 Popular Events</h2>
 
                     {popularLoading && <p className="state-msg">Loading popular events…</p>}
                     {popularError && <div className="form-error">{popularError}</div>}
