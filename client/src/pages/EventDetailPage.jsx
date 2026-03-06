@@ -88,7 +88,7 @@ export default function EventDetailPage() {
         return (
             <main className="page page-narrow">
                 <div className="state-error">
-                    <p>⚠️ {error.message}</p>
+                    <p>{error.message}</p>
                     <p className="hint">Make sure the backend is running on <code>http://localhost:5000</code></p>
                 </div>
                 <Link to="/">← Back to events</Link>
@@ -106,73 +106,75 @@ export default function EventDetailPage() {
             {/* Back link */}
             <Link to="/" className="back-link">← All events</Link>
 
-            <h1>{event.title}</h1>
+            <div className="detail-card">
+                <h1>{event.title}</h1>
 
-            {event.description && (
-                <p className="subtitle">{event.description}</p>
-            )}
-
-            {/* Details grid */}
-            <div className="detail-grid">
-                <div className="detail-item"><strong>Location:</strong> {event.location}</div>
-                <div className="detail-item"><strong>Starts:</strong> {formatDate(event.startAt)}</div>
-                {event.endAt && (
-                    <div className="detail-item"><strong>Ends:</strong> {formatDate(event.endAt)}</div>
+                {event.description && (
+                    <p className="detail-description">{event.description}</p>
                 )}
-                <div className="detail-item">
-                    <strong>Price:</strong>{" "}
-                    <span className={surgeWarning && !isSoldOut ? "price-surge" : ""}>
-                        {formatPrice(event.priceCents)}
-                    </span>
-                    {surgeWarning && !isSoldOut && (
-                        <span className="surge-badge">+15% surge</span>
+
+                {/* Details grid */}
+                <div className="detail-grid">
+                    <div className="detail-item"><strong>Location:</strong> {event.location}</div>
+                    <div className="detail-item"><strong>Starts:</strong> {formatDate(event.startAt)}</div>
+                    {event.endAt && (
+                        <div className="detail-item"><strong>Ends:</strong> {formatDate(event.endAt)}</div>
+                    )}
+                    <div className="detail-item">
+                        <strong>Price:</strong>{" "}
+                        <span className={surgeWarning && !isSoldOut ? "price-surge" : ""}>
+                            {formatPrice(event.priceCents)}
+                        </span>
+                        {surgeWarning && !isSoldOut && (
+                            <span className="surge-badge">+15% surge</span>
+                        )}
+                    </div>
+                    {event.capacity != null && (
+                        <div className="detail-item">
+                            <strong>Capacity:</strong> {ticketsSold} / {event.capacity} sold
+                        </div>
+                    )}
+                    {event.creator && (
+                        <div className="detail-item">
+                            <strong>Organiser:</strong> {event.creator.name ?? event.creator.role}
+                        </div>
                     )}
                 </div>
-                {event.capacity != null && (
-                    <div className="detail-item">
-                        <strong>Capacity:</strong> {ticketsSold} / {event.capacity} sold
-                    </div>
+
+                {buyError && <div className="form-error">{buyError}</div>}
+
+                {/* Role-based actions */}
+                {!isLoggedIn ? (
+                    <button className="btn-primary" onClick={() => navigate("/login")}>
+                        Login to buy tickets
+                    </button>
+                ) : user.role === "DANCER" ? (
+                    purchased ? (
+                        <div className="btn-primary">
+                            Ticket Purchased
+                        </div>
+                    ) : isSoldOut ? (
+                        <button className="btn-primary btn-disabled" disabled>Sold Out</button>
+                    ) : (
+                        <button className="btn-primary" onClick={handleBuyTicket} disabled={buying}>
+                            {buying ? "Processing…" : `Buy Ticket — ${formatPrice(event.priceCents)}`}
+                        </button>
+                    )
+                ) : (user.role === "STUDIO" || user.role === "AGENCY") ? (
+                    <button className="btn-primary" style={{ background: "#475569" }} onClick={() => alert("Edit event coming soon!")}>
+                        Edit Event
+                    </button>
+                ) : null}
+
+                {!isLoggedIn && (
+                    <p className="hint">You need to be logged in as a DANCER to purchase tickets.</p>
                 )}
-                {event.creator && (
-                    <div className="detail-item">
-                        <strong>Organiser:</strong> {event.creator.name ?? event.creator.role}
-                    </div>
+                {purchased && (
+                    <p className="hint" style={{ marginTop: "1rem" }}>
+                        <Link to="/my-tickets">View your tickets →</Link>
+                    </p>
                 )}
             </div>
-
-            {buyError && <div className="form-error">{buyError}</div>}
-
-            {/* Role-based actions */}
-            {!isLoggedIn ? (
-                <button className="btn-primary" onClick={() => navigate("/login")}>
-                    Login to buy tickets
-                </button>
-            ) : user.role === "DANCER" ? (
-                purchased ? (
-                    <div className="btn-primary">
-                        Ticket Purchased
-                    </div>
-                ) : isSoldOut ? (
-                    <button className="btn-primary btn-disabled" disabled>Sold Out</button>
-                ) : (
-                    <button className="btn-primary" onClick={handleBuyTicket} disabled={buying}>
-                        {buying ? "Processing…" : `Buy Ticket — ${formatPrice(event.priceCents)}`}
-                    </button>
-                )
-            ) : (user.role === "STUDIO" || user.role === "AGENCY") ? (
-                <button className="btn-primary" style={{ background: "#475569" }} onClick={() => alert("Edit event coming soon!")}>
-                    Edit Event
-                </button>
-            ) : null}
-
-            {!isLoggedIn && (
-                <p className="hint">You need to be logged in as a DANCER to purchase tickets.</p>
-            )}
-            {purchased && (
-                <p className="hint" style={{ marginTop: "1rem" }}>
-                    <Link to="/my-tickets">View your tickets →</Link>
-                </p>
-            )}
         </main>
     );
 }

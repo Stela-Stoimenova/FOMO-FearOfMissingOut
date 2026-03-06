@@ -132,8 +132,13 @@ export default function HomePage() {
 
     return (
         <main className="page">
-            <h1>Welcome to FOMO</h1>
-            <p className="subtitle">Discover dance events, buy tickets, and never miss out.</p>
+            {/* Hero Section */}
+            {!query && (
+                <section className="hero">
+                    <h1>The Premier Platform for Dance Professionals</h1>
+                    <p>Discover exclusive events, manage your tickets, and never miss out on the industry's best opportunities.</p>
+                </section>
+            )}
 
             {/* Search input */}
             <div className="search-bar">
@@ -148,7 +153,7 @@ export default function HomePage() {
             {/* Nearby Events Section */}
             <section className="nearby-section" style={{ marginBottom: "3rem", padding: "1.5rem", background: "#161b27", borderRadius: "10px", border: "1px solid #1e2536" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                    <h2 style={{ fontSize: "1.25rem", margin: 0, color: "var(--text-main)" }}>📍 Nearby Events (10km)</h2>
+                    <h2 style={{ fontSize: "1.25rem", margin: 0, color: "var(--text-main)" }}>Nearby Events (10km)</h2>
                     {locationPermission !== "granted" && !nearbyLoading && (
                         <button className="btn-primary" style={{ padding: "0.4rem 0.8rem", fontSize: "0.85rem" }} onClick={handleFindNearby}>
                             Find near me
@@ -173,7 +178,7 @@ export default function HomePage() {
             {/* Popular Events Section (hide when searching) */}
             {!query && (
                 <section className="popular-section" style={{ marginBottom: "3rem" }}>
-                    <h2 style={{ fontSize: "1.5rem", margin: "0 0 1rem 0", color: "var(--text-main)" }}>🔥 Popular Events</h2>
+                    <h2 style={{ fontSize: "1.5rem", margin: "0 0 1rem 0", color: "var(--text-main)" }}>Popular Events</h2>
 
                     {popularLoading && <p className="state-msg">Loading popular events…</p>}
                     {popularError && <div className="form-error">{popularError}</div>}
@@ -201,7 +206,7 @@ export default function HomePage() {
             {/* Main Events Error state */}
             {!loading && error && (
                 <div className="state-error">
-                    <p>⚠️ {error}</p>
+                    <p>{error}</p>
                     <p className="hint">Make sure the backend is running on <code>http://localhost:5000</code></p>
                 </div>
             )}
