@@ -20,8 +20,15 @@ export function validateQuery(schema) {
       const err = new Error(message);
       err.status = 400;
       return next(err);
+      return next(err);
     }
-    req.query = result.data;
+
+    // Safely replace req.query keys (since req.query is a getter only in modern Node/Express)
+    for (const key in req.query) {
+      delete req.query[key];
+    }
+    Object.assign(req.query, result.data);
+
     return next();
   };
 }

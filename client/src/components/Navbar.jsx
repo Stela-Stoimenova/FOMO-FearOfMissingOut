@@ -35,7 +35,7 @@ export default function Navbar() {
 
                         {/* User info + logout */}
                         <span className="navbar-user">
-                            {user.email}
+                            {user.name || user.email}
                             <span className="role-badge">{user.role}</span>
                         </span>
                         <button className="navbar-logout" onClick={handleLogout}>
