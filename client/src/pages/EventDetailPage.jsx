@@ -31,7 +31,7 @@ export default function EventDetailPage() {
     // Ticket purchase state
     const [buying, setBuying] = useState(false);
     const [buyError, setBuyError] = useState(null);
-    const [purchased, setPurchased] = useState(false);
+    const [purchaseResult, setPurchaseResult] = useState(null);
 
     useEffect(() => {
         async function fetchEvent() {
@@ -54,8 +54,8 @@ export default function EventDetailPage() {
         setBuying(true);
         setBuyError(null);
         try {
-            await buyTicket(id);
-            setPurchased(true);
+            const result = await buyTicket(id);
+            setPurchaseResult(result);
         } catch (err) {
             setBuyError(err.message || "Failed to purchase ticket");
         } finally {
@@ -122,16 +122,29 @@ export default function EventDetailPage() {
                     )}
                     <div className="detail-item">
                         <strong>Price:</strong>{" "}
-                        <span className={surgeWarning && !isSoldOut ? "price-surge" : ""}>
-                            {formatPrice(event.priceCents)}
-                        </span>
-                        {surgeWarning && !isSoldOut && (
-                            <span className="surge-badge">+15% surge</span>
+                        {surgeWarning && !isSoldOut ? (
+                            <>
+                                <span style={{ textDecoration: 'line-through', color: 'var(--text-muted)', marginRight: '0.5rem' }}>
+                                    {formatPrice(event.priceCents)}
+                                </span>
+                                <span className="price-surge">
+                                    {formatPrice(Math.round(event.priceCents * 1.15))}
+                                </span>
+                                <span className="surge-badge">📈 Dynamic Pricing (+15%) Active</span>
+                            </>
+                        ) : (
+                            <span>{formatPrice(event.priceCents)}</span>
                         )}
                     </div>
                     {event.capacity != null && (
                         <div className="detail-item">
-                            <strong>Capacity:</strong> {ticketsSold} / {event.capacity} sold
+                            <strong>Capacity & Demand:</strong>
+                            <span>{ticketsSold} / {event.capacity} tickets sold</span>
+                            {surgeWarning && !isSoldOut && (
+                                <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--warning)', fontWeight: 500 }}>
+                                    🔥 High Demand: Over 50% of capacity reached!
+                                </div>
+                            )}
                         </div>
                     )}
                     {event.creator && (
@@ -149,15 +162,37 @@ export default function EventDetailPage() {
                         Login to buy tickets
                     </button>
                 ) : user.role === "DANCER" ? (
-                    purchased ? (
-                        <div className="btn-primary">
-                            Ticket Purchased
+                    purchaseResult ? (
+                        <div className="detail-item" style={{ marginTop: '1rem', border: '1px solid var(--success)', background: 'rgba(16, 185, 129, 0.05)' }}>
+                            <h3 style={{ color: 'var(--success)', marginBottom: '1rem' }}>🎉 Ticket Purchased Successfully!</h3>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                                <div>
+                                    <strong>Base Price</strong>
+                                    <span>{formatPrice(purchaseResult.pricing.basePriceCents)}</span>
+                                </div>
+                                <div>
+                                    <strong>Final Paid</strong>
+                                    <span>{formatPrice(purchaseResult.pricing.finalPriceCents)} {purchaseResult.pricing.surgeApplied && <span style={{ fontSize: '0.8em', color: 'var(--warning)' }}>(Surge)</span>}</span>
+                                </div>
+                                <div>
+                                    <strong>Platform Commission (10%)</strong>
+                                    <span style={{ color: 'var(--text-muted)' }}>{formatPrice(purchaseResult.transaction.commissionCents)}</span>
+                                </div>
+                                <div>
+                                    <strong>Net Organizer Revenue</strong>
+                                    <span>{formatPrice(purchaseResult.transaction.netCents)}</span>
+                                </div>
+                            </div>
+                            <div style={{ padding: '0.75rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border-light)' }}>
+                                <strong style={{ color: 'var(--primary)' }}>🌟 Loyalty Rewards</strong>
+                                <span>You earned <strong>{purchaseResult.loyalty.pointsEarned}</strong> points! (New Balance: {purchaseResult.loyalty.totalPoints})</span>
+                            </div>
                         </div>
                     ) : isSoldOut ? (
                         <button className="btn-primary btn-disabled" disabled>Sold Out</button>
                     ) : (
                         <button className="btn-primary" onClick={handleBuyTicket} disabled={buying}>
-                            {buying ? "Processing…" : `Buy Ticket — ${formatPrice(event.priceCents)}`}
+                            {buying ? "Processing…" : `Buy Ticket — ${surgeWarning ? formatPrice(Math.round(event.priceCents * 1.15)) : formatPrice(event.priceCents)}`}
                         </button>
                     )
                 ) : (user.role === "STUDIO" || user.role === "AGENCY") ? (
@@ -169,9 +204,9 @@ export default function EventDetailPage() {
                 {!isLoggedIn && (
                     <p className="hint">You need to be logged in as a DANCER to purchase tickets.</p>
                 )}
-                {purchased && (
+                {purchaseResult && (
                     <p className="hint" style={{ marginTop: "1rem" }}>
-                        <Link to="/my-tickets">View your tickets →</Link>
+                        <Link to="/my-tickets" style={{ color: 'var(--primary)', fontWeight: 600 }}>View your tickets →</Link>
                     </p>
                 )}
             </div>
