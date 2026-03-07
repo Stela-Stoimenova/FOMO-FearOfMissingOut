@@ -163,16 +163,25 @@ export default function HomePage() {
 
             {/* Search & Filter Bar */}
             <div style={{ marginBottom: '2rem' }}>
-                <div className="search-bar" style={{ marginBottom: '0.5rem' }}>
+                <div className="search-bar" style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem' }}>
                     <input
                         type="text"
                         placeholder="Search events by name, location…"
                         value={searchInput}
                         onChange={(e) => setSearchInput(e.target.value)}
+                        style={{ flex: 1 }}
                     />
                     <button
                         className="btn-primary"
-                        style={{ padding: '0.6rem 1rem', background: showFilters ? 'var(--primary)' : 'var(--bg-input)', color: showFilters ? 'var(--bg-main)' : 'var(--text-main)', border: '1px solid var(--border-light)' }}
+                        style={{
+                            padding: '0 1.5rem',
+                            background: showFilters ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                            color: showFilters ? 'var(--bg-main)' : 'var(--text-main)',
+                            border: '1px solid var(--border-light)',
+                            backdropFilter: 'blur(8px)',
+                            transition: 'all 0.2s',
+                            fontWeight: 500
+                        }}
                         onClick={() => setShowFilters(!showFilters)}
                     >
                         {showFilters ? 'Hide Filters' : 'Filters'}
@@ -181,10 +190,10 @@ export default function HomePage() {
 
                 {/* Advanced Filter UI */}
                 {showFilters && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', padding: '1.5rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1.5rem', padding: '1.5rem', background: 'rgba(24, 24, 27, 0.7)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', backdropFilter: 'blur(12px)', boxShadow: 'var(--shadow-md)' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>City</label>
-                            <select value={filterCity} onChange={e => setFilterCity(e.target.value)} style={{ padding: '0.6rem', borderRadius: '4px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border-light)' }}>
+                            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>City</label>
+                            <select className="filter-select" value={filterCity} onChange={e => setFilterCity(e.target.value)}>
                                 <option value="">Anywhere</option>
                                 <option value="Sofia">Sofia</option>
                                 <option value="Plovdiv">Plovdiv</option>
@@ -192,8 +201,8 @@ export default function HomePage() {
                             </select>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Dance Style</label>
-                            <select value={filterStyle} onChange={e => setFilterStyle(e.target.value)} style={{ padding: '0.6rem', borderRadius: '4px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border-light)' }}>
+                            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Dance Style</label>
+                            <select className="filter-select" value={filterStyle} onChange={e => setFilterStyle(e.target.value)}>
                                 <option value="">All Styles</option>
                                 <option value="Hip Hop">Hip Hop</option>
                                 <option value="Contemporary">Contemporary</option>
@@ -203,13 +212,12 @@ export default function HomePage() {
                             </select>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Max Price (€)</label>
+                            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Max Price (€)</label>
                             <input
                                 type="number"
                                 placeholder="Any price"
                                 value={filterMaxPrice}
                                 onChange={e => setFilterMaxPrice(e.target.value)}
-                                style={{ padding: '0.6rem', borderRadius: '4px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border-light)' }}
                             />
                         </div>
                     </div>
