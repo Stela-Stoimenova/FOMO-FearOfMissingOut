@@ -34,13 +34,25 @@ export default function Navbar() {
                         )}
 
                         {/* User info + logout */}
-                        <NavLink to="/profile" className="navbar-user" style={{ cursor: 'pointer', textDecoration: 'none' }}>
-                            {user.name || user.email}
-                            <span className="role-badge">{user.role}</span>
-                        </NavLink>
-                        <button className="navbar-logout" onClick={handleLogout}>
-                            Logout
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                            <NavLink to="/profile" className="navbar-user" style={{ cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: 0, border: 'none' }}>
+                                {user.avatarUrl ? (
+                                    <img src={user.avatarUrl} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-light)' }} />
+                                ) : (
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 'bold', border: '1px solid var(--border-light)' }}>
+                                        {(user.name || user.email).charAt(0).toUpperCase()}
+                                    </div>
+                                )}
+                                <span style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
+                                    <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{user.name || user.email.split('@')[0]}</span>
+                                    <span className="role-badge" style={{ fontSize: '0.65rem' }}>{user.role}</span>
+                                </span>
+                            </NavLink>
+                            <div style={{ width: '1px', height: '24px', background: 'var(--border-light)' }}></div>
+                            <button className="navbar-logout" onClick={handleLogout}>
+                                Logout
+                            </button>
+                        </div>
                     </>
                 ) : (
                     // ── Guest links ────────────────────────────────────────────────────

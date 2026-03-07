@@ -13,6 +13,7 @@ export async function getUserProfile(id) {
         select: {
             id: true,
             name: true,
+            avatarUrl: true,
             role: true,
             createdAt: true,
             _count: {
@@ -38,6 +39,7 @@ export async function getMyProfile(userId) {
             id: true,
             email: true,
             name: true,
+            avatarUrl: true,
             role: true,
             createdAt: true,
             _count: {
@@ -56,6 +58,28 @@ export async function getMyProfile(userId) {
     }
 
     return user;
+}
+
+/** Update own profile (e.g., avatarUrl) */
+export async function updateMyProfile(userId, { avatarUrl }) {
+    const data = {};
+    if (avatarUrl !== undefined) {
+        data.avatarUrl = avatarUrl;
+    }
+
+    const updated = await prisma.user.update({
+        where: { id: userId },
+        data,
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            avatarUrl: true,
+            role: true,
+        },
+    });
+
+    return updated;
 }
 
 /** Get loyalty balance, create account with 0 points if it doesn't exist yet */

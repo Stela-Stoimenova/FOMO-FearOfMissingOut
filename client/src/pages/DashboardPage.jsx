@@ -33,8 +33,19 @@ export default function DashboardPage() {
 
     return (
         <main className="page page-narrow">
-            <h1>Dashboard</h1>
-            <p className="subtitle">Welcome back, <strong>{user.name || user.email.split('@')[0]}</strong>!</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                {user.avatarUrl ? (
+                    <img src={user.avatarUrl} alt="Avatar" style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }} />
+                ) : (
+                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--bg-hover) 0%, var(--bg-card) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 'bold', border: '2px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }}>
+                        {(user.name || user.email).charAt(0).toUpperCase()}
+                    </div>
+                )}
+                <div>
+                    <h1 style={{ marginBottom: '0.25rem' }}>Dashboard</h1>
+                    <p className="subtitle" style={{ margin: 0, fontSize: '1.1rem' }}>Welcome back, <strong>{user.name || user.email.split('@')[0]}</strong>!</p>
+                </div>
+            </div>
 
             <div className="dashboard-info">
                 <p>Email: {user.email}</p>
@@ -137,6 +148,38 @@ export default function DashboardPage() {
                     )}
                 </div>
             )}
+
+            {/* DANCER Memberships Mockup */}
+            {user?.role === "DANCER" && (
+                <section style={{ marginTop: '3rem', padding: '2rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Active Memberships</h2>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--primary)', padding: '0.2rem 0.6rem', background: 'rgba(255,255,255,0.1)', borderRadius: '1rem' }}>Pro Feature</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                        {/* Mock Sub Card */}
+                        <div style={{ flex: '0 0 280px', padding: '1.5rem', background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.1) 0%, transparent 100%)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-light)' }}>S</div>
+                                <div>
+                                    <h4 style={{ margin: 0, fontSize: '1rem' }}>Studio X</h4>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Unlimited Classes</span>
+                                </div>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1rem' }}>
+                                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Renews Aug 1</span>
+                                <span style={{ fontSize: '0.85rem', color: 'var(--text-main)', fontWeight: 600 }}>Active</span>
+                            </div>
+                        </div>
+                        {/* Upsell Mock */}
+                        <div style={{ flex: '0 0 280px', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)', color: 'var(--text-muted)', cursor: 'pointer', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            <span style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>+</span>
+                            <span style={{ fontSize: '0.9rem' }}>Browse Studio Plans</span>
+                        </div>
+                    </div>
+                </section>
+            )}
+
         </main>
     );
 }

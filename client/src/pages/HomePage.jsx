@@ -21,9 +21,15 @@ function formatDate(isoString) {
 }
 
 export default function HomePage() {
-    // Search state
+    // Search & Filter state
     const [searchInput, setSearchInput] = useState("");
     const [query, setQuery] = useState("");
+    const [filterCity, setFilterCity] = useState("");
+    const [filterStyle, setFilterStyle] = useState("");
+    const [filterMaxPrice, setFilterMaxPrice] = useState("");
+
+    // Toggle advanced filters
+    const [showFilters, setShowFilters] = useState(false);
 
     // Main events state
     const [events, setEvents] = useState([]);
@@ -65,13 +71,20 @@ export default function HomePage() {
         return () => clearTimeout(timer);
     }, [searchInput]);
 
-    // Fetch all events on query change
+    // Fetch all events on query or filter change
     useEffect(() => {
         async function fetchEvents() {
             setLoading(true);
             setError(null);
             try {
-                const data = await getEvents({ q: query, limit: 12 });
+                // If a dance style is selected, smartly append it to the search query
+                const finalQuery = filterStyle ? `${query} ${filterStyle}`.trim() : query;
+
+                const params = { q: finalQuery, limit: 12 };
+                if (filterCity) params.city = filterCity;
+                if (filterMaxPrice) params.maxPrice = Number(filterMaxPrice) * 100; // convert to cents
+
+                const data = await getEvents(params);
                 setEvents(data.items);
                 setTotal(data.total);
             } catch (err) {
@@ -82,7 +95,7 @@ export default function HomePage() {
         }
 
         fetchEvents();
-    }, [query]);
+    }, [query, filterCity, filterStyle, filterMaxPrice]);
 
     // Request location and fetch nearby events
     function handleFindNearby() {
@@ -107,10 +120,18 @@ export default function HomePage() {
                     setNearbyLoading(false);
                 }
             },
-            (geoError) => {
+            async (geoError) => {
                 setLocationPermission("denied");
-                setNearbyError("Location access denied or unavailable.");
-                setNearbyLoading(false);
+                setNearbyError("Location restricted. Showing popular events in Sofia instead.");
+                try {
+                    // Fallback to searching for the current default city if geolocation fails
+                    const fbData = await getEvents({ city: filterCity || "Sofia", limit: 4 });
+                    setNearbyEvents(fbData.items);
+                } catch (e) {
+                    setNearbyError("Location restricted and fallback failed.");
+                } finally {
+                    setNearbyLoading(false);
+                }
             }
         );
     }
@@ -140,14 +161,59 @@ export default function HomePage() {
                 </section>
             )}
 
-            {/* Search input */}
-            <div className="search-bar">
-                <input
-                    type="text"
-                    placeholder="Search events by name, location…"
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                />
+            {/* Search & Filter Bar */}
+            <div style={{ marginBottom: '2rem' }}>
+                <div className="search-bar" style={{ marginBottom: '0.5rem' }}>
+                    <input
+                        type="text"
+                        placeholder="Search events by name, location…"
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)}
+                    />
+                    <button
+                        className="btn-primary"
+                        style={{ padding: '0.6rem 1rem', background: showFilters ? 'var(--primary)' : 'var(--bg-input)', color: showFilters ? 'var(--bg-main)' : 'var(--text-main)', border: '1px solid var(--border-light)' }}
+                        onClick={() => setShowFilters(!showFilters)}
+                    >
+                        {showFilters ? 'Hide Filters' : 'Filters'}
+                    </button>
+                </div>
+
+                {/* Advanced Filter UI */}
+                {showFilters && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', padding: '1.5rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>City</label>
+                            <select value={filterCity} onChange={e => setFilterCity(e.target.value)} style={{ padding: '0.6rem', borderRadius: '4px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border-light)' }}>
+                                <option value="">Anywhere</option>
+                                <option value="Sofia">Sofia</option>
+                                <option value="Plovdiv">Plovdiv</option>
+                                <option value="Varna">Varna</option>
+                            </select>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Dance Style</label>
+                            <select value={filterStyle} onChange={e => setFilterStyle(e.target.value)} style={{ padding: '0.6rem', borderRadius: '4px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border-light)' }}>
+                                <option value="">All Styles</option>
+                                <option value="Hip Hop">Hip Hop</option>
+                                <option value="Contemporary">Contemporary</option>
+                                <option value="Heels">Heels</option>
+                                <option value="Ballet">Ballet</option>
+                                <option value="Workshop">Workshops</option>
+                            </select>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <label style={{ fontSize: '0.85rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Max Price (€)</label>
+                            <input
+                                type="number"
+                                placeholder="Any price"
+                                value={filterMaxPrice}
+                                onChange={e => setFilterMaxPrice(e.target.value)}
+                                style={{ padding: '0.6rem', borderRadius: '4px', background: 'var(--bg-input)', color: 'var(--text-main)', border: '1px solid var(--border-light)' }}
+                            />
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Nearby Events Section */}
@@ -174,6 +240,20 @@ export default function HomePage() {
                     </div>
                 )}
             </section>
+
+            {/* Premium Map Placeholder */}
+            {!query && (
+                <section style={{ marginBottom: "3rem", position: "relative", height: "300px", borderRadius: "10px", border: "1px solid var(--border-light)", overflow: "hidden", background: "var(--bg-card)" }}>
+                    {/* Fake Map Grid Background */}
+                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '20px 20px', opacity: 0.5 }}></div>
+                    <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center", zIndex: 1 }}>
+                        <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🗺️</div>
+                        <h3 style={{ margin: "0 0 0.5rem 0" }}>Interactive Map Coming Soon</h3>
+                        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", maxWidth: "300px", margin: "0 auto" }}>Explore venues and discover hidden underground battles directly on the map.</p>
+                        <button className="btn-primary" style={{ marginTop: "1rem", background: "transparent", border: "1px solid var(--primary)", pointerEvents: "none" }}>Mapbox Integration Ready</button>
+                    </div>
+                </section>
+            )}
 
             {/* Popular Events Section (hide when searching) */}
             {!query && (
