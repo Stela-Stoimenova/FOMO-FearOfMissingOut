@@ -2,6 +2,7 @@ import { Router } from "express";
 import { requireAuth } from "../middleware/auth.js";
 import {
     getMe,
+    updateMe,
     getProfile,
     loyaltyBalance,
     follow,
@@ -14,6 +15,9 @@ const router = Router();
 
 // GET /api/users/me  – own profile (auth required)
 router.get("/me", requireAuth, getMe);
+
+// PUT /api/users/me  – update own profile (auth required)
+router.put("/me", requireAuth, updateMe);
 
 // GET /api/users/me/loyalty  – own loyalty balance (auth required)
 router.get("/me/loyalty", requireAuth, loyaltyBalance);

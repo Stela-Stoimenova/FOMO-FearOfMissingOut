@@ -70,12 +70,21 @@ export function AuthProvider({ children }) {
         setUser(null);
     }
 
+    /**
+     * Update User internally and in localStorage.
+     */
+    function updateLocalUser(newUserData) {
+        localStorage.setItem("user", JSON.stringify(newUserData));
+        setUser(newUserData);
+    }
+
     const value = {
-        user,               // { userId, email, role } or null
+        user,               // { userId, email, role, avatarUrl } or null
         isLoggedIn: !!user, // convenient boolean
         login,
         register,
         logout,
+        setUser: updateLocalUser,
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

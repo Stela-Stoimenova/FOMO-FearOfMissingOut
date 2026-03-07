@@ -1,6 +1,7 @@
 import {
     getMyProfile,
     getUserProfile,
+    updateMyProfile,
     getLoyaltyBalance,
     followUser,
     unfollowUser,
@@ -12,6 +13,15 @@ export async function getMe(req, res, next) {
     try {
         const profile = await getMyProfile(req.user.userId);
         return res.json(profile);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+export async function updateMe(req, res, next) {
+    try {
+        const updated = await updateMyProfile(req.user.userId, req.body);
+        return res.json(updated);
     } catch (err) {
         return next(err);
     }

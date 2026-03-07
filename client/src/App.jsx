@@ -12,6 +12,7 @@ import DashboardPage from "./pages/DashboardPage.jsx";
 import CreateEventPage from "./pages/CreateEventPage.jsx";
 import MyTicketsPage from "./pages/MyTicketsPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
+import Footer from "./components/Footer.jsx";
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
             </main>
           } />
         </Routes>
+        <Footer />
       </BrowserRouter>
     </AuthProvider>
   );
