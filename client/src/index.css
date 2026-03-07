@@ -66,7 +66,7 @@ body::before {
   left: 0;
   right: 0;
   bottom: 0;
-  background: radial-gradient(circle at top center, rgba(124, 58, 237, 0.08), transparent 60%);
+  background: radial-gradient(circle at top center, rgba(92, 4, 244, 0.929), transparent 60%);
   pointer-events: none;
   z-index: -1;
 }
