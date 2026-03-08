@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getEvents, getNearbyEvents, getPopularEvents } from "../api/events.js";
+import EventMap from "../components/EventMap.jsx";
 
 // Format a price in cents to a readable string (e.g. 2500 → "€25.00")
 function formatPrice(cents) {
@@ -173,15 +174,6 @@ export default function HomePage() {
                     />
                     <button
                         className="btn-primary"
-                        style={{
-                            padding: '0 1.5rem',
-                            background: showFilters ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-                            color: showFilters ? 'var(--bg-main)' : 'var(--text-main)',
-                            border: '1px solid var(--border-light)',
-                            backdropFilter: 'blur(8px)',
-                            transition: 'all 0.2s',
-                            fontWeight: 500
-                        }}
                         onClick={() => setShowFilters(!showFilters)}
                     >
                         {showFilters ? 'Hide Filters' : 'Filters'}
@@ -249,17 +241,11 @@ export default function HomePage() {
                 )}
             </section>
 
-            {/* Premium Map Placeholder */}
+            {/* Premium Interactive Map */}
             {!query && (
-                <section style={{ marginBottom: "3rem", position: "relative", height: "300px", borderRadius: "10px", border: "1px solid var(--border-light)", overflow: "hidden", background: "var(--bg-card)" }}>
-                    {/* Fake Map Grid Background */}
-                    <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '20px 20px', opacity: 0.5 }}></div>
-                    <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", textAlign: "center", zIndex: 1 }}>
-                        <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🗺️</div>
-                        <h3 style={{ margin: "0 0 0.5rem 0" }}>Interactive Map Coming Soon</h3>
-                        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", maxWidth: "300px", margin: "0 auto" }}>Explore venues and discover hidden underground battles directly on the map.</p>
-                        <button className="btn-primary" style={{ marginTop: "1rem", background: "transparent", border: "1px solid var(--primary)", pointerEvents: "none" }}>Mapbox Integration Ready</button>
-                    </div>
+                <section style={{ marginBottom: "3rem", height: "450px", borderRadius: "10px", border: "1px solid var(--border-light)", overflow: "hidden", background: "var(--bg-card)", position: "relative" }}>
+                    {/* Render Event Map and pass the filtered events down */}
+                    <EventMap events={events} />
                 </section>
             )}
 
