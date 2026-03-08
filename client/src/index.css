@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap');
+@import "mapbox-gl/dist/mapbox-gl.css";
 
 :root {
   /* Premium Dark Palette */
@@ -701,4 +702,33 @@ h3 {
     flex-wrap: wrap;
     gap: 1rem;
   }
+}
+
+/* ─── Mapbox Popup Dark Theming ────────────────────────────────────────────── */
+.mapboxgl-popup-content {
+  background: rgba(24, 24, 27, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid var(--border-light) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--text-main) !important;
+  box-shadow: var(--shadow-md) !important;
+  padding: 10px 15px !important;
+}
+
+/* Fix popup tip pointing downwards to match the dark aesthetic */
+.mapboxgl-popup-anchor-top .mapboxgl-popup-tip {
+  border-bottom-color: rgba(24, 24, 27, 0.85) !important;
+}
+
+.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip {
+  border-top-color: rgba(24, 24, 27, 0.85) !important;
+}
+
+.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
+  border-right-color: rgba(24, 24, 27, 0.85) !important;
+}
+
+.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+  border-left-color: rgba(24, 24, 27, 0.85) !important;
 }

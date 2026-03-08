@@ -1,236 +1,154 @@
-/*
-  Prisma Seed Script
-  Run with: npm run seed
-  Idempotent - safe to re-run, will not create duplicates.
- */
-
-import "dotenv/config";
-import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
 
-// ─── Users ────────────────────────────────────────────────────────────────────
-
-const USERS = [
-    {
-        email: "dancer@fomo.dev",
-        password: "dancer123",
-        name: "Alex Ivanov",
-        role: "DANCER",
-    },
-    {
-        email: "studio@fomo.dev",
-        password: "studio123",
-        name: "Pulse Dance Studio",
-        role: "STUDIO",
-    },
-    {
-        email: "agency@fomo.dev",
-        password: "agency123",
-        name: "BeatBox Agency",
-        role: "AGENCY",
-    },
+const CITIES = [
+    { name: "Sofia", lat: 42.6977, lng: 23.3219 },
+    { name: "Plovdiv", lat: 42.1439, lng: 24.7496 },
+    { name: "Varna", lat: 43.2141, lng: 27.9147 },
+    { name: "Bucharest", lat: 44.4268, lng: 26.1025 },
+    { name: "Cluj-Napoca", lat: 46.7712, lng: 23.6236 },
+    { name: "Belgrade", lat: 44.7866, lng: 20.4489 },
+    { name: "Vienna", lat: 48.2082, lng: 16.3738 },
+    { name: "Budapest", lat: 47.4979, lng: 19.0402 },
+    { name: "Berlin", lat: 52.5200, lng: 13.4050 },
+    { name: "Paris", lat: 48.8566, lng: 2.3522 },
+    { name: "Milan", lat: 45.4642, lng: 9.1900 },
+    { name: "Amsterdam", lat: 52.3676, lng: 4.9041 },
+    { name: "Madrid", lat: 40.4168, lng: -3.7038 },
 ];
 
-// ─── Events ───────────────────────────────────────────────────────────────────
+const STYLES = ["Hip Hop", "Contemporary", "Heels", "Ballet", "Breaking", "House", "Popping", "Commercial"];
+const TYPES = ["Workshop", "Audition", "Open Class", "Festival", "Battle", "Intensive"];
 
-// Events are tied to the studio and agency users by array index (0=DANCER, 1=STUDIO, 2=AGENCY)
-// creatorIndex refers to the USERS array above
-const EVENTS = [
-    // ── Sofia ──────────────────────────────────────────────────────────────────
-    {
-        title: "Urban Salsa Night",
-        description: "A vibrant salsa social with live DJ and open floor dancing.",
-        location: "Sofia, Bulgaria",
-        startAt: new Date("2026-04-10T19:00:00Z"),
-        endAt: new Date("2026-04-10T23:00:00Z"),
-        priceCents: 1500,
-        capacity: 80,
-        latitude: 42.6977,
-        longitude: 23.3219,
-        creatorIndex: 1, // STUDIO
-    },
-    {
-        title: "Hip-Hop Masterclass",
-        description: "Intensive 3-hour workshop with international choreographer.",
-        location: "Sofia, Bulgaria",
-        startAt: new Date("2026-04-15T10:00:00Z"),
-        endAt: new Date("2026-04-15T13:00:00Z"),
-        priceCents: 3500,
-        capacity: 30,
-        latitude: 42.7000,
-        longitude: 23.3300,
-        creatorIndex: 2, // AGENCY
-    },
-    {
-        title: "Bachata Fusion Social",
-        description: "Monthly bachata social open to all levels. Refreshments included.",
-        location: "Sofia, Bulgaria",
-        startAt: new Date("2026-04-20T20:00:00Z"),
-        endAt: new Date("2026-04-21T00:00:00Z"),
-        priceCents: 800,
-        capacity: 120,
-        latitude: 42.6950,
-        longitude: 23.3280,
-        creatorIndex: 1, // STUDIO
-    },
-    {
-        title: "Contemporary Dance Intensive",
-        description: "Two-day contemporary workshop exploring movement and expression.",
-        location: "Sofia, Bulgaria",
-        startAt: new Date("2026-05-01T09:00:00Z"),
-        endAt: new Date("2026-05-02T17:00:00Z"),
-        priceCents: 7500,
-        capacity: 20,
-        latitude: 42.6920,
-        longitude: 23.3200,
-        creatorIndex: 2, // AGENCY
-    },
-    // ── Plovdiv ────────────────────────────────────────────────────────────────
-    {
-        title: "Kizomba & Tarraxinha Night",
-        description: "The best kizomba social in Plovdiv – great music, great vibes.",
-        location: "Plovdiv, Bulgaria",
-        startAt: new Date("2026-04-12T20:00:00Z"),
-        endAt: new Date("2026-04-13T01:00:00Z"),
-        priceCents: 1000,
-        capacity: 60,
-        latitude: 42.1354,
-        longitude: 24.7453,
-        creatorIndex: 1, // STUDIO
-    },
-    {
-        title: "Street Dance Battle",
-        description: "Open battle in all styles – 1v1 and crew categories. Cash prizes.",
-        location: "Plovdiv, Bulgaria",
-        startAt: new Date("2026-04-25T14:00:00Z"),
-        endAt: new Date("2026-04-25T20:00:00Z"),
-        priceCents: 500,
-        capacity: 200,
-        latitude: 42.1430,
-        longitude: 24.7490,
-        creatorIndex: 2, // AGENCY
-    },
-    {
-        title: "Zouk Weekend Retreat",
-        description: "Two days of Brazilian Zouk workshops and socials in Plovdiv.",
-        location: "Plovdiv, Bulgaria",
-        startAt: new Date("2026-05-08T18:00:00Z"),
-        endAt: new Date("2026-05-10T14:00:00Z"),
-        priceCents: 12000,
-        capacity: 40,
-        latitude: 42.1380,
-        longitude: 24.7420,
-        creatorIndex: 1, // STUDIO
-    },
-    // ── Varna ──────────────────────────────────────────────────────────────────
-    {
-        title: "Salsa by the Sea",
-        description: "Open-air salsa evening on Varna's Beach Boulevard.",
-        location: "Varna, Bulgaria",
-        startAt: new Date("2026-06-05T18:00:00Z"),
-        endAt: new Date("2026-06-05T23:00:00Z"),
-        priceCents: 1200,
-        capacity: 150,
-        latitude: 43.2141,
-        longitude: 27.9147,
-        creatorIndex: 2, // AGENCY
-    },
-    {
-        title: "Ballet for Adults – Beginner Course",
-        description: "6-week beginner ballet course for adults, starting June.",
-        location: "Varna, Bulgaria",
-        startAt: new Date("2026-06-10T18:00:00Z"),
-        endAt: new Date("2026-06-10T19:30:00Z"),
-        priceCents: 4500,
-        capacity: 15,
-        latitude: 43.2050,
-        longitude: 27.9100,
-        creatorIndex: 1, // STUDIO
-    },
-    {
-        title: "Summer Dance Festival",
-        description: "3-day international dance festival with workshops, shows, and socials.",
-        location: "Varna, Bulgaria",
-        startAt: new Date("2026-07-18T10:00:00Z"),
-        endAt: new Date("2026-07-20T22:00:00Z"),
-        priceCents: 18000,
-        capacity: 300,
-        latitude: 43.2200,
-        longitude: 27.9200,
-        creatorIndex: 2, // AGENCY
-    },
-];
+// Helper to jitter coordinates slightly so events aren't exactly on top of each other
+function jitterCoord(coord) {
+    const jitter = (Math.random() - 0.5) * 0.05; // Roughly +/- 2-5km
+    return coord + jitter;
+}
 
-// ─── Seed ─────────────────────────────────────────────────────────────────────
+// Generate a random date between now and X days in the future
+function randomDateNextDays(maxDays = 180) {
+    const now = new Date();
+    const future = new Date(now.getTime() + Math.random() * maxDays * 24 * 60 * 60 * 1000);
+    return future;
+}
 
 async function main() {
-    console.log("🌱 Seeding database...\n");
+    console.log(`Starting database seed...`);
 
-    // Upsert users (idempotent by email)
-    const createdUsers = [];
-    for (const u of USERS) {
-        const hashed = await bcrypt.hash(u.password, 10);
-        const user = await prisma.user.upsert({
-            where: { email: u.email },
-            create: { email: u.email, password: hashed, name: u.name, role: u.role },
-            update: { name: u.name, role: u.role }, // don't re-hash password on update
+    // 1. Clean Database (Respecting relations)
+    console.log(`Clearing existing data...`);
+    await prisma.transaction.deleteMany();
+    await prisma.ticket.deleteMany();
+    await prisma.loyaltyTransaction.deleteMany();
+    await prisma.loyaltyAccount.deleteMany();
+    await prisma.event.deleteMany();
+    await prisma.user.deleteMany();
+
+    // 2. Setup standard passwords
+    const passwordHash = await bcrypt.hash("password123", 10);
+
+    // 3. Create Users
+    console.log(`Creating users...`);
+    const users = [];
+
+    // Create 10 Dancers
+    for (let i = 1; i <= 10; i++) {
+        const user = await prisma.user.create({
+            data: {
+                email: `dancer${i}@demo.com`,
+                password: passwordHash,
+                name: `Demo Dancer ${i}`,
+                role: "DANCER",
+                loyaltyAccount: {
+                    create: { points: Math.floor(Math.random() * 500) }
+                }
+            }
         });
-        createdUsers.push(user);
-        console.log(`  ✓ User [${user.role}] ${user.email}`);
+        users.push(user);
     }
 
-    console.log("");
-
-    // Create events (idempotent by title + creatorId)
-    let created = 0;
-    let skipped = 0;
-    for (const e of EVENTS) {
-        const creatorId = createdUsers[e.creatorIndex].id;
-
-        const existing = await prisma.event.findFirst({
-            where: { title: e.title, creatorId },
+    // Create 5 Studios
+    const studioNames = ["Movement Lifestyle", "Millennium Dance Complex", "Base Studios", "Urban Dance Camp", "Flow Academy"];
+    for (let i = 0; i < 5; i++) {
+        const user = await prisma.user.create({
+            data: {
+                email: `studio${i + 1}@demo.com`,
+                password: passwordHash,
+                name: studioNames[i],
+                role: "STUDIO",
+            }
         });
+        users.push(user);
+    }
 
-        if (existing) {
-            skipped++;
-            continue;
-        }
+    // Create 5 Agencies
+    const agencyNames = ["Clear Talent Group", "Bloc Agency", "MSA Agency", "Go 2 Talent", "AMCK Dance"];
+    for (let i = 0; i < 5; i++) {
+        const user = await prisma.user.create({
+            data: {
+                email: `agency${i + 1}@demo.com`,
+                password: passwordHash,
+                name: agencyNames[i],
+                role: "AGENCY",
+            }
+        });
+        users.push(user);
+    }
+
+    // 4. Create Events
+    console.log(`Creating massive event payload across Europe...`);
+
+    // Only fetch users capable of creating events
+    const creators = users.filter(u => u.role === "STUDIO" || u.role === "AGENCY");
+
+    let eventCount = 0;
+
+    for (let i = 0; i < 90; i++) {
+        const city = CITIES[Math.floor(Math.random() * CITIES.length)];
+        const creator = creators[Math.floor(Math.random() * creators.length)];
+
+        const style = STYLES[Math.floor(Math.random() * STYLES.length)];
+        const type = TYPES[Math.floor(Math.random() * TYPES.length)];
+
+        const start = randomDateNextDays();
+        // End date is 2 to 6 hours after start
+        const end = new Date(start.getTime() + (Math.floor(Math.random() * 4) + 2) * 60 * 60 * 1000);
+
+        const title = `${style} ${type} - ${city.name} Edition`;
+        const description = `Join us at ${creator.name} for an incredible ${style} ${type.toLowerCase()}. Elevate your skills, connect with the community in ${city.name}, and push your boundaries. Open to all levels determined to grow!`;
+
+        const priceCents = Math.floor(Math.random() * 50 + 10) * 100; // between €10.00 and €60.00
+        const capacity = Math.floor(Math.random() * 80) + 20; // 20 to 100 people
 
         await prisma.event.create({
             data: {
-                title: e.title,
-                description: e.description ?? null,
-                location: e.location,
-                startAt: e.startAt,
-                endAt: e.endAt ?? null,
-                priceCents: e.priceCents,
-                capacity: e.capacity ?? null,
-                latitude: e.latitude ?? null,
-                longitude: e.longitude ?? null,
-                creatorId,
-            },
+                title,
+                description,
+                location: city.name,
+                startAt: start,
+                endAt: end,
+                priceCents,
+                capacity,
+                latitude: jitterCoord(city.lat),
+                longitude: jitterCoord(city.lng),
+                creatorId: creator.id
+            }
         });
-        console.log(`  ✓ Event  "${e.title}" (${e.location})`);
-        created++;
+        eventCount++;
     }
 
-    if (skipped > 0) {
-        console.log(`\n  ↩  ${skipped} event(s) already existed – skipped.`);
-    }
-
-    console.log(`\nDone! ${createdUsers.length} users, ${created} new events seeded.\n`);
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log("  DANCER  → dancer@fomo.dev   / dancer123");
-    console.log("  STUDIO  → studio@fomo.dev   / studio123");
-    console.log("  AGENCY  → agency@fomo.dev   / agency123");
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+    console.log(`Successfully created ${users.length} Users and ${eventCount} Events.`);
+    console.log(`Seeding finished.`);
 }
 
 main()
     .catch((e) => {
-        console.error("Seed failed:", e);
+        console.error(e);
         process.exit(1);
     })
-    .finally(() => prisma.$disconnect());
+    .finally(async () => {
+        await prisma.$disconnect();
+    });
