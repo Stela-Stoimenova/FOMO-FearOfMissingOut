@@ -38,10 +38,14 @@ export default function HomePage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // Map specific state
+    const [mapEvents, setMapEvents] = useState([]);
+    const [userLocation, setUserLocation] = useState(null);
+
     // Nearby events state
     const [nearbyEvents, setNearbyEvents] = useState([]);
-    const [nearbyLoading, setNearbyLoading] = useState(false);
     const [nearbyError, setNearbyError] = useState(null);
+    const [nearbyLoading, setNearbyLoading] = useState(false);
     const [locationPermission, setLocationPermission] = useState("prompt"); // prompt, denied, granted
 
     // Popular events state
@@ -88,6 +92,12 @@ export default function HomePage() {
                 const data = await getEvents(params);
                 setEvents(data.items);
                 setTotal(data.total);
+
+                // Parallel fetch strictly for the Map (uncapped or huge limit) so all pins show
+                const mapParams = { ...params, limit: 500 };
+                const mapData = await getEvents(mapParams);
+                setMapEvents(mapData.items);
+
             } catch (err) {
                 setError(err.message || "Failed to load events");
             } finally {
@@ -110,10 +120,12 @@ export default function HomePage() {
 
         navigator.geolocation.getCurrentPosition(
             async (position) => {
+                const coords = { latitude: position.coords.latitude, longitude: position.coords.longitude };
                 setLocationPermission("granted");
+                setUserLocation(coords);
+
                 try {
-                    const { latitude, longitude } = position.coords;
-                    const data = await getNearbyEvents(latitude, longitude, 10);
+                    const data = await getNearbyEvents(coords.latitude, coords.longitude, 10);
                     setNearbyEvents(data);
                 } catch (err) {
                     setNearbyError(err.message || "Failed to fetch nearby events");
@@ -136,6 +148,7 @@ export default function HomePage() {
             }
         );
     }
+
 
     // A reusable card component
     const EventCard = ({ event }) => (
@@ -244,8 +257,12 @@ export default function HomePage() {
             {/* Premium Interactive Map */}
             {!query && (
                 <section style={{ marginBottom: "3rem", height: "450px", borderRadius: "10px", border: "1px solid var(--border-light)", overflow: "hidden", background: "var(--bg-card)", position: "relative" }}>
-                    {/* Render Event Map and pass the filtered events down */}
-                    <EventMap events={events} />
+                    {/* Render Event Map, pass all unpaginated map events, user coord intent, and nearby highlight array */}
+                    <EventMap
+                        events={mapEvents}
+                        userLocation={userLocation}
+                        nearbyEventIds={nearbyEvents.map(e => e.id)}
+                    />
                 </section>
             )}
 
