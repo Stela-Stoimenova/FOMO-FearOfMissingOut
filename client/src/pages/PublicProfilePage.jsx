@@ -93,7 +93,7 @@ export default function PublicProfilePage() {
                             <span style={{ fontSize: '0.8rem', padding: '0.25rem 0.7rem', borderRadius: 'var(--radius-sm)', background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>{profile.experienceLevel}</span>
                         )}
                     </div>
-                    {profile.city && <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>📍 {profile.city}</p>}
+                    {profile.city && <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{profile.city}</p>}
                     {profile.bio && <p style={{ color: 'var(--text-main)', lineHeight: 1.6, marginBottom: '1rem' }}>{profile.bio}</p>}
 
                     <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', marginBottom: '1rem' }}>
@@ -113,7 +113,7 @@ export default function PublicProfilePage() {
                                 {followLoading ? "…" : isFollowing ? "Unfollow" : "Follow"}
                             </button>
                             <button className="btn-primary" onClick={handleMessage} style={{ padding: '0.5rem 1.5rem', fontSize: '0.9rem', background: 'var(--bg-hover)', border: '1px solid var(--border-light)', color: 'var(--text-main)' }}>
-                                {msgSent ? "✓ Message Sent!" : "Message"}
+                                {msgSent ? "Message Sent" : "Message"}
                             </button>
                         </div>
                     )}
@@ -126,7 +126,7 @@ export default function PublicProfilePage() {
             {/* Dance Styles */}
             {profile.danceStyles?.length > 0 && (
                 <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
-                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>💃 Dance Styles</h3>
+                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Dance Styles</h3>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                         {profile.danceStyles.map(s => (
                             <span key={s} className="style-chip">{s}</span>
@@ -138,11 +138,11 @@ export default function PublicProfilePage() {
             {/* Portfolio */}
             {profile.portfolioLinks?.length > 0 && (
                 <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
-                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>🎬 Portfolio</h3>
+                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Portfolio</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         {profile.portfolioLinks.map((link, i) => (
                             <a key={i} href={link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: '0.9rem' }}>
-                                🔗 {link}
+                                {link}
                             </a>
                         ))}
                     </div>

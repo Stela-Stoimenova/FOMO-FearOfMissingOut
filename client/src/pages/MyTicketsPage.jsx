@@ -74,10 +74,18 @@ export default function MyTicketsPage() {
             <div className="ticket-list">
                 {tickets.map((ticket) => (
                     <div key={ticket.id} className="ticket-card">
-                        <div className="event-card-img"></div>
+                        <div className="event-card-img" style={
+                            ticket.event.imageUrl
+                                ? { backgroundImage: `url(${ticket.event.imageUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                                : { background: 'linear-gradient(135deg, rgba(99,102,241,0.15) 0%, rgba(24,24,27,1) 100%)' }
+                        }>
+                            {!ticket.event.imageUrl && (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '0.8rem', opacity: 0.35, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>No Image</div>
+                            )}
+                        </div>
                         <div className="event-card-body">
                             <h3>{ticket.event.title}</h3>
-                            <p className="event-card-detail">{formatDate(ticket.event.startAt)} • {ticket.event.location}</p>
+                            <p className="event-card-detail">{formatDate(ticket.event.startAt)} &bull; {ticket.event.location}</p>
                             <div className="event-card-footer">
                                 <p className="event-price">Paid: {formatPrice(ticket.event.priceCents)}</p>
                                 <span className="event-card-cta" style={{ color: "var(--success)" }}>Purchased</span>

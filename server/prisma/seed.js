@@ -22,23 +22,74 @@ const CITIES = [
 const STYLES = ["Hip Hop", "Contemporary", "Heels", "Ballet", "Breaking", "House", "Popping", "Commercial"];
 const TYPES = ["Workshop", "Audition", "Open Class", "Festival", "Battle", "Intensive"];
 
-const PREMIUM_IMAGES = [
-    "https://images.unsplash.com/photo-1504609813442-a8924e83f76e?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1468359601543-843bfaef291a?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=800&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&h=500&fit=crop",
-];
+// Category-aware image pools — images matched by dance style / event type
+const CATEGORY_IMAGES = {
+    ballet: [
+        "https://images.unsplash.com/photo-1518834107812-67b0b7c58434?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1547153760-18fc86324498?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1508807526345-15e9b5f4ea2b?w=800&h=500&fit=crop",
+    ],
+    contemporary: [
+        "https://images.unsplash.com/photo-1504609813442-a8924e83f76e?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1508807526345-15e9b5f4ea2b?w=800&h=500&fit=crop",
+    ],
+    hiphop: [
+        "https://images.unsplash.com/photo-1547153760-18fc86324498?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=800&h=500&fit=crop",
+    ],
+    breaking: [
+        "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&h=500&fit=crop",
+    ],
+    heels: [
+        "https://images.unsplash.com/photo-1504609813442-a8924e83f76e?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&h=500&fit=crop",
+    ],
+    festival: [
+        "https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=800&h=500&fit=crop",
+    ],
+    workshop: [
+        "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1504609813442-a8924e83f76e?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=800&h=500&fit=crop",
+    ],
+    battle: [
+        "https://images.unsplash.com/photo-1429962714451-bb934ecdc4ec?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&h=500&fit=crop",
+    ],
+    default: [
+        "https://images.unsplash.com/photo-1468359601543-843bfaef291a?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800&h=500&fit=crop",
+        "https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=800&h=500&fit=crop",
+    ],
+};
+
+function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// Pick an image based on the event style and title keywords
+function pickImageForEvent(style, title) {
+    const key = style.toLowerCase().replace(/\s+/g, "");
+    const t = title.toLowerCase();
+    if (t.includes("festival") || t.includes("retreat")) return pickRandom(CATEGORY_IMAGES.festival);
+    if (t.includes("battle")) return pickRandom(CATEGORY_IMAGES.battle);
+    if (t.includes("workshop") || t.includes("masterclass") || t.includes("intensive") || t.includes("foundations")) return pickRandom(CATEGORY_IMAGES.workshop);
+    if (key === "ballet") return pickRandom(CATEGORY_IMAGES.ballet);
+    if (key === "contemporary") return pickRandom(CATEGORY_IMAGES.contemporary);
+    if (key === "hiphop") return pickRandom(CATEGORY_IMAGES.hiphop);
+    if (key === "breaking") return pickRandom(CATEGORY_IMAGES.breaking);
+    if (key === "heels" || key === "commercial") return pickRandom(CATEGORY_IMAGES.heels);
+    if (key === "house" || key === "popping") return pickRandom(CATEGORY_IMAGES.hiphop);
+    return pickRandom(CATEGORY_IMAGES.default);
+}
 
 // Realistic event title templates for variety
 const EVENT_TEMPLATES = [
@@ -171,7 +222,7 @@ async function main() {
 
         const title = template.title.replace(/\{style\}/g, style).replace(/\{style2\}/g, style2).replace(/\{city\}/g, city.name);
         const description = template.desc.replace(/\{style\}/g, style.toLowerCase()).replace(/\{style2\}/g, style2.toLowerCase()).replace(/\{city\}/g, city.name);
-        const imageUrl = PREMIUM_IMAGES[Math.floor(Math.random() * PREMIUM_IMAGES.length)];
+        const imageUrl = pickImageForEvent(style, title);
 
         const priceCents = Math.floor(Math.random() * 50 + 10) * 100;
         const capacity = Math.floor(Math.random() * 80) + 20;

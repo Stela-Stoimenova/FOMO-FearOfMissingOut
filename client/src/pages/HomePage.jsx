@@ -164,7 +164,7 @@ export default function HomePage() {
                 }}
             >
                 {!event.imageUrl && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '2rem', opacity: 0.4 }}>💃</div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '0.8rem', opacity: 0.35, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>No Image</div>
                 )}
             </div>
             <div className="event-card-body">
