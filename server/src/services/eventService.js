@@ -177,7 +177,7 @@ export async function getEventById(id) {
     return event;
 }
 
-export async function createEvent({ title, description, location, startAt, endAt, priceCents, capacity, latitude, longitude }, userId) {
+export async function createEvent({ title, description, location, startAt, endAt, priceCents, capacity, latitude, longitude, imageUrl }, userId) {
     if (!title || !location || !startAt || typeof priceCents !== "number") {
         const err = new Error("title, location, startAt, priceCents are required");
         err.status = 400;
@@ -197,6 +197,7 @@ export async function createEvent({ title, description, location, startAt, endAt
             capacity: typeof capacity === "number" ? capacity : null,
             latitude: typeof latitude === "number" ? latitude : null,
             longitude: typeof longitude === "number" ? longitude : null,
+            imageUrl: imageUrl || null,
             creatorId: userId,
         },
     });
@@ -224,7 +225,7 @@ export async function updateEvent(id, data, userId) {
         throw err;
     }
 
-    const { title, description, location, startAt, endAt, priceCents, capacity, latitude, longitude } = data;
+    const { title, description, location, startAt, endAt, priceCents, capacity, latitude, longitude, imageUrl } = data;
 
     validateCoordinates(latitude, longitude);
 
@@ -240,6 +241,7 @@ export async function updateEvent(id, data, userId) {
             capacity: typeof capacity === "number" ? capacity : existing.capacity,
             latitude: typeof latitude === "number" ? latitude : existing.latitude,
             longitude: typeof longitude === "number" ? longitude : existing.longitude,
+            imageUrl: imageUrl !== undefined ? (imageUrl || null) : existing.imageUrl,
         },
     });
 
