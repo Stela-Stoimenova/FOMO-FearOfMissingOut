@@ -21,6 +21,12 @@ export async function getUserProfile(id) {
             experienceLevel: true,
             portfolioLinks: true,
             createdAt: true,
+            portfolioItems: { orderBy: { createdAt: 'desc' } },
+            taggedEvents: {
+                select: { id: true, title: true, imageUrl: true, startAt: true, location: true },
+                orderBy: { startAt: 'desc' },
+                take: 10
+            },
             _count: {
                 select: { followers: true, following: true },
             },
@@ -53,6 +59,8 @@ export async function getMyProfile(userId) {
             portfolioLinks: true,
             payoutDetails: true,
             createdAt: true,
+            portfolioItems: { orderBy: { createdAt: 'desc' } },
+            taggedEvents: { select: { id: true, title: true } },
             _count: {
                 select: { followers: true, following: true },
             },
@@ -214,4 +222,86 @@ export async function getFollowing(userId) {
     });
 
     return rows.map((r) => ({ ...r.following, followedAt: r.createdAt }));
+}
+
+/** Search users by name, role, city, style */
+export async function searchUsers(filters) {
+    const { query, role, city, style } = filters;
+    const where = {};
+
+    if (query) {
+        where.name = { contains: query, mode: "insensitive" };
+    }
+    if (role) where.role = role;
+    if (city) where.city = { contains: city, mode: "insensitive" };
+    if (style) {
+        where.danceStyles = { has: style };
+    }
+
+    return prisma.user.findMany({
+        where,
+        select: {
+            id: true,
+            name: true,
+            avatarUrl: true,
+            role: true,
+            city: true,
+            danceStyles: true,
+            experienceLevel: true,
+            _count: { select: { followers: true, following: true } }
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 50
+    });
+}
+
+/** Add a portfolio item */
+export async function addPortfolioItem(userId, data) {
+    return prisma.portfolioItem.create({
+        data: {
+            userId,
+            type: data.type || "VIDEO",
+            url: data.url,
+            title: data.title || null,
+            description: data.description || null
+        }
+    });
+}
+
+/** Delete a portfolio item */
+export async function deletePortfolioItem(userId, itemId) {
+    const item = await prisma.portfolioItem.findUnique({ where: { id: itemId } });
+    if (!item || item.userId !== userId) {
+        const err = new Error("Not found or unauthorized");
+        err.status = 404;
+        throw err;
+    }
+    await prisma.portfolioItem.delete({ where: { id: itemId } });
+    return { success: true };
+}
+
+/** Toggle event tag (attended/performing) */
+export async function toggleEventTag(userId, eventId) {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { taggedEvents: { where: { id: eventId } } }
+    });
+
+    if (!user) throw new Error("User not found");
+
+    const isTagged = user.taggedEvents.length > 0;
+
+    if (isTagged) {
+        await prisma.user.update({
+            where: { id: userId },
+            data: { taggedEvents: { disconnect: { id: eventId } } }
+        });
+        return { tagged: false };
+    } else {
+        await prisma.user.update({
+            where: { id: userId },
+            data: { taggedEvents: { connect: { id: eventId } } }
+        });
+        return { tagged: true };
+    }
 }
