@@ -25,6 +25,7 @@ export default function Navbar() {
                     // ── Logged-in links ────────────────────────────────────────────────
                     <>
                         <NavLink to="/dashboard">Dashboard</NavLink>
+                        <NavLink to="/messages">Messages</NavLink>
 
                         {/* Role-specific quick links */}
                         {user.role === "DANCER" && (

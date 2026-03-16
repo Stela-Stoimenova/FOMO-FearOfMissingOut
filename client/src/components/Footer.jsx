@@ -51,7 +51,7 @@ export default function Footer() {
                     <h4 style={{ color: 'var(--text-main)', textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.85rem' }}>Links</h4>
                     <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         <li>
-                            <Link to="/events" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={(e) => e.target.style.color = 'var(--primary)'} onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}>Browse Events</Link>
+                            <Link to="/discover" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={(e) => e.target.style.color = 'var(--accent)'} onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}>Browse Dancers</Link>
                         </li>
                         <li>
                             <a href="https://github.com/Stela-Stoimenova/FOMO-FearOfMissingOut" target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none', transition: 'color 0.2s' }} onMouseEnter={(e) => e.target.style.color = 'var(--primary)'} onMouseLeave={(e) => e.target.style.color = 'var(--text-muted)'}>
