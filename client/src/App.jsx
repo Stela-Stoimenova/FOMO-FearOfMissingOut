@@ -12,6 +12,7 @@ import DashboardPage from "./pages/DashboardPage.jsx";
 import CreateEventPage from "./pages/CreateEventPage.jsx";
 import MyTicketsPage from "./pages/MyTicketsPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
+import PublicProfilePage from "./pages/PublicProfilePage.jsx";
 import Footer from "./components/Footer.jsx";
 
 export default function App() {
@@ -31,6 +32,9 @@ export default function App() {
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path="/create-event" element={<ProtectedRoute><CreateEventPage /></ProtectedRoute>} />
           <Route path="/my-tickets" element={<ProtectedRoute><MyTicketsPage /></ProtectedRoute>} />
+
+          {/* Public profile */}
+          <Route path="/users/:id" element={<PublicProfilePage />} />
 
           <Route path="*" element={
             <main className="page page-narrow">

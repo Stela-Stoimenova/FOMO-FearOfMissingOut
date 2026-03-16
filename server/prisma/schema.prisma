@@ -22,6 +22,14 @@ model User {
   avatarUrl String?
   role      Role
 
+  // Dancer profile fields
+  bio             String?
+  city            String?
+  danceStyles     String[]  @default([])
+  experienceLevel String?
+  portfolioLinks  String[]  @default([])
+  payoutDetails   String?
+
   // Core
   events  Event[]  @relation("EventCreator")
   tickets Ticket[]
@@ -52,6 +60,7 @@ model Event {
   capacity    Int?
   latitude    Float?
   longitude   Float?
+  imageUrl String?
 
   creatorId Int
   creator   User @relation("EventCreator", fields: [creatorId], references: [id])

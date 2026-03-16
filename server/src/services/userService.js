@@ -15,6 +15,11 @@ export async function getUserProfile(id) {
             name: true,
             avatarUrl: true,
             role: true,
+            bio: true,
+            city: true,
+            danceStyles: true,
+            experienceLevel: true,
+            portfolioLinks: true,
             createdAt: true,
             _count: {
                 select: { followers: true, following: true },
@@ -41,6 +46,12 @@ export async function getMyProfile(userId) {
             name: true,
             avatarUrl: true,
             role: true,
+            bio: true,
+            city: true,
+            danceStyles: true,
+            experienceLevel: true,
+            portfolioLinks: true,
+            payoutDetails: true,
             createdAt: true,
             _count: {
                 select: { followers: true, following: true },
@@ -60,12 +71,19 @@ export async function getMyProfile(userId) {
     return user;
 }
 
-/** Update own profile (e.g., avatarUrl) */
-export async function updateMyProfile(userId, { avatarUrl }) {
+/** Update own profile */
+export async function updateMyProfile(userId, fields) {
     const data = {};
-    if (avatarUrl !== undefined) {
-        data.avatarUrl = avatarUrl;
-    }
+
+    // Safely pick only the fields we allow to be changed
+    if (fields.name !== undefined) data.name = fields.name;
+    if (fields.avatarUrl !== undefined) data.avatarUrl = fields.avatarUrl || null;
+    if (fields.bio !== undefined) data.bio = fields.bio || null;
+    if (fields.city !== undefined) data.city = fields.city || null;
+    if (fields.danceStyles !== undefined) data.danceStyles = fields.danceStyles;
+    if (fields.experienceLevel !== undefined) data.experienceLevel = fields.experienceLevel || null;
+    if (fields.portfolioLinks !== undefined) data.portfolioLinks = fields.portfolioLinks;
+    if (fields.payoutDetails !== undefined) data.payoutDetails = fields.payoutDetails || null;
 
     const updated = await prisma.user.update({
         where: { id: userId },
@@ -76,6 +94,12 @@ export async function updateMyProfile(userId, { avatarUrl }) {
             name: true,
             avatarUrl: true,
             role: true,
+            bio: true,
+            city: true,
+            danceStyles: true,
+            experienceLevel: true,
+            portfolioLinks: true,
+            payoutDetails: true,
         },
     });
 

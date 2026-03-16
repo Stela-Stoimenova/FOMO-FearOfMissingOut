@@ -153,7 +153,20 @@ export default function HomePage() {
     // A reusable card component
     const EventCard = ({ event }) => (
         <Link key={event.id} to={`/events/${event.id}`} className="event-card">
-            <div className="event-card-img"></div>
+            <div
+                className="event-card-img"
+                style={{
+                    backgroundImage: event.imageUrl
+                        ? `url(${event.imageUrl})`
+                        : 'linear-gradient(135deg, rgba(99,102,241,0.3) 0%, rgba(124,58,237,0.15) 50%, rgba(30,30,40,0.8) 100%)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                }}
+            >
+                {!event.imageUrl && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '2rem', opacity: 0.4 }}>💃</div>
+                )}
+            </div>
             <div className="event-card-body">
                 <h3>{event.title}</h3>
                 <p className="event-card-detail">{formatDate(event.startAt)} • {event.location}</p>
@@ -195,31 +208,45 @@ export default function HomePage() {
 
                 {/* Advanced Filter UI */}
                 {showFilters && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1.5rem', padding: '1.5rem', background: 'rgba(24, 24, 27, 0.7)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', backdropFilter: 'blur(12px)', boxShadow: 'var(--shadow-md)' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>City</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem', padding: '1.5rem', background: 'rgba(24, 24, 27, 0.7)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', backdropFilter: 'blur(12px)', boxShadow: 'var(--shadow-md)' }}>
+                        <div className="form-group">
+                            <label className="form-label">City</label>
                             <select className="filter-select" value={filterCity} onChange={e => setFilterCity(e.target.value)}>
                                 <option value="">Anywhere</option>
                                 <option value="Sofia">Sofia</option>
                                 <option value="Plovdiv">Plovdiv</option>
                                 <option value="Varna">Varna</option>
+                                <option value="Bucharest">Bucharest</option>
+                                <option value="Cluj-Napoca">Cluj-Napoca</option>
+                                <option value="Belgrade">Belgrade</option>
+                                <option value="Vienna">Vienna</option>
+                                <option value="Budapest">Budapest</option>
+                                <option value="Berlin">Berlin</option>
+                                <option value="Paris">Paris</option>
+                                <option value="Milan">Milan</option>
+                                <option value="Amsterdam">Amsterdam</option>
+                                <option value="Madrid">Madrid</option>
                             </select>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Dance Style</label>
+                        <div className="form-group">
+                            <label className="form-label">Dance Style</label>
                             <select className="filter-select" value={filterStyle} onChange={e => setFilterStyle(e.target.value)}>
                                 <option value="">All Styles</option>
                                 <option value="Hip Hop">Hip Hop</option>
                                 <option value="Contemporary">Contemporary</option>
                                 <option value="Heels">Heels</option>
                                 <option value="Ballet">Ballet</option>
-                                <option value="Workshop">Workshops</option>
+                                <option value="Breaking">Breaking</option>
+                                <option value="House">House</option>
+                                <option value="Popping">Popping</option>
+                                <option value="Commercial">Commercial</option>
                             </select>
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Max Price (€)</label>
+                        <div className="form-group">
+                            <label className="form-label">Max Price (€)</label>
                             <input
                                 type="number"
+                                className="filter-input"
                                 placeholder="Any price"
                                 value={filterMaxPrice}
                                 onChange={e => setFilterMaxPrice(e.target.value)}
