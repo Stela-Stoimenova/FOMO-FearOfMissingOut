@@ -161,7 +161,7 @@ export default function EventDetailPage() {
                                     <span className="price-surge">
                                         {formatPrice(Math.round(event.priceCents * 1.15))}
                                     </span>
-                                    <span className="surge-badge">📈 Dynamic Pricing (+15%) Active</span>
+                                    <span className="surge-badge">Dynamic Pricing (+15%) Active</span>
                                 </>
                             ) : (
                                 <span>{formatPrice(event.priceCents)}</span>
@@ -173,7 +173,7 @@ export default function EventDetailPage() {
                                 <span>{ticketsSold} / {event.capacity} tickets sold</span>
                                 {surgeWarning && !isSoldOut && (
                                     <div style={{ marginTop: '0.5rem', fontSize: '0.85rem', color: 'var(--warning)', fontWeight: 500 }}>
-                                        🔥 High Demand: Over 50% of capacity reached!
+                                        High Demand: Over 50% of capacity reached!
                                     </div>
                                 )}
                             </div>
@@ -195,7 +195,7 @@ export default function EventDetailPage() {
                     ) : user.role === "DANCER" ? (
                         purchaseResult ? (
                             <div className="detail-item" style={{ marginTop: '1rem', border: '1px solid var(--success)', background: 'rgba(16, 185, 129, 0.05)' }}>
-                                <h3 style={{ color: 'var(--success)', marginBottom: '1rem' }}>🎉 Ticket Purchased Successfully!</h3>
+                                <h3 style={{ color: 'var(--success)', marginBottom: '1rem' }}>Ticket Purchased Successfully!</h3>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                                     <div>
                                         <strong>Base Price</strong>
@@ -215,7 +215,7 @@ export default function EventDetailPage() {
                                     </div>
                                 </div>
                                 <div style={{ padding: '0.75rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border-light)' }}>
-                                    <strong style={{ color: 'var(--primary)' }}>🌟 Loyalty Rewards</strong>
+                                    <strong style={{ color: 'var(--primary)' }}>Loyalty Rewards</strong>
                                     <span>You earned <strong>{purchaseResult.loyalty.pointsEarned}</strong> points! (New Balance: {purchaseResult.loyalty.totalPoints})</span>
                                 </div>
                             </div>

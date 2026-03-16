@@ -69,7 +69,7 @@ export default function DashboardPage() {
                         <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <span style={{ color: 'var(--text-muted)' }}>Loyalty Points Balance</span>
                             <strong style={{ fontSize: '1.5rem', color: 'var(--accent)' }}>
-                                🌟 {loyalty?.points ?? user.loyaltyAccount.points}
+                                {loyalty?.points ?? user.loyaltyAccount.points}
                             </strong>
                         </p>
                         <p className="hint" style={{ textAlign: 'left', marginTop: '0.25rem' }}>
@@ -78,7 +78,7 @@ export default function DashboardPage() {
 
                         {/* Loyalty Tips */}
                         <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--accent-soft)', borderRadius: 'var(--radius-md)', border: '1px solid var(--accent-border)' }}>
-                            <h4 style={{ fontSize: '0.9rem', margin: '0 0 0.75rem 0', color: 'var(--accent)' }}>💡 Ways to Use Your Points</h4>
+                            <h4 style={{ fontSize: '0.9rem', margin: '0 0 0.75rem 0', color: 'var(--accent)' }}>Ways to Use Your Points</h4>
                             <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.8 }}>
                                 <li><strong>500 pts</strong> → 10% off your next ticket</li>
                                 <li><strong>1000 pts</strong> → Free workshop entry</li>
@@ -117,7 +117,7 @@ export default function DashboardPage() {
             {/* DANCER — Recent Tickets */}
             {user.role === "DANCER" && (
                 <section style={{ marginTop: '2rem' }}>
-                    <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>🎫 My Recent Tickets</h2>
+                    <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>My Recent Tickets</h2>
                     {loadingTickets ? (
                         <p className="hint">Loading tickets…</p>
                     ) : myTickets.length === 0 ? (
@@ -215,7 +215,7 @@ export default function DashboardPage() {
                         {/* Monthly Class Pass */}
                         <div style={{ flex: '0 0 280px', padding: '1.5rem', background: 'linear-gradient(135deg, rgba(99,102,241,0.12) 0%, transparent 100%)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(99,102,241,0.3)', fontSize: '1rem' }}>🎟️</div>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(99,102,241,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(99,102,241,0.3)', fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent)' }}>CP</div>
                                 <div>
                                     <h4 style={{ margin: 0, fontSize: '1rem' }}>10-Class Pass</h4>
                                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Flow Academy Sofia</span>
@@ -234,7 +234,7 @@ export default function DashboardPage() {
                         {/* Monthly Unlimited */}
                         <div style={{ flex: '0 0 280px', padding: '1.5rem', background: 'linear-gradient(135deg, rgba(124,58,237,0.12) 0%, transparent 100%)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(124,58,237,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(124,58,237,0.3)', fontSize: '1rem' }}>🌟</div>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(124,58,237,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(124,58,237,0.3)', fontSize: '0.75rem', fontWeight: 700, color: 'rgba(124,58,237,1)' }}>UM</div>
                                 <div>
                                     <h4 style={{ margin: 0, fontSize: '1rem' }}>Unlimited Monthly</h4>
                                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Urban Dance Camp</span>
@@ -253,7 +253,7 @@ export default function DashboardPage() {
                         {/* Festival Season Pass */}
                         <div style={{ flex: '0 0 280px', padding: '1.5rem', background: 'linear-gradient(135deg, rgba(16,185,129,0.1) 0%, transparent 100%)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(16,185,129,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(16,185,129,0.3)', fontSize: '1rem' }}>🎪</div>
+                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(16,185,129,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(16,185,129,0.3)', fontSize: '0.75rem', fontWeight: 700, color: 'rgba(16,185,129,1)' }}>FP</div>
                                 <div>
                                     <h4 style={{ margin: 0, fontSize: '1rem' }}>Festival Season Pass</h4>
                                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>FOMO Dance Network</span>

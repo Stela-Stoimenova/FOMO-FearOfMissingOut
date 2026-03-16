@@ -92,7 +92,7 @@ export default function ProfilePage() {
 
                 {successMsg && (
                     <div style={{ padding: '0.75rem 1rem', background: 'rgba(16,185,129,0.1)', border: '1px solid var(--success)', borderRadius: 'var(--radius-md)', color: 'var(--success)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-                        ✓ {successMsg}
+                        {successMsg}
                     </div>
                 )}
 
@@ -115,7 +115,7 @@ export default function ProfilePage() {
                                 <span style={{ fontSize: '0.8rem', padding: '0.25rem 0.7rem', borderRadius: 'var(--radius-sm)', background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>{user.experienceLevel}</span>
                             )}
                         </div>
-                        {user.city && <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>📍 {user.city}</p>}
+                        {user.city && <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{user.city}</p>}
                         {user.bio && <p style={{ color: 'var(--text-main)', lineHeight: 1.6, marginBottom: '1rem' }}>{user.bio}</p>}
 
                         {/* Stats row */}
@@ -127,7 +127,7 @@ export default function ProfilePage() {
                                 </>
                             )}
                             {isDancer && user.loyaltyAccount && (
-                                <span style={{ color: 'var(--accent)', fontSize: '0.9rem' }}>🌟 {user.loyaltyAccount.points} points</span>
+                                <span style={{ color: 'var(--accent)', fontSize: '0.9rem' }}>{user.loyaltyAccount.points} points</span>
                             )}
                         </div>
                     </div>
@@ -139,7 +139,7 @@ export default function ProfilePage() {
                 {/* Dance Styles */}
                 {isDancer && user.danceStyles?.length > 0 && (
                     <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
-                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>💃 Dance Styles</h3>
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Dance Styles</h3>
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             {user.danceStyles.map(s => (
                                 <span key={s} className="style-chip">{s}</span>
@@ -151,11 +151,11 @@ export default function ProfilePage() {
                 {/* Portfolio Links */}
                 {isDancer && user.portfolioLinks?.length > 0 && (
                     <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
-                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>🎬 Portfolio</h3>
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Portfolio</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             {user.portfolioLinks.map((link, i) => (
                                 <a key={i} href={link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: '0.9rem', wordBreak: 'break-all' }}>
-                                    🔗 {link}
+                                    {link}
                                 </a>
                             ))}
                         </div>
@@ -165,7 +165,7 @@ export default function ProfilePage() {
                 {/* Payout Details (Private) */}
                 {isDancer && (
                     <section className="detail-card" style={{ marginBottom: '1.5rem', borderColor: 'rgba(239,68,68,0.2)' }}>
-                        <h3 style={{ marginBottom: '0.75rem', fontSize: '1.1rem' }}>🔒 Payout Details <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(Private — only visible to you)</span></h3>
+                        <h3 style={{ marginBottom: '0.75rem', fontSize: '1.1rem' }}>Payout Details <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(Private — only visible to you)</span></h3>
                         <p style={{ color: user.payoutDetails ? 'var(--text-main)' : 'var(--text-muted)', fontSize: '0.9rem' }}>
                             {user.payoutDetails || "No payout details configured yet."}
                         </p>
@@ -240,7 +240,7 @@ export default function ProfilePage() {
                         {form.portfolioLinks.map((link, i) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
                                 <span style={{ flex: 1, fontSize: '0.85rem', color: 'var(--accent)', wordBreak: 'break-all' }}>{link}</span>
-                                <button type="button" onClick={() => removePortfolioLink(link)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem' }}>✕</button>
+                                <button type="button" onClick={() => removePortfolioLink(link)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem' }}>&times;</button>
                             </div>
                         ))}
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -255,7 +255,7 @@ export default function ProfilePage() {
                 {/* Payout Details */}
                 {isDancer && (
                     <div className="form-group">
-                        <label className="form-label">🔒 Payout / Bank Details <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '0.7rem' }}>(Private — demo only)</span></label>
+                        <label className="form-label">Payout / Bank Details <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '0.7rem' }}>(Private — demo only)</span></label>
                         <input type="text" className="form-input" placeholder="IBAN or PayPal email…" value={form.payoutDetails} onChange={e => setForm({ ...form, payoutDetails: e.target.value })} />
                     </div>
                 )}

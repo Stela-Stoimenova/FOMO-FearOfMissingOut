@@ -95,7 +95,7 @@ export default function EventMap({ events, userLocation, nearbyEventIds = [] }) 
                                 {popupInfo.title}
                             </h4>
                             <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                📍 {popupInfo.location}
+                                {popupInfo.location}
                             </p>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
                                 <span style={{ fontWeight: 600, color: 'var(--success)' }}>
