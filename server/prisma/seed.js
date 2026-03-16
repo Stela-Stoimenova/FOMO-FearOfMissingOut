@@ -154,6 +154,14 @@ async function main() {
     // Create 10 Dancers with realistic profiles
     for (let i = 1; i <= 10; i++) {
         const profile = DANCER_PROFILES[i - 1];
+
+        // Prepare dummy portfolio items
+        const dummyPortfolio = [
+            { type: "PHOTO", url: "https://images.unsplash.com/photo-1547153760-18fc86324498?w=500&h=500&fit=crop", title: "Photoshoot", description: "Studio session vibes" },
+            { type: "PHOTO", url: "https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=500&h=500&fit=crop", title: "Live Show", description: "Performing at the main stage" },
+            { type: "VIDEO", url: profile.links[0] || "https://vimeo.com/123456789", title: "Concept Video", description: "My latest choreography piece" }
+        ];
+
         const user = await prisma.user.create({
             data: {
                 email: `dancer${i}@demo.com`,
@@ -167,6 +175,9 @@ async function main() {
                 portfolioLinks: profile.links,
                 loyaltyAccount: {
                     create: { points: Math.floor(Math.random() * 500) }
+                },
+                portfolioItems: {
+                    create: dummyPortfolio
                 }
             }
         });

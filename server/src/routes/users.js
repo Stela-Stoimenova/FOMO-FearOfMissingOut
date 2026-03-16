@@ -9,9 +9,16 @@ import {
     unfollow,
     followers,
     following,
+    search,
+    createPortfolioItem,
+    removePortfolioItem,
+    tagEvent,
 } from "../controllers/userController.js";
 
 const router = Router();
+
+// GET /api/users/search  – discover users
+router.get("/search", search);
 
 // GET /api/users/me  – own profile (auth required)
 router.get("/me", requireAuth, getMe);
@@ -36,5 +43,16 @@ router.post("/:id/follow", requireAuth, follow);
 
 // DELETE /api/users/:id/follow  – unfollow a user (auth required)
 router.delete("/:id/follow", requireAuth, unfollow);
+
+// --- Portfolio & Tags (Self) ---
+
+// POST /api/users/me/portfolio
+router.post("/me/portfolio", requireAuth, createPortfolioItem);
+
+// DELETE /api/users/me/portfolio/:itemId
+router.delete("/me/portfolio/:itemId", requireAuth, removePortfolioItem);
+
+// POST /api/users/me/tags/:eventId
+router.post("/me/tags/:eventId", requireAuth, tagEvent);
 
 export default router;

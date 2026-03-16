@@ -68,5 +68,40 @@ export async function getFollowers(id) {
  * Get who a user is following
  */
 export async function getFollowing(id) {
-    return apiRequest(`/users/${id}/following`);
+}
+
+/**
+ * GET /api/users/search
+ * Search/discover users by filters
+ */
+export async function searchUsers(params = {}) {
+    const qs = new URLSearchParams(params).toString();
+    return apiRequest(`/users/search?${qs}`);
+}
+
+/**
+ * POST /api/users/me/portfolio
+ * Add a portfolio item
+ */
+export async function addPortfolioItem(data) {
+    return apiRequest("/users/me/portfolio", {
+        method: "POST",
+        body: JSON.stringify(data)
+    });
+}
+
+/**
+ * DELETE /api/users/me/portfolio/:itemId
+ * Delete a portfolio item
+ */
+export async function deletePortfolioItem(itemId) {
+    return apiRequest(`/users/me/portfolio/${itemId}`, { method: "DELETE" });
+}
+
+/**
+ * POST /api/users/me/tags/:eventId
+ * Toggle an event tag
+ */
+export async function tagEvent(eventId) {
+    return apiRequest(`/users/me/tags/${eventId}`, { method: "POST" });
 }

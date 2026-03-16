@@ -19,6 +19,7 @@ export default function Navbar() {
 
             <div className="navbar-links">
                 <NavLink to="/" end>Home</NavLink>
+                <NavLink to="/discover">Discover</NavLink>
 
                 {isLoggedIn ? (
                     // ── Logged-in links ────────────────────────────────────────────────

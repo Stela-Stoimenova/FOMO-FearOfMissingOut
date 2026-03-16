@@ -1,7 +1,8 @@
 import { useAuth } from "../context/AuthContext.jsx";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { updateMe, getMe } from "../api/users.js";
+import { updateMe, getMe, addPortfolioItem, deletePortfolioItem, tagEvent } from "../api/users.js";
+import { getMyTickets } from "../api/events.js";
 
 const ALL_STYLES = ["Hip Hop", "Contemporary", "Heels", "Ballet", "Breaking", "House", "Popping", "Commercial", "Jazz", "Afro"];
 const EXPERIENCE_LEVELS = ["Beginner", "Intermediate", "Advanced", "Professional"];
@@ -19,6 +20,11 @@ export default function ProfilePage() {
     });
     const [newLink, setNewLink] = useState("");
 
+    // Portfolio MVP state
+    const [newPortfolio, setNewPortfolio] = useState({ url: "", title: "", description: "", type: "VIDEO" });
+    const [myTickets, setMyTickets] = useState([]);
+    const [selectedEventToTag, setSelectedEventToTag] = useState("");
+
     // Load fresh profile data
     useEffect(() => {
         if (user) {
@@ -34,6 +40,13 @@ export default function ProfilePage() {
             });
         }
     }, [user]);
+
+    // Fetch tickets for MVP event tagging
+    useEffect(() => {
+        if (user?.role === "DANCER" && editing) {
+            getMyTickets().then(setMyTickets).catch(console.error);
+        }
+    }, [user, editing]);
 
     if (!user) {
         return (
@@ -81,6 +94,40 @@ export default function ProfilePage() {
             alert(err.message || "Failed to save profile");
         } finally {
             setSaving(false);
+        }
+    }
+
+    async function handleAddPortfolio() {
+        if (!newPortfolio.url) return;
+        try {
+            await addPortfolioItem(newPortfolio);
+            setNewPortfolio({ url: "", title: "", description: "", type: "VIDEO" });
+            const fullProfile = await getMe();
+            setUser(fullProfile);
+        } catch (err) {
+            alert(err.message || "Failed to add item");
+        }
+    }
+
+    async function handleDeletePortfolio(itemId) {
+        try {
+            await deletePortfolioItem(itemId);
+            const fullProfile = await getMe();
+            setUser(fullProfile);
+        } catch (err) {
+            alert(err.message || "Failed to delete item");
+        }
+    }
+
+    async function handleTagEvent() {
+        if (!selectedEventToTag) return;
+        try {
+            await tagEvent(selectedEventToTag);
+            const fullProfile = await getMe();
+            setUser(fullProfile);
+            setSelectedEventToTag("");
+        } catch (err) {
+            alert(err.message || "Failed to tag event");
         }
     }
 
@@ -157,6 +204,48 @@ export default function ProfilePage() {
                                 <a key={i} href={link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: '0.9rem', wordBreak: 'break-all' }}>
                                     {link}
                                 </a>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* Rich Portfolio Items */}
+                {isDancer && user.portfolioItems?.length > 0 && (
+                    <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Media Portfolio</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                            {user.portfolioItems.map(item => (
+                                <div key={item.id} style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--bg-card)' }}>
+                                    {item.type === "PHOTO" ? (
+                                        <div style={{ height: '140px', backgroundImage: `url(${item.url})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                                    ) : (
+                                        <div style={{ height: '140px', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
+                                            <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}>Play Video &rarr;</a>
+                                        </div>
+                                    )}
+                                    <div style={{ padding: '0.75rem' }}>
+                                        {item.title && <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem' }}>{item.title}</h4>}
+                                        {item.description && <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.description}</p>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* Tagged Events */}
+                {isDancer && user.taggedEvents?.length > 0 && (
+                    <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Events I've Attended / Performed</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {user.taggedEvents.map(evt => (
+                                <Link to={`/events/${evt.id}`} key={evt.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
+                                    {evt.imageUrl && <img src={evt.imageUrl} alt={evt.title} style={{ width: '40px', height: '40px', borderRadius: '4px', objectFit: 'cover' }} />}
+                                    <div>
+                                        <h4 style={{ margin: 0, fontSize: '0.95rem' }}>{evt.title}</h4>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{evt.location}</span>
+                                    </div>
+                                </Link>
                             ))}
                         </div>
                     </section>
@@ -248,6 +337,64 @@ export default function ProfilePage() {
                                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addPortfolioLink(); } }}
                             />
                             <button type="button" onClick={addPortfolioLink} className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>Add</button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Media Portfolio Manager */}
+                {isDancer && (
+                    <div className="form-group" style={{ padding: '1rem', border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>
+                        <label className="form-label" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Manage Portfolio Media</label>
+
+                        {/* Current Items */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                            {user.portfolioItems?.map(item => (
+                                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+                                    <div>
+                                        <strong style={{ fontSize: '0.9rem' }}>{item.title || "Untitled"}</strong> <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({item.type})</span>
+                                    </div>
+                                    <button type="button" onClick={() => handleDeletePortfolio(item.id)} className="btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', color: 'var(--warning)', borderColor: 'var(--warning)' }}>Remove</button>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Add New Item */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: 'var(--bg-input)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Add New Item</div>
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                <select className="filter-select" value={newPortfolio.type} onChange={e => setNewPortfolio({ ...newPortfolio, type: e.target.value })} style={{ flex: '0 0 100px' }}>
+                                    <option value="VIDEO">Video</option>
+                                    <option value="PHOTO">Photo</option>
+                                </select>
+                                <input type="url" className="form-input" placeholder="Media URL (Image or Video link)…" value={newPortfolio.url} onChange={e => setNewPortfolio({ ...newPortfolio, url: e.target.value })} style={{ flex: 1 }} />
+                            </div>
+                            <input type="text" className="form-input" placeholder="Title (e.g. Concept Video)" value={newPortfolio.title} onChange={e => setNewPortfolio({ ...newPortfolio, title: e.target.value })} />
+                            <input type="text" className="form-input" placeholder="Short description…" value={newPortfolio.description} onChange={e => setNewPortfolio({ ...newPortfolio, description: e.target.value })} />
+                            <button type="button" onClick={handleAddPortfolio} className="btn-primary" style={{ alignSelf: 'flex-start', padding: '0.5rem 1.5rem', fontSize: '0.85rem' }}>Add Media</button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Event Tagging Manager */}
+                {isDancer && (
+                    <div className="form-group" style={{ padding: '1rem', border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>
+                        <label className="form-label" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Tag Events</label>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Showcase events you've attended or performed at (from your ticket history).</p>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <select className="filter-select" value={selectedEventToTag} onChange={e => setSelectedEventToTag(e.target.value)} style={{ flex: 1 }}>
+                                <option value="">Select an event from your tickets…</option>
+                                {myTickets.map(t => {
+                                    const isAlreadyTagged = user.taggedEvents?.some(te => te.id === t.event.id);
+                                    return (
+                                        <option key={t.event.id} value={t.event.id}>
+                                            {isAlreadyTagged ? "✓ " : ""}{t.event.title}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                            <button type="button" onClick={handleTagEvent} className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+                                Toggle Tag
+                            </button>
                         </div>
                     </div>
                 )}

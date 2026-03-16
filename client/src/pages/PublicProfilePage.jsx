@@ -135,15 +135,57 @@ export default function PublicProfilePage() {
                 </section>
             )}
 
-            {/* Portfolio */}
+            {/* Portfolio Links (Classic) */}
             {profile.portfolioLinks?.length > 0 && (
                 <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
-                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Portfolio</h3>
+                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Links</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         {profile.portfolioLinks.map((link, i) => (
                             <a key={i} href={link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: '0.9rem' }}>
                                 {link}
                             </a>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* Rich Portfolio Media */}
+            {profile.portfolioItems?.length > 0 && (
+                <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
+                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Media Portfolio</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                        {profile.portfolioItems.map(item => (
+                            <div key={item.id} style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--bg-card)' }}>
+                                {item.type === "PHOTO" ? (
+                                    <div style={{ height: '140px', backgroundImage: `url(${item.url})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                                ) : (
+                                    <div style={{ height: '140px', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
+                                        <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}>Play Video &rarr;</a>
+                                    </div>
+                                )}
+                                <div style={{ padding: '0.75rem' }}>
+                                    {item.title && <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem' }}>{item.title}</h4>}
+                                    {item.description && <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.description}</p>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* Tagged Events */}
+            {profile.taggedEvents?.length > 0 && (
+                <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
+                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Events Attended / Performed</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {profile.taggedEvents.map(evt => (
+                            <Link to={`/events/${evt.id}`} key={evt.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
+                                {evt.imageUrl && <img src={evt.imageUrl} alt={evt.title} style={{ width: '40px', height: '40px', borderRadius: '4px', objectFit: 'cover' }} />}
+                                <div>
+                                    <h4 style={{ margin: 0, fontSize: '0.95rem' }}>{evt.title}</h4>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{evt.location}</span>
+                                </div>
+                            </Link>
                         ))}
                     </div>
                 </section>
