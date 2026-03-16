@@ -70,10 +70,12 @@ export async function getEventById(id) {
  * Buy a ticket. Requires DANCER role.
  *
  * @param {number|string} eventId
+ * @param {boolean} usePoints
  */
-export async function buyTicket(eventId) {
+export async function buyTicket(eventId, usePoints = false) {
     return apiRequest(`/events/${eventId}/tickets`, {
         method: "POST",
+        body: JSON.stringify({ usePoints }),
     });
 }
 

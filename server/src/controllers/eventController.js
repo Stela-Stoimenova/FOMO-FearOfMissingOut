@@ -79,7 +79,8 @@ export async function remove(req, res, next) {
 export async function buyTicket(req, res, next) {
     try {
         const eventId = Number(req.params.id);
-        const result = await purchaseTicket(eventId, req.user.userId);
+        const { usePoints } = req.body || {};
+        const result = await purchaseTicket(eventId, req.user.userId, !!usePoints);
         return res.status(201).json(result);
     } catch (err) {
         return next(err);

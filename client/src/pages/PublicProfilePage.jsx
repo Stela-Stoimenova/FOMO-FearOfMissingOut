@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getUserProfile, followUser, unfollowUser, getFollowers } from "../api/users.js";
+import { getUserProfile, followUser, unfollowUser, getFollowers, getMe } from "../api/users.js";
+import { sendMessage } from "../api/messages.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function PublicProfilePage() {
     const { id } = useParams();
-    const { user: me } = useAuth();
+    const { user: me, setUser } = useAuth();
 
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -13,6 +14,9 @@ export default function PublicProfilePage() {
     const [isFollowing, setIsFollowing] = useState(false);
     const [followLoading, setFollowLoading] = useState(false);
     const [msgSent, setMsgSent] = useState(false);
+    const [isWritingMessage, setIsWritingMessage] = useState(false);
+    const [messageContent, setMessageContent] = useState("");
+    const [messageLoading, setMessageLoading] = useState(false);
 
     useEffect(() => {
         async function load() {
@@ -51,6 +55,9 @@ export default function PublicProfilePage() {
                 setIsFollowing(true);
                 setProfile(prev => ({ ...prev, _count: { ...prev._count, followers: prev._count.followers + 1 } }));
             }
+            // Force refresh the global user state so dashboard and nav immediately reflect the new following count
+            const updatedMe = await getMe();
+            setUser(updatedMe);
         } catch (err) {
             alert(err.message || "Failed to update follow status");
         } finally {
@@ -58,9 +65,20 @@ export default function PublicProfilePage() {
         }
     }
 
-    function handleMessage() {
-        setMsgSent(true);
-        setTimeout(() => setMsgSent(false), 3000);
+    async function handleSendMessage() {
+        if (!messageContent.trim()) return;
+        setMessageLoading(true);
+        try {
+            await sendMessage(profile.id, messageContent);
+            setMsgSent(true);
+            setIsWritingMessage(false);
+            setMessageContent("");
+            setTimeout(() => setMsgSent(false), 3000);
+        } catch (err) {
+            alert(err.message || "Failed to send message");
+        } finally {
+            setMessageLoading(false);
+        }
     }
 
     if (loading) return <main className="page page-narrow"><p className="state-msg">Loading profile…</p></main>;
@@ -112,11 +130,34 @@ export default function PublicProfilePage() {
                             }}>
                                 {followLoading ? "…" : isFollowing ? "Unfollow" : "Follow"}
                             </button>
-                            <button className="btn-primary" onClick={handleMessage} style={{ padding: '0.5rem 1.5rem', fontSize: '0.9rem', background: 'var(--bg-hover)', border: '1px solid var(--border-light)', color: 'var(--text-main)' }}>
-                                {msgSent ? "Message Sent" : "Message"}
+                            <button className="btn-primary" onClick={() => setIsWritingMessage(!isWritingMessage)} style={{ padding: '0.5rem 1.5rem', fontSize: '0.9rem', background: 'var(--bg-hover)', border: '1px solid var(--border-light)', color: 'var(--text-main)' }}>
+                                {msgSent ? "Message Sent!" : isWritingMessage ? "Cancel" : "Message"}
                             </button>
                         </div>
                     )}
+
+                    {/* Message Composer Box */}
+                    {isWritingMessage && !isOwnProfile && (
+                        <div style={{ marginTop: '1rem', background: 'var(--bg-card)', padding: '1rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+                            <textarea
+                                value={messageContent}
+                                onChange={e => setMessageContent(e.target.value)}
+                                placeholder="Write a message..."
+                                style={{
+                                    width: '100%', minHeight: '80px', padding: '0.75rem',
+                                    background: 'var(--bg-input)', border: '1px solid var(--border-light)',
+                                    borderRadius: 'var(--radius-sm)', color: 'var(--text-main)',
+                                    fontFamily: 'inherit', resize: 'vertical', marginBottom: '0.75rem'
+                                }}
+                            />
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                                <button className="btn-primary" onClick={handleSendMessage} disabled={messageLoading || !messageContent.trim()} style={{ padding: '0.4rem 1.25rem', fontSize: '0.9rem' }}>
+                                    {messageLoading ? "Sending…" : "Send Message"}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {isOwnProfile && (
                         <Link to="/profile" className="btn-primary" style={{ display: 'inline-block', padding: '0.5rem 1.5rem', fontSize: '0.9rem', textDecoration: 'none' }}>Edit Profile</Link>
                     )}

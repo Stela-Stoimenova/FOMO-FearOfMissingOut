@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getEventById, buyTicket } from "../api/events.js";
+import { getMe } from "../api/users.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 function formatPrice(cents) {
@@ -21,7 +22,7 @@ function formatDate(isoString) {
 
 export default function EventDetailPage() {
     const { id } = useParams(); // reads :id from /events/:id
-    const { user, isLoggedIn } = useAuth();
+    const { user, isLoggedIn, setUser } = useAuth();
     const navigate = useNavigate();
 
     const [event, setEvent] = useState(null);
@@ -32,6 +33,7 @@ export default function EventDetailPage() {
     const [buying, setBuying] = useState(false);
     const [buyError, setBuyError] = useState(null);
     const [purchaseResult, setPurchaseResult] = useState(null);
+    const [usePoints, setUsePoints] = useState(true); // default to using points if available
 
     useEffect(() => {
         async function fetchEvent() {
@@ -54,8 +56,12 @@ export default function EventDetailPage() {
         setBuying(true);
         setBuyError(null);
         try {
-            const result = await buyTicket(id);
+            const result = await buyTicket(id, usePoints);
             setPurchaseResult(result);
+
+            // Force refresh global user context to immediately update loyalty points and tickets in nav/dashboard
+            const updatedMe = await getMe();
+            setUser(updatedMe);
         } catch (err) {
             setBuyError(err.message || "Failed to purchase ticket");
         } finally {
@@ -167,6 +173,23 @@ export default function EventDetailPage() {
                                 <span>{formatPrice(event.priceCents)}</span>
                             )}
                         </div>
+                        {isLoggedIn && user.role === "DANCER" && user.loyaltyAccount && user.loyaltyAccount.points > 0 && !purchaseResult && !isSoldOut && (
+                            <div className="detail-item" style={{ gridColumn: '1 / -1', background: 'var(--bg-hover)', padding: '1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--accent-border)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <div>
+                                        <strong style={{ color: 'var(--accent)' }}>Loyalty Discount Available</strong>
+                                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                            You have <strong>{user.loyaltyAccount.points}</strong> points.
+                                            Apply them to save up to {formatPrice(Math.min(user.loyaltyAccount.points * 10, surgeWarning ? Math.round(event.priceCents * 1.15) : event.priceCents))}.
+                                        </p>
+                                    </div>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                        <input type="checkbox" checked={usePoints} onChange={e => setUsePoints(e.target.checked)} style={{ width: '1.2rem', height: '1.2rem', accentColor: 'var(--accent)' }} />
+                                        <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Use Points</span>
+                                    </label>
+                                </div>
+                            </div>
+                        )}
                         {event.capacity != null && (
                             <div className="detail-item">
                                 <strong>Capacity & Demand:</strong>
@@ -202,21 +225,28 @@ export default function EventDetailPage() {
                                         <span>{formatPrice(purchaseResult.pricing.basePriceCents)}</span>
                                     </div>
                                     <div>
+                                        <strong>Discount applied</strong>
+                                        <span style={{ color: 'var(--accent)' }}>-{formatPrice(purchaseResult.pricing.discountCents || 0)}</span>
+                                    </div>
+                                    <div>
                                         <strong>Final Paid</strong>
-                                        <span>{formatPrice(purchaseResult.pricing.finalPriceCents)} {purchaseResult.pricing.surgeApplied && <span style={{ fontSize: '0.8em', color: 'var(--warning)' }}>(Surge)</span>}</span>
+                                        <span>
+                                            {formatPrice(purchaseResult.pricing.finalPriceCents)}
+                                            {purchaseResult.pricing.surgeApplied && <span style={{ fontSize: '0.8em', color: 'var(--warning)', marginLeft: '0.5rem' }}>(Surge)</span>}
+                                        </span>
                                     </div>
                                     <div>
-                                        <strong>Platform Commission (10%)</strong>
+                                        <strong>Platform Commission</strong>
                                         <span style={{ color: 'var(--text-muted)' }}>{formatPrice(purchaseResult.transaction.commissionCents)}</span>
-                                    </div>
-                                    <div>
-                                        <strong>Net Organizer Revenue</strong>
-                                        <span>{formatPrice(purchaseResult.transaction.netCents)}</span>
                                     </div>
                                 </div>
                                 <div style={{ padding: '0.75rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', border: '1px dashed var(--border-light)' }}>
-                                    <strong style={{ color: 'var(--primary)' }}>Loyalty Rewards</strong>
-                                    <span>You earned <strong>{purchaseResult.loyalty.pointsEarned}</strong> points! (New Balance: {purchaseResult.loyalty.totalPoints})</span>
+                                    <strong style={{ color: 'var(--primary)' }}>Loyalty Activity</strong>
+                                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.9rem' }}>
+                                        {purchaseResult.loyalty.pointsDeducted > 0 && <span style={{ color: 'var(--accent)' }}>Used {purchaseResult.loyalty.pointsDeducted} points. </span>}
+                                        Earned <strong>{purchaseResult.loyalty.pointsEarned}</strong> points!
+                                        <br /><span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>New Balance: {purchaseResult.loyalty.totalPoints}</span>
+                                    </p>
                                 </div>
                             </div>
                         ) : isSoldOut ? (

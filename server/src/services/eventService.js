@@ -271,7 +271,7 @@ export async function deleteEvent(id, userId) {
     await prisma.event.delete({ where: { id } });
 }
 
-export async function purchaseTicket(eventId, userId) {
+export async function purchaseTicket(eventId, userId, usePoints = false) {
     if (!Number.isInteger(eventId)) {
         const err = new Error("Invalid event id");
         err.status = 400;
@@ -304,8 +304,25 @@ export async function purchaseTicket(eventId, userId) {
         }
     }
 
-    // Commission calculation (on the final/dynamic price)
-    const grossCents = finalPrice;
+    // Determine Loyalty Discount
+    let pointsToDeduct = 0;
+    let discountCents = 0;
+
+    const loyaltyAccount = await prisma.loyaltyAccount.findUnique({
+        where: { userId }
+    });
+
+    if (usePoints && loyaltyAccount && loyaltyAccount.points > 0) {
+        // Exchange rate: 10 points = €1.00 (100 cents) -> 1 point = 10 cents
+        const potentialDiscountCents = loyaltyAccount.points * 10;
+
+        // Cannot discount below 0
+        discountCents = Math.min(potentialDiscountCents, finalPrice);
+        pointsToDeduct = Math.ceil(discountCents / 10);
+    }
+
+    // Commission calculation (on the final discounted price)
+    const grossCents = finalPrice - discountCents;
     const commissionCents = Math.round(grossCents * 0.1);
     const netCents = grossCents - commissionCents;
 
@@ -332,34 +349,51 @@ export async function purchaseTicket(eventId, userId) {
             // Loyalty: 5% of gross ticket value
             const pointsEarned = Math.round(grossCents * 0.05);
 
-            // Ensure loyalty account exists (create if first purchase)
-            const loyaltyAccount = await tx.loyaltyAccount.upsert({
+            // Update loyalty account: deduct used, add earned
+            const updatedLoyaltyAccount = await tx.loyaltyAccount.upsert({
                 where: { userId },
-                create: { userId, points: pointsEarned },
-                update: { points: { increment: pointsEarned } },
+                create: { userId, points: pointsEarned }, // If it didn't exist, they couldn't have used points
+                update: { points: { increment: pointsEarned - pointsToDeduct } },
             });
 
-            // Record the loyalty transaction
-            const loyaltyTransaction = await tx.loyaltyTransaction.create({
-                data: {
-                    userId,
-                    points: pointsEarned,
-                    reason: `Ticket purchase for event #${eventId}`,
-                },
-            });
+            // Record loyalty deduction transaction if points used
+            if (pointsToDeduct > 0) {
+                await tx.loyaltyTransaction.create({
+                    data: {
+                        userId,
+                        points: -pointsToDeduct,
+                        reason: `Redeemed points for ticket #${eventId}`,
+                    },
+                });
+            }
+
+            // Record the loyalty earned transaction
+            let loyaltyEarnedTransactionId = null;
+            if (pointsEarned > 0) {
+                const loyaltyTransaction = await tx.loyaltyTransaction.create({
+                    data: {
+                        userId,
+                        points: pointsEarned,
+                        reason: `Ticket purchase for event #${eventId}`,
+                    },
+                });
+                loyaltyEarnedTransactionId = loyaltyTransaction.id;
+            }
 
             return {
                 ticket,
                 transaction,
                 loyalty: {
                     pointsEarned,
-                    totalPoints: loyaltyAccount.points,
-                    loyaltyTransactionId: loyaltyTransaction.id,
+                    pointsDeducted: pointsToDeduct,
+                    totalPoints: updatedLoyaltyAccount.points,
+                    loyaltyTransactionId: loyaltyEarnedTransactionId,
                 },
                 pricing: {
                     basePriceCents: event.priceCents,
-                    finalPriceCents: grossCents,
                     surgeApplied,
+                    discountCents,
+                    finalPriceCents: grossCents,
                 },
             };
         });
