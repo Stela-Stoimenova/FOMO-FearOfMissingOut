@@ -77,7 +77,7 @@ export default function FollowListModal({ isOpen, onClose, type, userId }) {
                             {users.map(u => (
                                 <Link
                                     key={u.id}
-                                    to={`/profile/${u.id}`}
+                                    to={`/users/${u.id}`}
                                     onClick={onClose}
                                     style={{
                                         display: "flex", alignItems: "center", gap: "1rem",
