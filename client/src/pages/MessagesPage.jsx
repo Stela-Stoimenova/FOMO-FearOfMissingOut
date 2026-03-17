@@ -1,45 +1,82 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { getInbox, getSentMessages, markMessageRead } from "../api/messages.js";
+import { getConversations, getThread, sendMessage } from "../api/messages.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function MessagesPage() {
     const { user } = useAuth();
-    const [inbox, setInbox] = useState([]);
-    const [sent, setSent] = useState([]);
+    const [conversations, setConversations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [view, setView] = useState("inbox"); // 'inbox' | 'sent'
+
+    // Thread state
+    const [activeThread, setActiveThread] = useState(null); // { otherUser }
+    const [threadMessages, setThreadMessages] = useState([]);
+    const [threadLoading, setThreadLoading] = useState(false);
+    const [replyContent, setReplyContent] = useState("");
+    const [sending, setSending] = useState(false);
+    const threadEndRef = useRef(null);
 
     useEffect(() => {
         if (!user) return;
-        loadMessages();
+        loadConversations();
     }, [user]);
 
-    async function loadMessages() {
+    useEffect(() => {
+        // Scroll to bottom of thread when messages change
+        if (threadEndRef.current) {
+            threadEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+    }, [threadMessages]);
+
+    async function loadConversations() {
         setLoading(true);
         setError(null);
         try {
-            const [inboxData, sentData] = await Promise.all([
-                getInbox(),
-                getSentMessages(),
-            ]);
-            setInbox(inboxData);
-            setSent(sentData);
+            const data = await getConversations();
+            setConversations(data);
         } catch (err) {
-            setError(err.message || "Failed to load messages");
+            setError(err.message || "Failed to load conversations");
         } finally {
             setLoading(false);
         }
     }
 
-    async function handleMarkRead(msg) {
-        if (view === "sent" || msg.readAt) return;
+    async function openThread(otherUser) {
+        setActiveThread(otherUser);
+        setThreadLoading(true);
         try {
-            await markMessageRead(msg.id);
-            setInbox(prev => prev.map(m => m.id === msg.id ? { ...m, readAt: new Date().toISOString() } : m));
+            const messages = await getThread(otherUser.id);
+            setThreadMessages(messages);
+            // Refresh conversation list to update unread counts
+            loadConversations();
         } catch (err) {
-            console.error("Failed to mark as read", err);
+            setError(err.message || "Failed to load thread");
+        } finally {
+            setThreadLoading(false);
+        }
+    }
+
+    async function handleSendReply() {
+        if (!replyContent.trim() || !activeThread) return;
+        setSending(true);
+        try {
+            const newMsg = await sendMessage(activeThread.id, replyContent);
+            setThreadMessages(prev => [...prev, newMsg]);
+            setReplyContent("");
+            // Update conversation list with latest message
+            loadConversations();
+        } catch (err) {
+            alert(err.message || "Failed to send message");
+        } finally {
+            setSending(false);
+        }
+    }
+
+    function handleKeyDown(e) {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSendReply();
         }
     }
 
@@ -47,85 +84,193 @@ export default function MessagesPage() {
         return <main className="page page-narrow"><p className="state-msg">Please log in to view messages.</p></main>;
     }
 
-    const messages = view === "inbox" ? inbox : sent;
-
     return (
-        <main className="page page-narrow">
+        <main className="page" style={{ maxWidth: "900px" }}>
             <h1 className="page-title">Messages</h1>
 
-            <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '1rem' }}>
-                <button
-                    onClick={() => setView("inbox")}
-                    style={{ background: 'transparent', border: 'none', color: view === "inbox" ? 'var(--accent)' : 'var(--text-muted)', fontWeight: view === "inbox" ? 600 : 400, fontSize: '1.1rem', cursor: 'pointer', padding: 0 }}
-                >
-                    Inbox ({inbox.filter(m => !m.readAt).length} unread)
-                </button>
-                <button
-                    onClick={() => setView("sent")}
-                    style={{ background: 'transparent', border: 'none', color: view === "sent" ? 'var(--accent)' : 'var(--text-muted)', fontWeight: view === "sent" ? 600 : 400, fontSize: '1.1rem', cursor: 'pointer', padding: 0 }}
-                >
-                    Sent
-                </button>
-            </div>
-
-            {loading ? (
-                <p className="state-msg">Loading messages…</p>
-            ) : error ? (
-                <div className="state-error"><p>{error}</p></div>
-            ) : messages.length === 0 ? (
-                <div className="state-msg" style={{ padding: '3rem 1rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-light)' }}>
-                    <p style={{ margin: 0, color: 'var(--text-muted)' }}>
-                        {view === "inbox" ? "You have no messages." : "You haven't sent any messages yet."}
-                    </p>
-                </div>
-            ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {messages.map(msg => {
-                        const isUnread = view === "inbox" && !msg.readAt;
-                        const otherUser = view === "inbox" ? msg.sender : msg.receiver;
-
-                        return (
-                            <div
-                                key={msg.id}
-                                onClick={() => handleMarkRead(msg)}
-                                style={{
-                                    padding: '1.25rem',
-                                    background: isUnread ? 'var(--bg-hover)' : 'var(--bg-card)',
-                                    borderRadius: 'var(--radius-md)',
-                                    border: `1px solid ${isUnread ? 'var(--accent-border)' : 'var(--border-light)'}`,
-                                    cursor: isUnread ? 'pointer' : 'default',
-                                    transition: 'background 0.2s',
-                                    position: 'relative'
-                                }}
-                            >
-                                {isUnread && (
-                                    <div style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent)' }}></div>
-                                )}
-
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                    <Link
-                                        to={`/profile/${otherUser.id}`}
-                                        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'inherit', textDecoration: 'none' }}
+            <div style={{ display: "flex", gap: "1.5rem", minHeight: "500px" }}>
+                {/* ── Conversation Sidebar ── */}
+                <div style={{
+                    width: "300px", flexShrink: 0,
+                    background: "var(--bg-card)", borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--border-light)", overflow: "hidden",
+                    display: "flex", flexDirection: "column"
+                }}>
+                    <div style={{ padding: "1rem", borderBottom: "1px solid var(--border-light)", fontWeight: 600, fontSize: "0.95rem" }}>
+                        Conversations
+                    </div>
+                    <div style={{ flex: 1, overflowY: "auto" }}>
+                        {loading ? (
+                            <p style={{ padding: "1rem", color: "var(--text-muted)", fontSize: "0.9rem" }}>Loading...</p>
+                        ) : conversations.length === 0 ? (
+                            <p style={{ padding: "1rem", color: "var(--text-muted)", fontSize: "0.85rem" }}>No conversations yet. Send a message from someone's profile to start.</p>
+                        ) : (
+                            conversations.map(conv => {
+                                const isActive = activeThread?.id === conv.otherUser.id;
+                                return (
+                                    <div
+                                        key={conv.otherUser.id}
+                                        onClick={() => openThread(conv.otherUser)}
+                                        style={{
+                                            padding: "0.85rem 1rem",
+                                            cursor: "pointer",
+                                            background: isActive ? "var(--bg-hover)" : "transparent",
+                                            borderLeft: isActive ? "3px solid var(--accent)" : "3px solid transparent",
+                                            transition: "background 0.15s",
+                                            display: "flex", alignItems: "center", gap: "0.75rem",
+                                        }}
+                                        onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "var(--bg-hover)"; }}
+                                        onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
                                     >
-                                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                                            {otherUser.name ? otherUser.name.charAt(0).toUpperCase() : '?'}
+                                        <div style={{
+                                            width: "36px", height: "36px", borderRadius: "50%",
+                                            background: "var(--bg-input)", display: "flex",
+                                            alignItems: "center", justifyContent: "center",
+                                            fontSize: "0.85rem", fontWeight: "bold", flexShrink: 0,
+                                            overflow: "hidden"
+                                        }}>
+                                            {conv.otherUser.avatarUrl ? (
+                                                <img src={conv.otherUser.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                            ) : (
+                                                (conv.otherUser.name || "?").charAt(0).toUpperCase()
+                                            )}
                                         </div>
-                                        <span style={{ fontWeight: 600 }}>{otherUser.name || 'Unknown User'}</span>
-                                        <span className="role-badge" style={{ fontSize: '0.65rem' }}>{otherUser.role}</span>
-                                    </Link>
-                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                        {new Date(msg.createdAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
-                                    </span>
-                                </div>
-
-                                <p style={{ margin: 0, color: isUnread ? 'var(--text-main)' : 'var(--text-muted)', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
-                                    {msg.content}
-                                </p>
-                            </div>
-                        );
-                    })}
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                                <span style={{ fontWeight: 600, fontSize: "0.9rem" }}>{conv.otherUser.name || "Unknown"}</span>
+                                                {conv.unreadCount > 0 && (
+                                                    <span style={{
+                                                        background: "var(--accent)", color: "#fff",
+                                                        borderRadius: "10px", padding: "0.1rem 0.5rem",
+                                                        fontSize: "0.7rem", fontWeight: 700
+                                                    }}>{conv.unreadCount}</span>
+                                                )}
+                                            </div>
+                                            <p style={{
+                                                margin: 0, fontSize: "0.8rem", color: "var(--text-muted)",
+                                                whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
+                                            }}>
+                                                {conv.lastMessage.senderId === user.id ? "You: " : ""}
+                                                {conv.lastMessage.content}
+                                            </p>
+                                        </div>
+                                    </div>
+                                );
+                            })
+                        )}
+                    </div>
                 </div>
-            )}
+
+                {/* ── Thread Panel ── */}
+                <div style={{
+                    flex: 1,
+                    background: "var(--bg-card)", borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--border-light)",
+                    display: "flex", flexDirection: "column"
+                }}>
+                    {!activeThread ? (
+                        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: "0.95rem" }}>
+                            Select a conversation to view messages
+                        </div>
+                    ) : (
+                        <>
+                            {/* Thread Header */}
+                            <div style={{
+                                padding: "1rem 1.25rem",
+                                borderBottom: "1px solid var(--border-light)",
+                                display: "flex", alignItems: "center", gap: "0.75rem"
+                            }}>
+                                <Link to={`/profile/${activeThread.id}`} style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "inherit", textDecoration: "none" }}>
+                                    <div style={{
+                                        width: "36px", height: "36px", borderRadius: "50%",
+                                        background: "var(--bg-input)", display: "flex",
+                                        alignItems: "center", justifyContent: "center",
+                                        fontSize: "0.85rem", fontWeight: "bold", overflow: "hidden"
+                                    }}>
+                                        {activeThread.avatarUrl ? (
+                                            <img src={activeThread.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                        ) : (
+                                            (activeThread.name || "?").charAt(0).toUpperCase()
+                                        )}
+                                    </div>
+                                    <div>
+                                        <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>{activeThread.name}</span>
+                                        <span className="role-badge" style={{ fontSize: "0.6rem", marginLeft: "0.5rem" }}>{activeThread.role}</span>
+                                    </div>
+                                </Link>
+                            </div>
+
+                            {/* Thread Messages */}
+                            <div style={{ flex: 1, overflowY: "auto", padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                                {threadLoading ? (
+                                    <p style={{ color: "var(--text-muted)", textAlign: "center" }}>Loading messages...</p>
+                                ) : threadMessages.length === 0 ? (
+                                    <p style={{ color: "var(--text-muted)", textAlign: "center" }}>No messages yet. Start the conversation!</p>
+                                ) : (
+                                    threadMessages.map(msg => {
+                                        const isMine = msg.senderId === user.id;
+                                        return (
+                                            <div key={msg.id} style={{
+                                                display: "flex",
+                                                justifyContent: isMine ? "flex-end" : "flex-start",
+                                            }}>
+                                                <div style={{
+                                                    maxWidth: "75%",
+                                                    padding: "0.75rem 1rem",
+                                                    borderRadius: isMine ? "var(--radius-md) var(--radius-md) 4px var(--radius-md)" : "var(--radius-md) var(--radius-md) var(--radius-md) 4px",
+                                                    background: isMine ? "var(--accent)" : "var(--bg-hover)",
+                                                    color: isMine ? "#fff" : "var(--text-main)",
+                                                    fontSize: "0.9rem",
+                                                    lineHeight: 1.5,
+                                                }}>
+                                                    <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{msg.content}</p>
+                                                    <span style={{
+                                                        display: "block", marginTop: "0.3rem",
+                                                        fontSize: "0.7rem",
+                                                        opacity: 0.6
+                                                    }}>
+                                                        {new Date(msg.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
+                                <div ref={threadEndRef} />
+                            </div>
+
+                            {/* Reply Composer */}
+                            <div style={{
+                                padding: "1rem 1.25rem",
+                                borderTop: "1px solid var(--border-light)",
+                                display: "flex", gap: "0.75rem"
+                            }}>
+                                <textarea
+                                    value={replyContent}
+                                    onChange={e => setReplyContent(e.target.value)}
+                                    onKeyDown={handleKeyDown}
+                                    placeholder="Type a message..."
+                                    rows={1}
+                                    style={{
+                                        flex: 1, padding: "0.6rem 0.75rem",
+                                        background: "var(--bg-input)", border: "1px solid var(--border-light)",
+                                        borderRadius: "var(--radius-sm)", color: "var(--text-main)",
+                                        fontFamily: "inherit", fontSize: "0.9rem", resize: "none"
+                                    }}
+                                />
+                                <button
+                                    className="btn-primary"
+                                    onClick={handleSendReply}
+                                    disabled={sending || !replyContent.trim()}
+                                    style={{ padding: "0.6rem 1.25rem", fontSize: "0.9rem", flexShrink: 0 }}
+                                >
+                                    {sending ? "..." : "Send"}
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
         </main>
     );
 }

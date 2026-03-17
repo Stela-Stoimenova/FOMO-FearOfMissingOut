@@ -52,6 +52,77 @@ export async function getSentMessages(userId) {
     return messages;
 }
 
+/** Get all conversations for a user (grouped by the other participant) */
+export async function getConversations(userId) {
+    // Fetch all messages where the user is either sender or receiver
+    const messages = await prisma.message.findMany({
+        where: {
+            OR: [{ senderId: userId }, { receiverId: userId }],
+        },
+        orderBy: { createdAt: "desc" },
+        include: {
+            sender: { select: { id: true, name: true, role: true, avatarUrl: true } },
+            receiver: { select: { id: true, name: true, role: true, avatarUrl: true } },
+        },
+    });
+
+    // Group by the "other" user
+    const convMap = new Map();
+    for (const msg of messages) {
+        const otherId = msg.senderId === userId ? msg.receiverId : msg.senderId;
+        if (!convMap.has(otherId)) {
+            const other = msg.senderId === userId ? msg.receiver : msg.sender;
+            const unreadCount = messages.filter(
+                m => m.senderId === otherId && m.receiverId === userId && !m.readAt
+            ).length;
+            convMap.set(otherId, {
+                otherUser: other,
+                lastMessage: msg,
+                unreadCount,
+            });
+        }
+    }
+
+    return Array.from(convMap.values());
+}
+
+/** Get the full thread between the logged-in user and another user */
+export async function getConversationThread(userId, otherUserId) {
+    if (!Number.isInteger(otherUserId)) {
+        const err = new Error("Invalid user id");
+        err.status = 400;
+        throw err;
+    }
+
+    const messages = await prisma.message.findMany({
+        where: {
+            OR: [
+                { senderId: userId, receiverId: otherUserId },
+                { senderId: otherUserId, receiverId: userId },
+            ],
+        },
+        orderBy: { createdAt: "asc" },
+        include: {
+            sender: { select: { id: true, name: true, role: true, avatarUrl: true } },
+            receiver: { select: { id: true, name: true, role: true, avatarUrl: true } },
+        },
+    });
+
+    // Mark unread messages as read (those sent TO the current user)
+    const unreadIds = messages
+        .filter(m => m.receiverId === userId && !m.readAt)
+        .map(m => m.id);
+
+    if (unreadIds.length > 0) {
+        await prisma.message.updateMany({
+            where: { id: { in: unreadIds } },
+            data: { readAt: new Date() },
+        });
+    }
+
+    return messages;
+}
+
 /** Mark a message as read; only the receiver can do this */
 export async function markMessageRead(messageId, userId) {
     if (!Number.isInteger(messageId)) {

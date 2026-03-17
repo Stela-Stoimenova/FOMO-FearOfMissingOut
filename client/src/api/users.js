@@ -68,6 +68,7 @@ export async function getFollowers(id) {
  * Get who a user is following
  */
 export async function getFollowing(id) {
+    return apiRequest(`/users/${id}/following`);
 }
 
 /**
