@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { apiRequest } from "../api/client.js";
 import { getMyTickets } from "../api/events.js";
 import { getLoyaltyBalance } from "../api/users.js";
+import FollowListModal from "../components/FollowListModal.jsx";
 
 function formatPrice(cents) {
     return `€${(cents / 100).toFixed(2)}`;
@@ -18,6 +19,7 @@ export default function DashboardPage() {
     const [myTickets, setMyTickets] = useState([]);
     const [loadingTickets, setLoadingTickets] = useState(false);
     const [loyalty, setLoyalty] = useState(null);
+    const [showList, setShowList] = useState(null); // 'followers' | 'following' | null
 
     useEffect(() => {
         if (user && (user.role === "STUDIO" || user.role === "AGENCY")) {
@@ -63,6 +65,20 @@ export default function DashboardPage() {
             <div className="dashboard-info">
                 <p>Email: {user.email}</p>
                 <p>Role: <span className="role-badge">{user.role}</span></p>
+
+                {user._count && (
+                    <div style={{ display: 'flex', gap: '1.5rem', marginTop: '1rem', borderTop: '1px solid var(--border-light)', paddingTop: '1rem' }}>
+                        <span onClick={() => setShowList('followers')} style={{ color: 'var(--text-muted)', fontSize: '0.9rem', cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}><strong style={{ color: 'var(--text-main)' }}>{user._count.followers}</strong> followers</span>
+                        <span onClick={() => setShowList('following')} style={{ color: 'var(--text-muted)', fontSize: '0.9rem', cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}><strong style={{ color: 'var(--text-main)' }}>{user._count.following}</strong> following</span>
+                    </div>
+                )}
+
+                <FollowListModal
+                    isOpen={!!showList}
+                    onClose={() => setShowList(null)}
+                    type={showList}
+                    userId={user.id}
+                />
 
                 {user.role === "DANCER" && user.loyaltyAccount && (
                     <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)' }}>

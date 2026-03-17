@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { updateMe, getMe, addPortfolioItem, deletePortfolioItem, tagEvent } from "../api/users.js";
 import { getMyTickets } from "../api/events.js";
+import FollowListModal from "../components/FollowListModal.jsx";
 
 const ALL_STYLES = ["Hip Hop", "Contemporary", "Heels", "Ballet", "Breaking", "House", "Popping", "Commercial", "Jazz", "Afro"];
 const EXPERIENCE_LEVELS = ["Beginner", "Intermediate", "Advanced", "Professional"];
@@ -12,6 +13,7 @@ export default function ProfilePage() {
     const [editing, setEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [successMsg, setSuccessMsg] = useState("");
+    const [showList, setShowList] = useState(null); // 'followers' | 'following' | null
 
     // Form state
     const [form, setForm] = useState({
@@ -169,8 +171,8 @@ export default function ProfilePage() {
                         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
                             {user._count && (
                                 <>
-                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}><strong style={{ color: 'var(--text-main)' }}>{user._count.followers}</strong> followers</span>
-                                    <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}><strong style={{ color: 'var(--text-main)' }}>{user._count.following}</strong> following</span>
+                                    <span onClick={() => setShowList('followers')} style={{ color: 'var(--text-muted)', fontSize: '0.9rem', cursor: 'pointer' }}><strong style={{ color: 'var(--text-main)' }}>{user._count.followers}</strong> followers</span>
+                                    <span onClick={() => setShowList('following')} style={{ color: 'var(--text-muted)', fontSize: '0.9rem', cursor: 'pointer' }}><strong style={{ color: 'var(--text-main)' }}>{user._count.following}</strong> following</span>
                                 </>
                             )}
                             {isDancer && user.loyaltyAccount && (
@@ -182,6 +184,13 @@ export default function ProfilePage() {
                         Edit Profile
                     </button>
                 </div>
+
+                <FollowListModal
+                    isOpen={!!showList}
+                    onClose={() => setShowList(null)}
+                    type={showList}
+                    userId={user.id}
+                />
 
                 {/* Dance Styles */}
                 {isDancer && user.danceStyles?.length > 0 && (
