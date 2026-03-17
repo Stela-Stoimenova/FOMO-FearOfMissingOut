@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getUserProfile, followUser, unfollowUser, getFollowers, getFollowing, getMe } from "../api/users.js";
+import { getUserProfile, followUser, unfollowUser, getMe } from "../api/users.js";
 import { sendMessage } from "../api/messages.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import FollowListModal from "../components/FollowListModal.jsx";
 
 export default function PublicProfilePage() {
     const { id } = useParams();
@@ -20,8 +21,6 @@ export default function PublicProfilePage() {
 
     // Followers/Following list state
     const [showList, setShowList] = useState(null); // 'followers' | 'following' | null
-    const [listData, setListData] = useState([]);
-    const [listLoading, setListLoading] = useState(false);
 
     useEffect(() => {
         async function load() {
@@ -86,15 +85,8 @@ export default function PublicProfilePage() {
         }
     }
 
-    async function handleShowList(type) {
-        if (showList === type) { setShowList(null); return; } // toggle off
+    function handleShowList(type) {
         setShowList(type);
-        setListLoading(true);
-        try {
-            const data = type === "followers" ? await getFollowers(id) : await getFollowing(id);
-            setListData(data);
-        } catch { setListData([]); }
-        finally { setListLoading(false); }
     }
 
     if (loading) return <main className="page page-narrow"><p className="state-msg">Loading profile…</p></main>;
@@ -134,32 +126,14 @@ export default function PublicProfilePage() {
                         <span onClick={() => handleShowList('followers')} style={{ color: 'var(--text-muted)', fontSize: '0.9rem', cursor: 'pointer' }}><strong style={{ color: 'var(--text-main)' }}>{profile._count?.followers || 0}</strong> followers</span>
                         <span onClick={() => handleShowList('following')} style={{ color: 'var(--text-muted)', fontSize: '0.9rem', cursor: 'pointer' }}><strong style={{ color: 'var(--text-main)' }}>{profile._count?.following || 0}</strong> following</span>
                     </div>
-                    {/* Followers / Following List */}
-                    {showList && (
-                        <div style={{ marginBottom: '1rem', padding: '1rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                                <strong style={{ fontSize: '0.95rem' }}>{showList === 'followers' ? 'Followers' : 'Following'}</strong>
-                                <button onClick={() => setShowList(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.1rem' }}>×</button>
-                            </div>
-                            {listLoading ? (
-                                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading...</p>
-                            ) : listData.length === 0 ? (
-                                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>None yet.</p>
-                            ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '250px', overflowY: 'auto' }}>
-                                    {listData.map(u => (
-                                        <Link key={u.id} to={`/profile/${u.id}`} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
-                                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                                {(u.name || '?').charAt(0).toUpperCase()}
-                                            </div>
-                                            <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{u.name || 'Unknown'}</span>
-                                            <span className="role-badge" style={{ fontSize: '0.6rem' }}>{u.role}</span>
-                                        </Link>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
+
+                    <FollowListModal
+                        isOpen={!!showList}
+                        onClose={() => setShowList(null)}
+                        type={showList}
+                        userId={profile.id}
+                    />
+
 
                     {/* Action Buttons */}
                     {!isOwnProfile && (
@@ -207,72 +181,80 @@ export default function PublicProfilePage() {
             </div>
 
             {/* Dance Styles */}
-            {profile.danceStyles?.length > 0 && (
-                <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
-                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Dance Styles</h3>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                        {profile.danceStyles.map(s => (
-                            <span key={s} className="style-chip">{s}</span>
-                        ))}
-                    </div>
-                </section>
-            )}
+            {
+                profile.danceStyles?.length > 0 && (
+                    <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Dance Styles</h3>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            {profile.danceStyles.map(s => (
+                                <span key={s} className="style-chip">{s}</span>
+                            ))}
+                        </div>
+                    </section>
+                )
+            }
 
             {/* Portfolio Links (Classic) */}
-            {profile.portfolioLinks?.length > 0 && (
-                <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
-                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Links</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {profile.portfolioLinks.map((link, i) => (
-                            <a key={i} href={link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: '0.9rem' }}>
-                                {link}
-                            </a>
-                        ))}
-                    </div>
-                </section>
-            )}
+            {
+                profile.portfolioLinks?.length > 0 && (
+                    <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Links</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {profile.portfolioLinks.map((link, i) => (
+                                <a key={i} href={link} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: '0.9rem' }}>
+                                    {link}
+                                </a>
+                            ))}
+                        </div>
+                    </section>
+                )
+            }
 
             {/* Rich Portfolio Media */}
-            {profile.portfolioItems?.length > 0 && (
-                <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
-                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Media Portfolio</h3>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
-                        {profile.portfolioItems.map(item => (
-                            <div key={item.id} style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--bg-card)' }}>
-                                {item.type === "PHOTO" ? (
-                                    <div style={{ height: '140px', backgroundImage: `url(${item.url})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
-                                ) : (
-                                    <div style={{ height: '140px', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
-                                        <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}>Play Video &rarr;</a>
+            {
+                profile.portfolioItems?.length > 0 && (
+                    <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Media Portfolio</h3>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                            {profile.portfolioItems.map(item => (
+                                <div key={item.id} style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--bg-card)' }}>
+                                    {item.type === "PHOTO" ? (
+                                        <div style={{ height: '140px', backgroundImage: `url(${item.url})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                                    ) : (
+                                        <div style={{ height: '140px', background: 'var(--bg-hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent)' }}>
+                                            <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}>Play Video &rarr;</a>
+                                        </div>
+                                    )}
+                                    <div style={{ padding: '0.75rem' }}>
+                                        {item.title && <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem' }}>{item.title}</h4>}
+                                        {item.description && <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.description}</p>}
                                     </div>
-                                )}
-                                <div style={{ padding: '0.75rem' }}>
-                                    {item.title && <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem' }}>{item.title}</h4>}
-                                    {item.description && <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.description}</p>}
                                 </div>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-            )}
+                            ))}
+                        </div>
+                    </section>
+                )
+            }
 
             {/* Tagged Events */}
-            {profile.taggedEvents?.length > 0 && (
-                <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
-                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Events Attended / Performed</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {profile.taggedEvents.map(evt => (
-                            <Link to={`/events/${evt.id}`} key={evt.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
-                                {evt.imageUrl && <img src={evt.imageUrl} alt={evt.title} style={{ width: '40px', height: '40px', borderRadius: '4px', objectFit: 'cover' }} />}
-                                <div>
-                                    <h4 style={{ margin: 0, fontSize: '0.95rem' }}>{evt.title}</h4>
-                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{evt.location}</span>
-                                </div>
-                            </Link>
-                        ))}
-                    </div>
-                </section>
-            )}
+            {
+                profile.taggedEvents?.length > 0 && (
+                    <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Events Attended / Performed</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            {profile.taggedEvents.map(evt => (
+                                <Link to={`/events/${evt.id}`} key={evt.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
+                                    {evt.imageUrl && <img src={evt.imageUrl} alt={evt.title} style={{ width: '40px', height: '40px', borderRadius: '4px', objectFit: 'cover' }} />}
+                                    <div>
+                                        <h4 style={{ margin: 0, fontSize: '0.95rem' }}>{evt.title}</h4>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{evt.location}</span>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </section>
+                )
+            }
 
             {/* Member Since */}
             <section className="detail-card">
@@ -280,6 +262,6 @@ export default function PublicProfilePage() {
                     Member since {new Date(profile.createdAt).toLocaleDateString("en-US", { year: 'numeric', month: 'long' })}
                 </p>
             </section>
-        </main>
+        </main >
     );
 }
