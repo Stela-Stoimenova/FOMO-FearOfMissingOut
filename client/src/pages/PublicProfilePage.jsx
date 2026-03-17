@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getUserProfile, followUser, unfollowUser, getFollowers, getMe } from "../api/users.js";
+import { getUserProfile, followUser, unfollowUser, getFollowers, getFollowing, getMe } from "../api/users.js";
 import { sendMessage } from "../api/messages.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
@@ -17,6 +17,11 @@ export default function PublicProfilePage() {
     const [isWritingMessage, setIsWritingMessage] = useState(false);
     const [messageContent, setMessageContent] = useState("");
     const [messageLoading, setMessageLoading] = useState(false);
+
+    // Followers/Following list state
+    const [showList, setShowList] = useState(null); // 'followers' | 'following' | null
+    const [listData, setListData] = useState([]);
+    const [listLoading, setListLoading] = useState(false);
 
     useEffect(() => {
         async function load() {
@@ -81,6 +86,17 @@ export default function PublicProfilePage() {
         }
     }
 
+    async function handleShowList(type) {
+        if (showList === type) { setShowList(null); return; } // toggle off
+        setShowList(type);
+        setListLoading(true);
+        try {
+            const data = type === "followers" ? await getFollowers(id) : await getFollowing(id);
+            setListData(data);
+        } catch { setListData([]); }
+        finally { setListLoading(false); }
+    }
+
     if (loading) return <main className="page page-narrow"><p className="state-msg">Loading profile…</p></main>;
     if (error) return <main className="page page-narrow"><div className="state-error"><p>{error}</p></div></main>;
     if (!profile) return null;
@@ -115,9 +131,35 @@ export default function PublicProfilePage() {
                     {profile.bio && <p style={{ color: 'var(--text-main)', lineHeight: 1.6, marginBottom: '1rem' }}>{profile.bio}</p>}
 
                     <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', marginBottom: '1rem' }}>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}><strong style={{ color: 'var(--text-main)' }}>{profile._count?.followers || 0}</strong> followers</span>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}><strong style={{ color: 'var(--text-main)' }}>{profile._count?.following || 0}</strong> following</span>
+                        <span onClick={() => handleShowList('followers')} style={{ color: 'var(--text-muted)', fontSize: '0.9rem', cursor: 'pointer' }}><strong style={{ color: 'var(--text-main)' }}>{profile._count?.followers || 0}</strong> followers</span>
+                        <span onClick={() => handleShowList('following')} style={{ color: 'var(--text-muted)', fontSize: '0.9rem', cursor: 'pointer' }}><strong style={{ color: 'var(--text-main)' }}>{profile._count?.following || 0}</strong> following</span>
                     </div>
+                    {/* Followers / Following List */}
+                    {showList && (
+                        <div style={{ marginBottom: '1rem', padding: '1rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                                <strong style={{ fontSize: '0.95rem' }}>{showList === 'followers' ? 'Followers' : 'Following'}</strong>
+                                <button onClick={() => setShowList(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.1rem' }}>×</button>
+                            </div>
+                            {listLoading ? (
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading...</p>
+                            ) : listData.length === 0 ? (
+                                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>None yet.</p>
+                            ) : (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '250px', overflowY: 'auto' }}>
+                                    {listData.map(u => (
+                                        <Link key={u.id} to={`/profile/${u.id}`} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-sm)', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
+                                            <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                                {(u.name || '?').charAt(0).toUpperCase()}
+                                            </div>
+                                            <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{u.name || 'Unknown'}</span>
+                                            <span className="role-badge" style={{ fontSize: '0.6rem' }}>{u.role}</span>
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Action Buttons */}
                     {!isOwnProfile && (

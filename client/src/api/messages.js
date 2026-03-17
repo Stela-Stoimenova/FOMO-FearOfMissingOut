@@ -37,3 +37,19 @@ export async function markMessageRead(id) {
         method: "PUT",
     });
 }
+
+/**
+ * GET /api/messages/conversations
+ * Get grouped conversation list.
+ */
+export async function getConversations() {
+    return apiRequest("/messages/conversations");
+}
+
+/**
+ * GET /api/messages/thread/:userId
+ * Get the full thread with a specific user.
+ */
+export async function getThread(userId) {
+    return apiRequest(`/messages/thread/${userId}`);
+}
