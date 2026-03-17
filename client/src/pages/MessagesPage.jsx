@@ -180,7 +180,7 @@ export default function MessagesPage() {
                                 borderBottom: "1px solid var(--border-light)",
                                 display: "flex", alignItems: "center", gap: "0.75rem"
                             }}>
-                                <Link to={`/profile/${activeThread.id}`} style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "inherit", textDecoration: "none" }}>
+                                <Link to={`/users/${activeThread.id}`} style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "inherit", textDecoration: "none" }}>
                                     <div style={{
                                         width: "36px", height: "36px", borderRadius: "50%",
                                         background: "var(--bg-input)", display: "flex",
