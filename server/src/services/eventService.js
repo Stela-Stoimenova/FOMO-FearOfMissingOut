@@ -54,7 +54,10 @@ export async function listEvents({ q, city, from, to, minPrice, maxPrice, page =
             orderBy: { startAt: "asc" },
             skip,
             take,
-            include: { creator: { select: { id: true, name: true, role: true } } },
+            include: {
+                creator: { select: { id: true, name: true, role: true } },
+                _count: { select: { tickets: true } },
+            },
         }),
         prisma.event.count({ where }),
     ]);
