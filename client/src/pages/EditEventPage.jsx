@@ -1,10 +1,20 @@
-// CreateEventPage.jsx — form for STUDIO / AGENCY to post a new event.
-// Location is geocoded to lat/lng via Mapbox on submit — no manual coordinate entry.
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { createEvent } from "../api/events.js";
+// EditEventPage.jsx — only the event's creator can access this page.
+// Loads the current event data, lets the owner edit it, geocodes the location via Mapbox.
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
+import { getEventById, updateEvent } from "../api/events.js";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+
+// Convert an ISO date string to the format required by <input type="datetime-local">
+function toDatetimeLocal(isoStr) {
+    if (!isoStr) return "";
+    const d = new Date(isoStr);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16);
+}
 
 async function geocodeLocation(locationText) {
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(locationText)}.json?access_token=${MAPBOX_TOKEN}&limit=1`;
@@ -18,10 +28,15 @@ async function geocodeLocation(locationText) {
     return { latitude, longitude };
 }
 
-export default function CreateEventPage() {
+export default function EditEventPage() {
+    const { id } = useParams();
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(false);
+    const { user } = useAuth();
+
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
     const [error, setError] = useState(null);
+    const [forbidden, setForbidden] = useState(false);
 
     const [form, setForm] = useState({
         title: "",
@@ -34,53 +49,120 @@ export default function CreateEventPage() {
         capacity: "",
     });
 
+    // Load the event and enforce ownership immediately
+    useEffect(() => {
+        async function fetchEvent() {
+            try {
+                const data = await getEventById(id);
+
+                // Compare numeric IDs — user.id from AuthContext is the real DB id
+                if (data.creatorId !== user.id) {
+                    setForbidden(true);
+                    return;
+                }
+
+                setForm({
+                    title: data.title ?? "",
+                    description: data.description ?? "",
+                    location: data.location ?? "",
+                    imageUrl: data.imageUrl ?? "",
+                    startAt: toDatetimeLocal(data.startAt),
+                    endAt: toDatetimeLocal(data.endAt),
+                    priceCents: data.priceCents ?? "",
+                    capacity: data.capacity ?? "",
+                });
+            } catch (err) {
+                setError(err.message || "Failed to load event.");
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchEvent();
+    }, [id, user.id]);
+
     function handleChange(e) {
         setForm({ ...form, [e.target.name]: e.target.value });
     }
 
     async function handleSubmit(e) {
         e.preventDefault();
-        setLoading(true);
+        setSaving(true);
         setError(null);
 
         try {
-            // Geocode the location string to lat/lng before sending the event
+            // Geocode the location string → coordinates
             let coords = {};
             if (form.location) {
                 try {
                     coords = await geocodeLocation(form.location);
                 } catch (geoErr) {
                     setError(geoErr.message);
-                    setLoading(false);
+                    setSaving(false);
                     return;
                 }
             }
 
             const payload = {
                 title: form.title,
-                description: form.description || undefined,
+                description: form.description || null,
                 location: form.location,
-                imageUrl: form.imageUrl || undefined,
+                imageUrl: form.imageUrl || null,
                 startAt: form.startAt,
-                endAt: form.endAt || undefined,
+                endAt: form.endAt || null,
                 priceCents: Number(form.priceCents),
                 ...coords,
             };
             if (form.capacity) payload.capacity = Number(form.capacity);
 
-            const data = await createEvent(payload);
-            navigate(`/events/${data.id}`);
+            await updateEvent(id, payload);
+            navigate(`/events/${id}`);
         } catch (err) {
-            setError(err.message || "Failed to create event");
+            setError(err.message || "Failed to save changes.");
         } finally {
-            setLoading(false);
+            setSaving(false);
         }
     }
 
+    // ── States ──────────────────────────────────────────────────────────────────
+    if (loading) {
+        return (
+            <main className="page page-narrow">
+                <p className="state-msg">Loading event…</p>
+            </main>
+        );
+    }
+
+    if (forbidden) {
+        return (
+            <main className="page page-narrow">
+                <div className="state-error" style={{ textAlign: "center", padding: "3rem" }}>
+                    <h2 style={{ marginBottom: "0.75rem" }}>Access Denied</h2>
+                    <p style={{ color: "var(--text-muted)", marginBottom: "1.5rem" }}>
+                        You can only edit events that you created.
+                    </p>
+                    <Link to="/" className="btn-primary" style={{ textDecoration: "none", display: "inline-block" }}>
+                        ← Back to events
+                    </Link>
+                </div>
+            </main>
+        );
+    }
+
+    if (error && !saving) {
+        return (
+            <main className="page page-narrow">
+                <div className="state-error"><p>{error}</p></div>
+                <Link to={`/events/${id}`} style={{ color: "var(--accent)" }}>← Cancel</Link>
+            </main>
+        );
+    }
+
+    // ── Form ────────────────────────────────────────────────────────────────────
     return (
         <main className="page page-narrow">
-            <h1>Create Event</h1>
-            <p className="subtitle">Only Studios and Agencies can create events.</p>
+            <Link to={`/events/${id}`} className="back-link">← Cancel</Link>
+            <h1 style={{ marginTop: "1.5rem" }}>Edit Event</h1>
+            <p className="subtitle">Update the details for your event.</p>
 
             {error && <div className="form-error">{error}</div>}
 
@@ -126,7 +208,7 @@ export default function CreateEventPage() {
                         name="location"
                         value={form.location}
                         onChange={handleChange}
-                        placeholder="e.g. Sofia Dance Studio, Berlin, or Vienna"
+                        placeholder="e.g. Sofia Dance Studio, Berlin, or Millennium Complex Budapest"
                         required
                     />
                     <small style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
@@ -180,14 +262,10 @@ export default function CreateEventPage() {
                     />
                 </label>
 
-                <button type="submit" className="btn-primary" disabled={loading}>
-                    {loading ? "Creating…" : "Create Event"}
+                <button type="submit" className="btn-primary" disabled={saving}>
+                    {saving ? "Saving…" : "Save Changes"}
                 </button>
             </form>
-
-            <p className="hint">
-                <Link to="/dashboard">← Back to Dashboard</Link>
-            </p>
         </main>
     );
 }

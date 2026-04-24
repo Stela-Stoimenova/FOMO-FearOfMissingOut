@@ -150,7 +150,7 @@ export default function HomePage() {
     }
 
 
-    // A reusable card component
+    // Reusable event card with creator badge
     const EventCard = ({ event }) => (
         <Link key={event.id} to={`/events/${event.id}`} className="event-card">
             <div
@@ -174,6 +174,18 @@ export default function HomePage() {
                     <p className="event-price">{formatPrice(event.priceCents)}</p>
                     <span className="event-card-cta">Get Tickets</span>
                 </div>
+                {event.creator?.name && (
+                    <p style={{
+                        margin: '0.4rem 0 0 0',
+                        fontSize: '0.72rem',
+                        color: 'var(--accent)',
+                        fontWeight: 600,
+                        letterSpacing: '0.02em',
+                        opacity: 0.85,
+                    }}>
+                        by {event.creator.name}
+                    </p>
+                )}
             </div>
         </Link>
     );
