@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { getUserProfile, followUser, unfollowUser, getMe } from "../api/users.js";
+import { getUserProfile, followUser, unfollowUser, getMe, getFollowers } from "../api/users.js";
 import { sendMessage } from "../api/messages.js";
+import { getEvents } from "../api/events.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import FollowListModal from "../components/FollowListModal.jsx";
 
@@ -18,6 +19,7 @@ export default function PublicProfilePage() {
     const [isWritingMessage, setIsWritingMessage] = useState(false);
     const [messageContent, setMessageContent] = useState("");
     const [messageLoading, setMessageLoading] = useState(false);
+    const [createdEvents, setCreatedEvents] = useState([]);
 
     // Followers/Following list state
     const [showList, setShowList] = useState(null); // 'followers' | 'following' | null
@@ -26,6 +28,7 @@ export default function PublicProfilePage() {
         async function load() {
             setLoading(true);
             setError(null);
+            setCreatedEvents([]);
             try {
                 const data = await getUserProfile(id);
                 setProfile(data);
@@ -35,6 +38,14 @@ export default function PublicProfilePage() {
                     try {
                         const followers = await getFollowers(id);
                         setIsFollowing(followers.some(f => f.id === me.id));
+                    } catch { /* ignore */ }
+                }
+
+                // Fetch events created by this user if they are a Studio or Agency
+                if (data.role === "STUDIO" || data.role === "AGENCY") {
+                    try {
+                        const evtData = await getEvents({ creatorId: id, limit: 50 });
+                        setCreatedEvents(evtData.items ?? []);
                     } catch { /* ignore */ }
                 }
             } catch (err) {
@@ -236,18 +247,53 @@ export default function PublicProfilePage() {
                 )
             }
 
-            {/* Tagged Events */}
+            {/* Created Events — only shown for STUDIO / AGENCY profiles */}
             {
-                profile.taggedEvents?.length > 0 && (
+                createdEvents.length > 0 && (
                     <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
-                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Events Attended / Performed</h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                            {profile.taggedEvents.map(evt => (
-                                <Link to={`/events/${evt.id}`} key={evt.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
-                                    {evt.imageUrl && <img src={evt.imageUrl} alt={evt.title} style={{ width: '40px', height: '40px', borderRadius: '4px', objectFit: 'cover' }} />}
-                                    <div>
-                                        <h4 style={{ margin: 0, fontSize: '0.95rem' }}>{evt.title}</h4>
-                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{evt.location}</span>
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Events by this Organiser</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {createdEvents.map(evt => (
+                                <Link
+                                    to={`/events/${evt.id}`}
+                                    key={evt.id}
+                                    style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: '56px 1fr auto',
+                                        gap: '0.75rem',
+                                        alignItems: 'center',
+                                        padding: '0.75rem',
+                                        background: 'var(--bg-hover)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        border: '1px solid var(--border-light)',
+                                        textDecoration: 'none',
+                                        color: 'inherit',
+                                        transition: 'border-color 0.15s',
+                                    }}
+                                >
+                                    {/* Thumbnail */}
+                                    <div style={{
+                                        width: '56px', height: '56px', borderRadius: '6px',
+                                        backgroundImage: evt.imageUrl ? `url(${evt.imageUrl})` : 'linear-gradient(135deg, rgba(99,102,241,0.4), rgba(124,58,237,0.2))',
+                                        backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0,
+                                    }} />
+
+                                    {/* Info */}
+                                    <div style={{ minWidth: 0 }}>
+                                        <h4 style={{ margin: '0 0 0.2rem 0', fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            {evt.title}
+                                        </h4>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                            {evt.location} &bull; {new Date(evt.startAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        </span>
+                                    </div>
+
+                                    {/* Price + CTA */}
+                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                        <p style={{ margin: 0, fontWeight: 700, color: 'var(--accent)', fontSize: '0.9rem' }}>
+                                            €{(evt.priceCents / 100).toFixed(2)}
+                                        </p>
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>View →</span>
                                     </div>
                                 </Link>
                             ))}

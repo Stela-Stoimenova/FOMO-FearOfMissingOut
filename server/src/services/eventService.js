@@ -25,7 +25,7 @@ function haversineKm(lat1, lon1, lat2, lon2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export async function listEvents({ q, city, from, to, minPrice, maxPrice, page = "1", limit = "10" }) {
+export async function listEvents({ q, city, from, to, minPrice, maxPrice, creatorId, page = "1", limit = "10" }) {
     const where = {
         AND: [
             q
@@ -38,6 +38,7 @@ export async function listEvents({ q, city, from, to, minPrice, maxPrice, page =
                 }
                 : {},
             city ? { location: { contains: String(city), mode: "insensitive" } } : {},
+            creatorId ? { creatorId: Number(creatorId) } : {},
             from ? { startAt: { gte: new Date(String(from)) } } : {},
             to ? { startAt: { lte: new Date(String(to)) } } : {},
             minPrice ? { priceCents: { gte: Number(minPrice) } } : {},

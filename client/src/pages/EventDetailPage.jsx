@@ -203,7 +203,10 @@ export default function EventDetailPage() {
                         )}
                         {event.creator && (
                             <div className="detail-item">
-                                <strong>Organiser:</strong> {event.creator.name ?? event.creator.role}
+                                <strong>Organiser:</strong>{" "}
+                                <Link to={`/users/${event.creator.id}`} style={{ color: "var(--accent)", textDecoration: "none" }}>
+                                    {event.creator.name ?? event.creator.role}
+                                </Link>
                             </div>
                         )}
                     </div>
@@ -256,8 +259,12 @@ export default function EventDetailPage() {
                                 {buying ? "Processing…" : `Buy Ticket — ${surgeWarning ? formatPrice(Math.round(event.priceCents * 1.15)) : formatPrice(event.priceCents)}`}
                             </button>
                         )
-                    ) : (user.role === "STUDIO" || user.role === "AGENCY") ? (
-                        <button className="btn-primary" style={{ background: "#475569" }} onClick={() => alert("Edit event coming soon!")}>
+                    ) : (isLoggedIn && (user.role === "STUDIO" || user.role === "AGENCY") && user.id === event.creatorId) ? (
+                        <button
+                            className="btn-primary"
+                            style={{ background: "#475569" }}
+                            onClick={() => navigate(`/events/${event.id}/edit`)}
+                        >
                             Edit Event
                         </button>
                     ) : null}

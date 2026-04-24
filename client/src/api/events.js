@@ -99,3 +99,27 @@ export async function createEvent(eventData) {
         body: JSON.stringify(eventData),
     });
 }
+
+/**
+ * PUT /api/events/:id
+ * Update an existing event. Requires STUDIO or AGENCY role and ownership.
+ *
+ * @param {number|string} id
+ * @param {object} eventData
+ */
+export async function updateEvent(id, eventData) {
+    return apiRequest(`/events/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(eventData),
+    });
+}
+
+/**
+ * DELETE /api/events/:id
+ * Delete an event. Requires STUDIO or AGENCY role and ownership.
+ *
+ * @param {number|string} id
+ */
+export async function deleteEvent(id) {
+    return apiRequest(`/events/${id}`, { method: "DELETE" });
+}

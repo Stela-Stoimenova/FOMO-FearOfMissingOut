@@ -11,6 +11,7 @@ import RegisterPage from "./pages/RegisterPage.jsx";
 import DashboardPage from "./pages/DashboardPage.jsx";
 import MessagesPage from "./pages/MessagesPage.jsx";
 import CreateEventPage from "./pages/CreateEventPage.jsx";
+import EditEventPage from "./pages/EditEventPage.jsx";
 import MyTicketsPage from "./pages/MyTicketsPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import PublicProfilePage from "./pages/PublicProfilePage.jsx";
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           <Route path="/create-event" element={<ProtectedRoute><CreateEventPage /></ProtectedRoute>} />
+          <Route path="/events/:id/edit" element={<ProtectedRoute><EditEventPage /></ProtectedRoute>} />
           <Route path="/my-tickets" element={<ProtectedRoute><MyTicketsPage /></ProtectedRoute>} />
 
           {/* Public features */}
