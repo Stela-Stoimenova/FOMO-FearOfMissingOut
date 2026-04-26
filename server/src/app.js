@@ -8,6 +8,8 @@ import authRoutes from "./routes/auth.js";
 import eventRoutes from "./routes/events.js";
 import userRoutes from "./routes/users.js";
 import messageRoutes from "./routes/messages.js";
+import studioRoutes from "./routes/studios.js";
+import cvRoutes from "./routes/cv.js";
 
 const app = express();
 
@@ -36,6 +38,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/studios", studioRoutes);
+app.use("/api/cv", cvRoutes);
 
 // Centralized error handler (must be last)
 app.use((err, req, res, next) => {
