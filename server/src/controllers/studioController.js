@@ -10,21 +10,21 @@ export async function listClasses(req, res, next) {
 
 export async function createClass(req, res, next) {
   try {
-    const newClass = await studioService.createClass(req.user.id, req.body);
+    const newClass = await studioService.createClass(req.user.userId, req.body);
     res.status(201).json(newClass);
   } catch (err) { next(err); }
 }
 
 export async function updateClass(req, res, next) {
   try {
-    const updated = await studioService.updateClass(req.params.classId, req.user.id, req.body);
+    const updated = await studioService.updateClass(req.params.classId, req.user.userId, req.body);
     res.json(updated);
   } catch (err) { next(err); }
 }
 
 export async function removeClass(req, res, next) {
   try {
-    await studioService.removeClass(req.params.classId, req.user.id);
+    await studioService.removeClass(req.params.classId, req.user.userId);
     res.status(204).end();
   } catch (err) { next(err); }
 }
@@ -39,29 +39,29 @@ export async function listMemberships(req, res, next) {
 
 export async function createMembership(req, res, next) {
   try {
-    const tier = await studioService.createMembership(req.user.id, req.body);
+    const tier = await studioService.createMembership(req.user.userId, req.body);
     res.status(201).json(tier);
   } catch (err) { next(err); }
 }
 
 export async function updateMembership(req, res, next) {
   try {
-    const updated = await studioService.updateMembership(req.params.tierId, req.user.id, req.body);
+    const updated = await studioService.updateMembership(req.params.tierId, req.user.userId, req.body);
     res.json(updated);
   } catch (err) { next(err); }
 }
 
 export async function removeMembership(req, res, next) {
   try {
-    await studioService.removeMembership(req.params.tierId, req.user.id);
+    await studioService.removeMembership(req.params.tierId, req.user.userId);
     res.status(204).end();
   } catch (err) { next(err); }
 }
 
 export async function purchaseMembership(req, res, next) {
   try {
-    // req.user.id is the dancer buying it
-    const purchase = await studioService.purchaseMembership(req.params.tierId, req.user.id);
+    // req.user.userId is the dancer buying it
+    const purchase = await studioService.purchaseMembership(req.params.tierId, req.user.userId);
     res.status(201).json(purchase);
   } catch (err) { next(err); }
 }
@@ -76,14 +76,14 @@ export async function listTeam(req, res, next) {
 
 export async function addTeamMember(req, res, next) {
   try {
-    const member = await studioService.addTeamMember(req.user.id, req.body);
+    const member = await studioService.addTeamMember(req.user.userId, req.body);
     res.status(201).json(member);
   } catch (err) { next(err); }
 }
 
 export async function removeTeamMember(req, res, next) {
   try {
-    await studioService.removeTeamMember(req.params.teamId, req.user.id);
+    await studioService.removeTeamMember(req.params.teamId, req.user.userId);
     res.status(204).end();
   } catch (err) { next(err); }
 }
@@ -98,14 +98,14 @@ export async function listCollaborations(req, res, next) {
 
 export async function addCollaboration(req, res, next) {
   try {
-    const collab = await studioService.addCollaboration(req.user.id, req.body);
+    const collab = await studioService.addCollaboration(req.user.userId, req.body);
     res.status(201).json(collab);
   } catch (err) { next(err); }
 }
 
 export async function removeCollaboration(req, res, next) {
   try {
-    await studioService.removeCollaboration(req.params.agencyId, req.user.id);
+    await studioService.removeCollaboration(req.params.agencyId, req.user.userId);
     res.status(204).end();
   } catch (err) { next(err); }
 }

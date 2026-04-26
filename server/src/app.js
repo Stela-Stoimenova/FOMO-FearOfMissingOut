@@ -28,9 +28,13 @@ app.use(cors());
 app.use(express.json());
 app.use(sanitizeBody);
 
-// Health check
+// Health checks
 app.get("/api/dance", (req, res) => {
   res.json({ ok: true, message: "Server is running" });
+});
+
+app.get("/api/health-test", (req, res) => {
+  res.json({ ok: true });
 });
 
 // Routes
@@ -53,4 +57,3 @@ app.use((err, req, res, next) => {
 });
 
 export default app;
-
