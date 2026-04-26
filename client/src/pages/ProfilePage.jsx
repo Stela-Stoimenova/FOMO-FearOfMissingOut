@@ -1,9 +1,11 @@
 import { useAuth } from "../context/AuthContext.jsx";
 import { Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { updateMe, getMe, addPortfolioItem, deletePortfolioItem, tagEvent } from "../api/users.js";
 import { getMyTickets } from "../api/events.js";
 import FollowListModal from "../components/FollowListModal.jsx";
+import CvManager from "../components/CvManager.jsx";
+import StudioManager from "../components/StudioManager.jsx";
 
 const ALL_STYLES = ["Hip Hop", "Contemporary", "Heels", "Ballet", "Breaking", "House", "Popping", "Commercial", "Jazz", "Afro"];
 const EXPERIENCE_LEVELS = ["Beginner", "Intermediate", "Advanced", "Professional"];
@@ -27,7 +29,26 @@ export default function ProfilePage() {
     const [myTickets, setMyTickets] = useState([]);
     const [selectedEventToTag, setSelectedEventToTag] = useState("");
 
-    // Load fresh profile data
+    // Reset and Load fresh profile data
+    const resetAndLoad = useCallback(async () => {
+        try {
+            const freshUser = await getMe();
+            setUser(freshUser);
+            setForm({
+                name: freshUser.name || "",
+                avatarUrl: freshUser.avatarUrl || "",
+                bio: freshUser.bio || "",
+                city: freshUser.city || "",
+                danceStyles: freshUser.danceStyles || [],
+                experienceLevel: freshUser.experienceLevel || "",
+                portfolioLinks: freshUser.portfolioLinks || [],
+                payoutDetails: freshUser.payoutDetails || "",
+            });
+        } catch (err) {
+            console.error("Failed to load fresh profile:", err);
+        }
+    }, [setUser]);
+
     useEffect(() => {
         if (user) {
             setForm({
@@ -41,14 +62,14 @@ export default function ProfilePage() {
                 payoutDetails: user.payoutDetails || "",
             });
         }
-    }, [user]);
+    }, [user?.id, user?.role]); // Re-sync if user ID or role changes
 
     // Fetch tickets for MVP event tagging
     useEffect(() => {
         if (user?.role === "DANCER" && editing) {
             getMyTickets().then(setMyTickets).catch(console.error);
         }
-    }, [user, editing]);
+    }, [user?.role, editing]);
 
     if (!user) {
         return (
@@ -60,6 +81,7 @@ export default function ProfilePage() {
 
     const Initials = (user.name || user.email).charAt(0).toUpperCase();
     const isDancer = user.role === "DANCER";
+    const isStudio = user.role === "STUDIO";
 
     function toggleStyle(style) {
         setForm(prev => ({
@@ -86,9 +108,7 @@ export default function ProfilePage() {
         setSuccessMsg("");
         try {
             const updated = await updateMe(form);
-            // Re-fetch full profile to get loyaltyAccount etc
-            const fullProfile = await getMe();
-            setUser(fullProfile);
+            await resetAndLoad();
             setEditing(false);
             setSuccessMsg("Profile saved successfully!");
             setTimeout(() => setSuccessMsg(""), 3000);
@@ -104,8 +124,7 @@ export default function ProfilePage() {
         try {
             await addPortfolioItem(newPortfolio);
             setNewPortfolio({ url: "", title: "", description: "", type: "VIDEO" });
-            const fullProfile = await getMe();
-            setUser(fullProfile);
+            await resetAndLoad();
         } catch (err) {
             alert(err.message || "Failed to add item");
         }
@@ -114,8 +133,7 @@ export default function ProfilePage() {
     async function handleDeletePortfolio(itemId) {
         try {
             await deletePortfolioItem(itemId);
-            const fullProfile = await getMe();
-            setUser(fullProfile);
+            await resetAndLoad();
         } catch (err) {
             alert(err.message || "Failed to delete item");
         }
@@ -125,8 +143,7 @@ export default function ProfilePage() {
         if (!selectedEventToTag) return;
         try {
             await tagEvent(selectedEventToTag);
-            const fullProfile = await getMe();
-            setUser(fullProfile);
+            await resetAndLoad();
             setSelectedEventToTag("");
         } catch (err) {
             alert(err.message || "Failed to tag event");
@@ -140,13 +157,13 @@ export default function ProfilePage() {
                 <Link to="/dashboard" className="back-link">← Dashboard</Link>
 
                 {successMsg && (
-                    <div style={{ padding: '0.75rem 1rem', background: 'rgba(16,185,129,0.1)', border: '1px solid var(--success)', borderRadius: 'var(--radius-md)', color: 'var(--success)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                    <div style={{ padding: '0.75rem 1rem', background: 'rgba(16,185,129,0.1)', border: '1px solid var(--success)', borderRadius: '16px', color: 'var(--success)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
                         {successMsg}
                     </div>
                 )}
 
                 {/* Profile Header */}
-                <div className="detail-card" style={{ display: 'flex', alignItems: 'flex-start', gap: '2rem', marginBottom: '2rem', padding: '2.5rem' }}>
+                <div className="detail-card" style={{ display: 'flex', alignItems: 'flex-start', gap: '2rem', marginBottom: '2rem', padding: '2.5rem', borderRadius: '24px' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
                         <div className="profile-avatar" style={{ overflow: 'hidden', width: '120px', height: '120px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--bg-hover), var(--bg-card))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 'bold', border: '3px solid var(--border-light)', flexShrink: 0 }}>
                             {user.avatarUrl ? (
@@ -159,9 +176,9 @@ export default function ProfilePage() {
                     <div style={{ flex: 1 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
                             <h1 style={{ margin: 0, fontSize: '2rem' }}>{user.name || user.email.split('@')[0]}</h1>
-                            <span className="role-badge" style={{ fontSize: '0.75rem', padding: '0.25rem 0.7rem' }}>{user.role}</span>
+                            <span className="role-badge" style={{ fontSize: '0.75rem', padding: '0.25rem 0.7rem', borderRadius: '10px' }}>{user.role}</span>
                             {user.experienceLevel && (
-                                <span style={{ fontSize: '0.8rem', padding: '0.25rem 0.7rem', borderRadius: 'var(--radius-sm)', background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>{user.experienceLevel}</span>
+                                <span style={{ fontSize: '0.8rem', padding: '0.25rem 0.7rem', borderRadius: '10px', background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>{user.experienceLevel}</span>
                             )}
                         </div>
                         {user.city && <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{user.city}</p>}
@@ -176,11 +193,11 @@ export default function ProfilePage() {
                                 </>
                             )}
                             {isDancer && user.loyaltyAccount && (
-                                <span style={{ color: 'var(--accent)', fontSize: '0.9rem' }}>{user.loyaltyAccount.points} points</span>
+                                <span style={{ color: 'var(--accent)', fontSize: '0.9rem' }}><strong style={{ color: 'var(--accent)' }}>{user.loyaltyAccount.points}</strong> points</span>
                             )}
                         </div>
                     </div>
-                    <button className="btn-primary" style={{ flexShrink: 0 }} onClick={() => setEditing(true)}>
+                    <button className="btn-primary" style={{ flexShrink: 0, borderRadius: '12px' }} onClick={() => setEditing(true)}>
                         Edit Profile
                     </button>
                 </div>
@@ -192,9 +209,22 @@ export default function ProfilePage() {
                     userId={user.id}
                 />
 
+                {/* Manager Sections (Visible in View Mode for Clarity) */}
+                {isStudio && (
+                    <div style={{ marginBottom: "2rem" }}>
+                        <StudioManager studioId={user.id} />
+                    </div>
+                )}
+
+                {isDancer && (
+                    <div style={{ marginBottom: "2rem" }}>
+                        <CvManager userId={user.id} />
+                    </div>
+                )}
+
                 {/* Dance Styles */}
                 {isDancer && user.danceStyles?.length > 0 && (
-                    <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
+                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px' }}>
                         <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Dance Styles</h3>
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             {user.danceStyles.map(s => (
@@ -206,7 +236,7 @@ export default function ProfilePage() {
 
                 {/* Portfolio Links */}
                 {isDancer && user.portfolioLinks?.length > 0 && (
-                    <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
+                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px' }}>
                         <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Portfolio</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             {user.portfolioLinks.map((link, i) => (
@@ -220,11 +250,11 @@ export default function ProfilePage() {
 
                 {/* Rich Portfolio Items */}
                 {isDancer && user.portfolioItems?.length > 0 && (
-                    <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
+                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px' }}>
                         <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Media Portfolio</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
                             {user.portfolioItems.map(item => (
-                                <div key={item.id} style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', overflow: 'hidden', background: 'var(--bg-card)' }}>
+                                <div key={item.id} style={{ border: '1px solid var(--border-light)', borderRadius: '16px', overflow: 'hidden', background: 'var(--bg-card)' }}>
                                     {item.type === "PHOTO" ? (
                                         <div style={{ height: '140px', backgroundImage: `url(${item.url})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
                                     ) : (
@@ -232,8 +262,8 @@ export default function ProfilePage() {
                                             <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none', fontWeight: 600 }}>Play Video &rarr;</a>
                                         </div>
                                     )}
-                                    <div style={{ padding: '0.75rem' }}>
-                                        {item.title && <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem' }}>{item.title}</h4>}
+                                    <div style={{ padding: '1rem' }}>
+                                        {item.title && <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem', fontWeight: 700 }}>{item.title}</h4>}
                                         {item.description && <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>{item.description}</p>}
                                     </div>
                                 </div>
@@ -244,12 +274,12 @@ export default function ProfilePage() {
 
                 {/* Tagged Events */}
                 {isDancer && user.taggedEvents?.length > 0 && (
-                    <section className="detail-card" style={{ marginBottom: '1.5rem' }}>
+                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px' }}>
                         <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Events I've Attended / Performed</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             {user.taggedEvents.map(evt => (
-                                <Link to={`/events/${evt.id}`} key={evt.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
-                                    {evt.imageUrl && <img src={evt.imageUrl} alt={evt.title} style={{ width: '40px', height: '40px', borderRadius: '4px', objectFit: 'cover' }} />}
+                                <Link to={`/events/${evt.id}`} key={evt.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem', background: 'var(--bg-hover)', borderRadius: '16px', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
+                                    {evt.imageUrl && <img src={evt.imageUrl} alt={evt.title} style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />}
                                     <div>
                                         <h4 style={{ margin: 0, fontSize: '0.95rem' }}>{evt.title}</h4>
                                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{evt.location}</span>
@@ -262,8 +292,8 @@ export default function ProfilePage() {
 
                 {/* Payout Details (Private) */}
                 {isDancer && (
-                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderColor: 'rgba(239,68,68,0.2)' }}>
-                        <h3 style={{ marginBottom: '0.75rem', fontSize: '1.1rem' }}>Payout Details <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(Private — only visible to you)</span></h3>
+                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderColor: 'rgba(239,68,68,0.2)', borderRadius: '24px' }}>
+                        <h3 style={{ marginBottom: '0.75rem', fontSize: '1.1rem' }}>Payout Details <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(Private)</span></h3>
                         <p style={{ color: user.payoutDetails ? 'var(--text-main)' : 'var(--text-muted)', fontSize: '0.9rem' }}>
                             {user.payoutDetails || "No payout details configured yet."}
                         </p>
@@ -279,18 +309,19 @@ export default function ProfilePage() {
             <Link to="/dashboard" className="back-link">← Dashboard</Link>
             <h1 style={{ marginBottom: '1.5rem' }}>Edit Profile</h1>
 
-            <div className="detail-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className="detail-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', borderRadius: '24px', padding: '2rem' }}>
 
-                {/* Avatar */}
-                <div className="form-group">
-                    <label className="form-label">Avatar URL</label>
-                    <input type="url" className="form-input" placeholder="Paste an image URL…" value={form.avatarUrl} onChange={e => setForm({ ...form, avatarUrl: e.target.value })} />
-                </div>
-
-                {/* Name */}
-                <div className="form-group">
-                    <label className="form-label">Display Name</label>
-                    <input type="text" className="form-input" placeholder="Your name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                   {/* Name */}
+                   <div className="form-group">
+                       <label className="form-label">Display Name</label>
+                       <input type="text" className="form-input" placeholder="Your name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                   </div>
+                   {/* Avatar */}
+                   <div className="form-group">
+                       <label className="form-label">Avatar URL</label>
+                       <input type="url" className="form-input" placeholder="Paste an image URL…" value={form.avatarUrl} onChange={e => setForm({ ...form, avatarUrl: e.target.value })} />
+                   </div>
                 </div>
 
                 {/* Bio */}
@@ -335,63 +366,65 @@ export default function ProfilePage() {
                 {isDancer && (
                     <div className="form-group">
                         <label className="form-label">Portfolio Links</label>
-                        {form.portfolioLinks.map((link, i) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
-                                <span style={{ flex: 1, fontSize: '0.85rem', color: 'var(--accent)', wordBreak: 'break-all' }}>{link}</span>
-                                <button type="button" onClick={() => removePortfolioLink(link)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1rem' }}>&times;</button>
-                            </div>
-                        ))}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '0.75rem' }}>
+                            {form.portfolioLinks.map((link, i) => (
+                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-hover)', padding: '0.5rem 0.75rem', borderRadius: '10px' }}>
+                                    <span style={{ flex: 1, fontSize: '0.85rem', color: 'var(--accent)', wordBreak: 'break-all' }}>{link}</span>
+                                    <button type="button" onClick={() => removePortfolioLink(link)} style={{ background: 'none', border: 'none', color: 'var(--warning)', cursor: 'pointer', fontSize: '1.2rem', padding: '0 5px' }}>&times;</button>
+                                </div>
+                            ))}
+                        </div>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <input type="url" className="form-input" placeholder="https://youtube.com/..." value={newLink} onChange={e => setNewLink(e.target.value)} style={{ flex: 1 }}
                                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addPortfolioLink(); } }}
                             />
-                            <button type="button" onClick={addPortfolioLink} className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>Add</button>
+                            <button type="button" onClick={addPortfolioLink} className="btn-primary" style={{ padding: '0.5rem 1.5rem', fontSize: '0.85rem', borderRadius: '10px' }}>Add</button>
                         </div>
                     </div>
                 )}
 
                 {/* Media Portfolio Manager */}
                 {isDancer && (
-                    <div className="form-group" style={{ padding: '1rem', border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>
-                        <label className="form-label" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Manage Portfolio Media</label>
+                    <div className="form-group" style={{ padding: '1.5rem', background: 'var(--bg-hover)', borderRadius: '20px', border: '1px solid var(--border-light)' }}>
+                        <label className="form-label" style={{ fontWeight: 700, fontSize: '1rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>Portfolio Media Manager</label>
 
                         {/* Current Items */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1.5rem' }}>
                             {user.portfolioItems?.map(item => (
-                                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+                                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
                                     <div>
                                         <strong style={{ fontSize: '0.9rem' }}>{item.title || "Untitled"}</strong> <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({item.type})</span>
                                     </div>
-                                    <button type="button" onClick={() => handleDeletePortfolio(item.id)} className="btn-secondary" style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', color: 'var(--warning)', borderColor: 'var(--warning)' }}>Remove</button>
+                                    <button type="button" onClick={() => handleDeletePortfolio(item.id)} className="btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', color: 'var(--warning)', borderRadius: '8px' }}>Remove</button>
                                 </div>
                             ))}
                         </div>
 
                         {/* Add New Item */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: 'var(--bg-input)', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Add New Item</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'var(--bg-input)', padding: '1.25rem', borderRadius: '16px' }}>
+                            <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>Add New Media</div>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <select className="filter-select" value={newPortfolio.type} onChange={e => setNewPortfolio({ ...newPortfolio, type: e.target.value })} style={{ flex: '0 0 100px' }}>
+                                <select className="filter-select" value={newPortfolio.type} onChange={e => setNewPortfolio({ ...newPortfolio, type: e.target.value })} style={{ flex: '0 0 110px' }}>
                                     <option value="VIDEO">Video</option>
                                     <option value="PHOTO">Photo</option>
                                 </select>
-                                <input type="url" className="form-input" placeholder="Media URL (Image or Video link)…" value={newPortfolio.url} onChange={e => setNewPortfolio({ ...newPortfolio, url: e.target.value })} style={{ flex: 1 }} />
+                                <input type="url" className="form-input" placeholder="Media URL…" value={newPortfolio.url} onChange={e => setNewPortfolio({ ...newPortfolio, url: e.target.value })} style={{ flex: 1 }} />
                             </div>
-                            <input type="text" className="form-input" placeholder="Title (e.g. Concept Video)" value={newPortfolio.title} onChange={e => setNewPortfolio({ ...newPortfolio, title: e.target.value })} />
+                            <input type="text" className="form-input" placeholder="Title (e.g. Dance Reel)" value={newPortfolio.title} onChange={e => setNewPortfolio({ ...newPortfolio, title: e.target.value })} />
                             <input type="text" className="form-input" placeholder="Short description…" value={newPortfolio.description} onChange={e => setNewPortfolio({ ...newPortfolio, description: e.target.value })} />
-                            <button type="button" onClick={handleAddPortfolio} className="btn-primary" style={{ alignSelf: 'flex-start', padding: '0.5rem 1.5rem', fontSize: '0.85rem' }}>Add Media</button>
+                            <button type="button" onClick={handleAddPortfolio} className="btn-primary" style={{ alignSelf: 'flex-start', padding: '0.6rem 2rem', borderRadius: '10px' }}>Add Media Item</button>
                         </div>
                     </div>
                 )}
 
                 {/* Event Tagging Manager */}
                 {isDancer && (
-                    <div className="form-group" style={{ padding: '1rem', border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>
-                        <label className="form-label" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Tag Events</label>
-                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Showcase events you've attended or performed at (from your ticket history).</p>
+                    <div className="form-group" style={{ padding: '1.5rem', background: 'var(--bg-hover)', borderRadius: '20px', border: '1px solid var(--border-light)' }}>
+                        <label className="form-label" style={{ fontWeight: 700, fontSize: '1rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>Tag Events</label>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Showcase events from your ticket history on your profile.</p>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <select className="filter-select" value={selectedEventToTag} onChange={e => setSelectedEventToTag(e.target.value)} style={{ flex: 1 }}>
-                                <option value="">Select an event from your tickets…</option>
+                                <option value="">Select an event…</option>
                                 {myTickets.map(t => {
                                     const isAlreadyTagged = user.taggedEvents?.some(te => te.id === t.event.id);
                                     return (
@@ -401,7 +434,7 @@ export default function ProfilePage() {
                                     );
                                 })}
                             </select>
-                            <button type="button" onClick={handleTagEvent} className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+                            <button type="button" onClick={handleTagEvent} className="btn-primary" style={{ padding: '0.6rem 1.5rem', borderRadius: '10px' }}>
                                 Toggle Tag
                             </button>
                         </div>
@@ -411,18 +444,18 @@ export default function ProfilePage() {
                 {/* Payout Details */}
                 {isDancer && (
                     <div className="form-group">
-                        <label className="form-label">Payout / Bank Details <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '0.7rem' }}>(Private — demo only)</span></label>
+                        <label className="form-label">Payout / Bank Details <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '0.75rem' }}>(Private)</span></label>
                         <input type="text" className="form-input" placeholder="IBAN or PayPal email…" value={form.payoutDetails} onChange={e => setForm({ ...form, payoutDetails: e.target.value })} />
                     </div>
                 )}
 
                 {/* Action buttons */}
-                <div style={{ display: 'flex', gap: '1rem', paddingTop: '0.5rem' }}>
-                    <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ flex: 1 }}>
-                        {saving ? "Saving…" : "Save Profile"}
+                <div style={{ display: 'flex', gap: '1rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)' }}>
+                    <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ flex: 1, borderRadius: '14px', padding: '0.8rem' }}>
+                        {saving ? "Saving…" : "Save Basic Details"}
                     </button>
-                    <button className="btn-primary" onClick={() => { setEditing(false); setForm({ name: user.name || "", avatarUrl: user.avatarUrl || "", bio: user.bio || "", city: user.city || "", danceStyles: user.danceStyles || [], experienceLevel: user.experienceLevel || "", portfolioLinks: user.portfolioLinks || [], payoutDetails: user.payoutDetails || "" }); }} style={{ flex: 1, background: 'transparent', border: '1px solid var(--border-light)', color: 'var(--text-main)' }}>
-                        Cancel
+                    <button className="btn-primary" onClick={() => { setEditing(false); }} style={{ flex: 1, background: 'transparent', border: '1px solid var(--border-light)', color: 'var(--text-main)', borderRadius: '14px', padding: '0.8rem' }}>
+                        Cancel & View
                     </button>
                 </div>
             </div>

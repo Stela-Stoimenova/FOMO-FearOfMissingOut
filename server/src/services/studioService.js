@@ -10,8 +10,20 @@ export async function listClasses(studioId) {
 }
 
 export async function createClass(studioId, data) {
+  console.log("[studioService] createClass - Incoming data:", data);
   return prisma.weeklyClass.create({
-    data: { ...data, studioId: Number(studioId) },
+    data: { 
+      studioId: Number(studioId),
+      title: data.title,
+      dayOfWeek: data.dayOfWeek,
+      startTime: data.startTime,
+      endTime: data.endTime,
+      style: data.style,
+      level: data.level,
+      teacherId: data.teacherId ? Number(data.teacherId) : null,
+      teacherName: data.teacherName || null,
+      capacity: data.capacity ? Number(data.capacity) : null
+    },
     include: { teacher: { select: { id: true, name: true, avatarUrl: true } } },
   });
 }
@@ -51,8 +63,16 @@ export async function listMemberships(studioId) {
 }
 
 export async function createMembership(studioId, data) {
+  console.log("[studioService] createMembership - Incoming data:", data);
   return prisma.membershipTier.create({
-    data: { ...data, studioId: Number(studioId) },
+    data: { 
+      studioId: Number(studioId),
+      name: data.name,
+      description: data.description || null,
+      priceCents: Number(data.priceCents),
+      classLimit: data.classLimit ? Number(data.classLimit) : null,
+      durationDays: Number(data.durationDays)
+    },
   });
 }
 
@@ -86,7 +106,7 @@ export async function purchaseMembership(tierId, dancerId) {
   if (!tier || !tier.isActive) {
     const err = new Error("Membership tier not found or inactive"); err.status = 404; throw err;
   }
-  
+
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + tier.durationDays);
 
@@ -111,10 +131,27 @@ export async function listTeam(studioId) {
 }
 
 export async function addTeamMember(studioId, data) {
-  return prisma.studioTeamMember.create({
-    data: { ...data, studioId: Number(studioId) },
+  console.log("[studioService] addTeamMember - Incoming data:", data);
+  const studio = await prisma.user.findUnique({ where: { id: Number(studioId) }, select: { name: true } });
+  const member = await prisma.studioTeamMember.create({
+    data: { 
+      studioId: Number(studioId),
+      userId: Number(data.userId),
+      role: data.role
+    },
     include: { user: { select: { id: true, name: true, avatarUrl: true, role: true } } },
   });
+
+  // Notification Message
+  await prisma.message.create({
+    data: {
+      senderId: Number(studioId),
+      receiverId: Number(data.userId),
+      content: `${studio?.name || "A studio"} added you to their studio team as ${data.role}.`
+    }
+  });
+
+  return member;
 }
 
 export async function removeTeamMember(id, studioId) {
@@ -138,25 +175,42 @@ export async function listCollaborations(studioId) {
 }
 
 export async function addCollaboration(studioId, data) {
+  console.log("[studioService] addCollaboration - Incoming data:", data);
+  const studio = await prisma.user.findUnique({ where: { id: Number(studioId) }, select: { name: true } });
   const agency = await prisma.user.findUnique({ where: { id: Number(data.agencyId) } });
   if (!agency || agency.role !== "AGENCY") {
     const err = new Error("Target user is not an AGENCY"); err.status = 400; throw err;
   }
 
-  return prisma.collaboration.create({
-    data: { ...data, studioId: Number(studioId) },
+  const collab = await prisma.collaboration.create({
+    data: { 
+      studioId: Number(studioId),
+      agencyId: Number(data.agencyId),
+      description: data.description || null
+    },
     include: { agency: { select: { id: true, name: true, avatarUrl: true } } },
   });
+
+  // Notification Message
+  await prisma.message.create({
+    data: {
+      senderId: Number(studioId),
+      receiverId: Number(data.agencyId),
+      content: `${studio?.name || "A studio"} added your agency as a collaboration partner.`
+    }
+  });
+
+  return collab;
 }
 
 export async function removeCollaboration(agencyId, studioId) {
-  const c = await prisma.collaboration.findUnique({ 
-    where: { studioId_agencyId: { studioId: Number(studioId), agencyId: Number(agencyId) } } 
+  const c = await prisma.collaboration.findUnique({
+    where: { studioId_agencyId: { studioId: Number(studioId), agencyId: Number(agencyId) } }
   });
   if (!c) {
     const err = new Error("Collaboration not found"); err.status = 404; throw err;
   }
-  return prisma.collaboration.delete({ 
-    where: { studioId_agencyId: { studioId: Number(studioId), agencyId: Number(agencyId) } } 
+  return prisma.collaboration.delete({
+    where: { studioId_agencyId: { studioId: Number(studioId), agencyId: Number(agencyId) } }
   });
 }

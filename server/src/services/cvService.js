@@ -14,13 +14,44 @@ export async function listByUser(userId) {
 }
 
 export async function create(userId, data) {
-  return prisma.cvEntry.create({
+  console.log("[cvService] create - User ID:", userId);
+  const user = await prisma.user.findUnique({ where: { id: Number(userId) }, select: { name: true } });
+  const entry = await prisma.cvEntry.create({
     data: {
-      ...data,
+      title: data.title,
+      type: data.type,
+      description: data.description || null,
+      choreographer: data.choreographer || null,
+      startDate: data.startDate ? new Date(data.startDate) : null,
+      endDate: data.endDate ? new Date(data.endDate) : null,
+      taggedStudioId: data.taggedStudioId ? Number(data.taggedStudioId) : null,
+      taggedAgencyId: data.taggedAgencyId ? Number(data.taggedAgencyId) : null,
       userId: Number(userId),
     },
     include: DEFAULT_INCLUDE,
   });
+
+  // Notification Messages if tagged
+  if (data.taggedStudioId) {
+    await prisma.message.create({
+      data: {
+        senderId: Number(userId),
+        receiverId: Number(data.taggedStudioId),
+        content: `${user?.name || "A dancer"} tagged your profile in a CV entry: ${data.title}.`
+      }
+    });
+  }
+  if (data.taggedAgencyId) {
+    await prisma.message.create({
+      data: {
+        senderId: Number(userId),
+        receiverId: Number(data.taggedAgencyId),
+        content: `${user?.name || "A dancer"} tagged your profile in a CV entry: ${data.title}.`
+      }
+    });
+  }
+
+  return entry;
 }
 
 export async function update(id, userId, data) {

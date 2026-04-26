@@ -25,11 +25,20 @@ export async function apiRequest(path, options = {}) {
     });
 
     const text = await response.text();
-    const data = text ? JSON.parse(text) : null;
+    let data = null;
+    try {
+        data = text ? JSON.parse(text) : null;
+    } catch (err) {
+        // If not JSON, we'll handle it below as a generic error
+    }
 
     // If the server returned an error, throw it so callers can catch it
     if (!response.ok) {
-        const message = data?.error?.message || "Something went wrong";
+        const fullUrl = `${BASE_URL}${path}`;
+        if (response.status === 404) {
+            console.error(`[404] API route not found: ${fullUrl}`);
+        }
+        const message = data?.error?.message || (response.status === 404 ? "API route not found" : "Something went wrong");
         const err = new Error(message);
         err.status = response.status;
         throw err;
