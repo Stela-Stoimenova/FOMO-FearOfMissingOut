@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useEffect, useState } from "react";
 import { apiRequest } from "../api/client.js";
-import { getMyTickets } from "../api/events.js";
+import { getMyTickets, deleteEvent } from "../api/events.js";
 import { getLoyaltyBalance } from "../api/users.js";
 import FollowListModal from "../components/FollowListModal.jsx";
 
@@ -24,12 +24,7 @@ export default function DashboardPage() {
 
     useEffect(() => {
         if (user && (user.role === "STUDIO" || user.role === "AGENCY")) {
-            setLoadingEvents(true);
-            // Pass creatorId so the backend filters — avoids client-side filtering on a paged list
-            apiRequest(`/events?creatorId=${user.id}&limit=100`)
-                .then(data => setStudioEvents(data.items ?? []))
-                .catch(err => console.error("Failed to load studio events", err))
-                .finally(() => setLoadingEvents(false));
+            loadStudioEvents();
         }
         if (user && user.role === "DANCER") {
             setLoadingTickets(true);
@@ -43,10 +38,29 @@ export default function DashboardPage() {
         }
     }, [user]);
 
+    function loadStudioEvents() {
+        setLoadingEvents(true);
+        // Pass creatorId so the backend filters — avoids client-side filtering on a paged list
+        apiRequest(`/events?creatorId=${user.id}&limit=100`)
+            .then(data => setStudioEvents(data.items ?? []))
+            .catch(err => console.error("Failed to load studio events", err))
+            .finally(() => setLoadingEvents(false));
+    }
+
+    async function handleDelete(id) {
+        if (!window.confirm("Are you sure you want to delete this event? This action cannot be undone.")) return;
+        try {
+            await deleteEvent(id);
+            loadStudioEvents(); // Refresh list after delete
+        } catch (err) {
+            alert(err.message || "Failed to delete event.");
+        }
+    }
+
     if (!user) return null; // handled by ProtectedRoute, but safety first
 
     return (
-        <main className="page page-narrow">
+        <main className="page">
             <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
                 {user.avatarUrl ? (
                     <img src={user.avatarUrl} alt="Avatar" style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }} />
@@ -221,14 +235,57 @@ export default function DashboardPage() {
                             </div>
                         ) : (<>
 
-                            {/* KPI Cards */}
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
-                                {kpis.map(k => (
-                                    <div key={k.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '1.25rem 1rem', boxShadow: 'var(--shadow-sm)' }}>
-                                        <span style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 600 }}>{k.label}</span>
-                                        <strong style={{ fontSize: '1.4rem', color: k.color, fontFamily: 'var(--font-display)' }}>{k.value}</strong>
+                            {/* Top 2-Column Section: My Events & KPIs */}
+                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '3rem', marginBottom: '3rem', alignItems: 'start' }}>
+                                {/* Left: My Created Events */}
+                                <div>
+                                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        My Created Events
+                                        <Link to="/create-event" style={{ fontSize: '0.8rem', color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>+ New Event</Link>
+                                    </h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                        {studioEvents.map(event => {
+                                            const sold = event._count?.tickets ?? 0;
+                                            return (
+                                                <div key={event.id} style={{ display: 'flex', gap: '1rem', background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '0.75rem', alignItems: 'center', transition: 'transform 0.2s, box-shadow 0.2s' }} className="event-list-item" onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }} onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
+                                                    {/* Thumbnail */}
+                                                    <div style={{ width: '60px', height: '60px', borderRadius: 'var(--radius-sm)', background: event.imageUrl ? `url(${event.imageUrl}) center/cover` : 'var(--bg-input)', flexShrink: 0 }} />
+                                                    
+                                                    {/* Info */}
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <h4 style={{ margin: '0 0 0.15rem', fontSize: '0.95rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{event.title}</h4>
+                                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>
+                                                            {new Date(event.startAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} • {event.location}
+                                                        </span>
+                                                        <span style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: 600, display: 'block', marginTop: '0.2rem' }}>
+                                                            {sold} ticket{sold !== 1 ? 's' : ''} sold • {formatPrice(event.priceCents)}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Actions */}
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flexShrink: 0 }}>
+                                                        <Link to={`/events/${event.id}`} style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', background: 'var(--bg-input)', color: 'var(--text-main)', borderRadius: 'var(--radius-sm)', textDecoration: 'none', textAlign: 'center', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'} onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-input)'}>View</Link>
+                                                        <Link to={`/events/${event.id}/edit`} style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', background: 'var(--accent-soft)', color: 'var(--accent)', borderRadius: 'var(--radius-sm)', textDecoration: 'none', textAlign: 'center', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'var(--accent-soft)'}>Edit</Link>
+                                                        <button onClick={() => handleDelete(event.id)} style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer', transition: 'background 0.2s' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}>Delete</button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                ))}
+                                </div>
+
+                                {/* Right: Analytics Summary */}
+                                <div>
+                                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-main)' }}>Analytics Summary</h3>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
+                                        {kpis.map(k => (
+                                            <div key={k.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '1rem', boxShadow: 'var(--shadow-sm)' }}>
+                                                <span style={{ display: 'block', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '0.25rem', fontWeight: 600 }}>{k.label}</span>
+                                                <strong style={{ fontSize: '1.2rem', color: k.color, fontFamily: 'var(--font-display)' }}>{k.value}</strong>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
 
                             {/* Best / Lowest Demand */}
