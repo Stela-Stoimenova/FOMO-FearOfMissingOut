@@ -24,7 +24,8 @@ export async function apiRequest(path, options = {}) {
         ...options,
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    const data = text ? JSON.parse(text) : null;
 
     // If the server returned an error, throw it so callers can catch it
     if (!response.ok) {
