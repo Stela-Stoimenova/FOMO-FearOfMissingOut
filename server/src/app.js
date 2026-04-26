@@ -28,14 +28,7 @@ app.use(cors());
 app.use(express.json());
 app.use(sanitizeBody);
 
-// Health checks
-app.get("/api/dance", (req, res) => {
-  res.json({ ok: true, message: "Server is running" });
-});
 
-app.get("/api/health-test", (req, res) => {
-  res.json({ ok: true });
-});
 
 // Routes
 app.use("/api/auth", authRoutes);
