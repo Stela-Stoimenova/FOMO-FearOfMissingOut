@@ -15,6 +15,7 @@ export default function ProfilePage() {
     const [editing, setEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [successMsg, setSuccessMsg] = useState("");
+    const [errorMsg, setErrorMsg] = useState("");
     const [showList, setShowList] = useState(null); // 'followers' | 'following' | null
 
     // Form state
@@ -113,7 +114,8 @@ export default function ProfilePage() {
             setSuccessMsg("Profile saved successfully!");
             setTimeout(() => setSuccessMsg(""), 3000);
         } catch (err) {
-            alert(err.message || "Failed to save profile");
+            setErrorMsg(err.message || "Failed to save profile");
+            setTimeout(() => setErrorMsg(""), 4000);
         } finally {
             setSaving(false);
         }
@@ -126,7 +128,8 @@ export default function ProfilePage() {
             setNewPortfolio({ url: "", title: "", description: "", type: "VIDEO" });
             await resetAndLoad();
         } catch (err) {
-            alert(err.message || "Failed to add item");
+            setErrorMsg(err.message || "Failed to add item");
+            setTimeout(() => setErrorMsg(""), 4000);
         }
     }
 
@@ -135,7 +138,8 @@ export default function ProfilePage() {
             await deletePortfolioItem(itemId);
             await resetAndLoad();
         } catch (err) {
-            alert(err.message || "Failed to delete item");
+            setErrorMsg(err.message || "Failed to delete item");
+            setTimeout(() => setErrorMsg(""), 4000);
         }
     }
 
@@ -146,7 +150,8 @@ export default function ProfilePage() {
             await resetAndLoad();
             setSelectedEventToTag("");
         } catch (err) {
-            alert(err.message || "Failed to tag event");
+            setErrorMsg(err.message || "Failed to tag event");
+            setTimeout(() => setErrorMsg(""), 4000);
         }
     }
 
@@ -157,8 +162,14 @@ export default function ProfilePage() {
                 <Link to="/dashboard" className="back-link">← Dashboard</Link>
 
                 {successMsg && (
-                    <div style={{ padding: '0.75rem 1rem', background: 'rgba(16,185,129,0.1)', border: '1px solid var(--success)', borderRadius: '16px', color: 'var(--success)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                    <div style={{ padding: '0.75rem 1rem', background: 'rgba(16,185,129,0.1)', border: '1px solid var(--success)', borderRadius: '16px', color: 'var(--success)', marginBottom: '1.5rem', fontSize: '0.9rem', animation: 'fadeIn 0.3s ease' }}>
                         {successMsg}
+                    </div>
+                )}
+
+                {errorMsg && (
+                    <div style={{ padding: '0.75rem 1rem', background: 'rgba(239,68,68,0.1)', border: '1px solid var(--warning)', borderRadius: '16px', color: 'var(--warning)', marginBottom: '1.5rem', fontSize: '0.9rem', animation: 'fadeIn 0.3s ease' }}>
+                        {errorMsg}
                     </div>
                 )}
 
@@ -224,7 +235,7 @@ export default function ProfilePage() {
 
                 {/* Dance Styles */}
                 {isDancer && user.danceStyles?.length > 0 && (
-                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px' }}>
+                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px', padding: '2rem' }}>
                         <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Dance Styles</h3>
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             {user.danceStyles.map(s => (
@@ -236,7 +247,7 @@ export default function ProfilePage() {
 
                 {/* Portfolio Links */}
                 {isDancer && user.portfolioLinks?.length > 0 && (
-                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px' }}>
+                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px', padding: '2rem' }}>
                         <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Portfolio</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             {user.portfolioLinks.map((link, i) => (
@@ -250,7 +261,7 @@ export default function ProfilePage() {
 
                 {/* Rich Portfolio Items */}
                 {isDancer && user.portfolioItems?.length > 0 && (
-                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px' }}>
+                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px', padding: '2rem' }}>
                         <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Media Portfolio</h3>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
                             {user.portfolioItems.map(item => (
@@ -274,7 +285,7 @@ export default function ProfilePage() {
 
                 {/* Tagged Events */}
                 {isDancer && user.taggedEvents?.length > 0 && (
-                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px' }}>
+                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px', padding: '2rem' }}>
                         <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Events I've Attended / Performed</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             {user.taggedEvents.map(evt => (
@@ -292,7 +303,7 @@ export default function ProfilePage() {
 
                 {/* Payout Details (Private) */}
                 {isDancer && (
-                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderColor: 'rgba(239,68,68,0.2)', borderRadius: '24px' }}>
+                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderColor: 'rgba(239,68,68,0.2)', borderRadius: '24px', padding: '2rem' }}>
                         <h3 style={{ marginBottom: '0.75rem', fontSize: '1.1rem' }}>Payout Details <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(Private)</span></h3>
                         <p style={{ color: user.payoutDetails ? 'var(--text-main)' : 'var(--text-muted)', fontSize: '0.9rem' }}>
                             {user.payoutDetails || "No payout details configured yet."}

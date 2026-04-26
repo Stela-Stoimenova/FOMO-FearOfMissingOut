@@ -21,6 +21,7 @@ export default function DashboardPage() {
     const [loyalty, setLoyalty] = useState(null);
     const [showList, setShowList] = useState(null); // 'followers' | 'following' | null
     const [selectedPass, setSelectedPass] = useState(null); // ID of the pass currently selected for checkout
+    const [errorMsg, setErrorMsg] = useState("");
 
     useEffect(() => {
         if (user && (user.role === "STUDIO" || user.role === "AGENCY")) {
@@ -53,7 +54,8 @@ export default function DashboardPage() {
             await deleteEvent(id);
             loadStudioEvents(); // Refresh list after delete
         } catch (err) {
-            alert(err.message || "Failed to delete event.");
+            setErrorMsg(err.message || "Failed to delete event.");
+            setTimeout(() => setErrorMsg(""), 4000);
         }
     }
 
@@ -69,11 +71,13 @@ export default function DashboardPage() {
                         {(user.name || user.email).charAt(0).toUpperCase()}
                     </div>
                 )}
-                <div>
-                    <h1 style={{ marginBottom: '0.25rem' }}>Dashboard</h1>
-                    <p className="subtitle" style={{ margin: 0, fontSize: '1.1rem' }}>Welcome back, <strong>{user.name || user.email.split('@')[0]}</strong>!</p>
-                </div>
             </div>
+
+            {errorMsg && (
+                <div style={{ padding: '0.75rem 1rem', background: 'rgba(239,68,68,0.1)', border: '1px solid var(--warning)', borderRadius: '16px', color: 'var(--warning)', marginBottom: '1.5rem', fontSize: '0.9rem', animation: 'fadeIn 0.3s ease' }}>
+                    {errorMsg}
+                </div>
+            )}
 
             <div className="dashboard-info">
                 <p>Email: {user.email}</p>
@@ -456,9 +460,9 @@ export default function DashboardPage() {
                                 <span style={{ color: 'var(--text-main)', fontWeight: 600, fontSize: '1.1rem' }}>€59</span> / course
                             </div>
                             <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Starts May 1st • 8 total classes</div>
-                            <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                             <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>● Enrolled</span>
-                                <button className="btn-primary" style={{ padding: '0.3rem 0.75rem', fontSize: '0.75rem', borderRadius: '100px', background: 'var(--bg-hover)', border: '1px solid var(--border-light)', color: 'var(--text-main)' }} onClick={(e) => { e.stopPropagation(); alert('Viewing course schedule...'); }}>Schedule</button>
+                                <Link to="/discover" className="btn-primary" style={{ padding: '0.3rem 0.75rem', fontSize: '0.75rem', borderRadius: '100px', background: 'var(--bg-hover)', border: '1px solid var(--border-light)', color: 'var(--text-main)', textDecoration: 'none' }}>Schedule</Link>
                             </div>
                         </div>
 

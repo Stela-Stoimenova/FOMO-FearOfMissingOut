@@ -21,6 +21,7 @@ export default function PublicProfilePage() {
     const [isWritingMessage, setIsWritingMessage] = useState(false);
     const [messageContent, setMessageContent] = useState("");
     const [messageLoading, setMessageLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
     const [createdEvents, setCreatedEvents] = useState([]);
 
     // New Data States
@@ -84,7 +85,11 @@ export default function PublicProfilePage() {
     }, [id, me]);
 
     async function handleFollow() {
-        if (!me) return alert("Please log in to follow users.");
+        if (!me) {
+            setErrorMsg("Please log in to follow users.");
+            setTimeout(() => setErrorMsg(""), 4000);
+            return;
+        }
         setFollowLoading(true);
         try {
             if (isFollowing) {
@@ -100,7 +105,8 @@ export default function PublicProfilePage() {
             const updatedMe = await getMe();
             setUser(updatedMe);
         } catch (err) {
-            alert(err.message || "Failed to update follow status");
+            setErrorMsg(err.message || "Failed to update follow status");
+            setTimeout(() => setErrorMsg(""), 4000);
         } finally {
             setFollowLoading(false);
         }
@@ -116,7 +122,8 @@ export default function PublicProfilePage() {
             setMessageContent("");
             setTimeout(() => setMsgSent(false), 3000);
         } catch (err) {
-            alert(err.message || "Failed to send message");
+            setErrorMsg(err.message || "Failed to send message");
+            setTimeout(() => setErrorMsg(""), 4000);
         } finally {
             setMessageLoading(false);
         }
@@ -136,6 +143,18 @@ export default function PublicProfilePage() {
     return (
         <main className="page" style={{ maxWidth: '800px' }}>
             <Link to="/" className="back-link">← Back to events</Link>
+
+            {errorMsg && (
+                <div style={{ padding: '0.75rem 1rem', background: 'rgba(239,68,68,0.1)', border: '1px solid var(--warning)', borderRadius: '16px', color: 'var(--warning)', marginBottom: '1.5rem', fontSize: '0.9rem', animation: 'fadeIn 0.3s ease' }}>
+                    {errorMsg}
+                </div>
+            )}
+
+            {msgSent && (
+                <div style={{ padding: '0.75rem 1rem', background: 'rgba(16,185,129,0.1)', border: '1px solid var(--success)', borderRadius: '16px', color: 'var(--success)', marginBottom: '1.5rem', fontSize: '0.9rem', animation: 'fadeIn 0.3s ease' }}>
+                    Message sent successfully!
+                </div>
+            )}
 
             {/* Profile Header */}
             <div className="detail-card" style={{ display: 'flex', alignItems: 'flex-start', gap: '2rem', marginBottom: '2rem', padding: '2.5rem', borderRadius: '24px' }}>

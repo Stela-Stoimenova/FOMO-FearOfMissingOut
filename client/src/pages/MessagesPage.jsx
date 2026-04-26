@@ -15,6 +15,7 @@ export default function MessagesPage() {
     const [threadLoading, setThreadLoading] = useState(false);
     const [replyContent, setReplyContent] = useState("");
     const [sending, setSending] = useState(false);
+    const [errorMsg, setErrorMsg] = useState("");
     const threadEndRef = useRef(null);
 
     useEffect(() => {
@@ -67,7 +68,8 @@ export default function MessagesPage() {
             // Update conversation list with latest message
             loadConversations();
         } catch (err) {
-            alert(err.message || "Failed to send message");
+            setErrorMsg(err.message || "Failed to send message");
+            setTimeout(() => setErrorMsg(""), 4000);
         } finally {
             setSending(false);
         }
@@ -87,6 +89,12 @@ export default function MessagesPage() {
     return (
         <main className="page" style={{ maxWidth: "900px" }}>
             <h1 className="page-title">Messages</h1>
+
+            {errorMsg && (
+                <div style={{ padding: '0.75rem 1rem', background: 'rgba(239,68,68,0.1)', border: '1px solid var(--warning)', borderRadius: '16px', color: 'var(--warning)', marginBottom: '1.5rem', fontSize: '0.9rem', animation: 'fadeIn 0.3s ease' }}>
+                    {errorMsg}
+                </div>
+            )}
 
             <div style={{ display: "flex", gap: "1.5rem", minHeight: "500px" }}>
                 {/* ── Conversation Sidebar ── */}

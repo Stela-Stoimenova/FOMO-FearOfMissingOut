@@ -143,13 +143,25 @@ export async function addTeamMember(studioId, data) {
   });
 
   // Notification Message
-  await prisma.message.create({
-    data: {
+  const content = `${studio?.name || "A studio"} added you to their studio team as ${data.role}.`;
+  const existing = await prisma.message.findFirst({
+    where: {
       senderId: Number(studioId),
       receiverId: Number(data.userId),
-      content: `${studio?.name || "A studio"} added you to their studio team as ${data.role}.`
+      content,
+      createdAt: { gte: new Date(Date.now() - 1000 * 60 * 5) }
     }
   });
+
+  if (!existing) {
+    await prisma.message.create({
+      data: {
+        senderId: Number(studioId),
+        receiverId: Number(data.userId),
+        content
+      }
+    });
+  }
 
   return member;
 }
@@ -192,13 +204,25 @@ export async function addCollaboration(studioId, data) {
   });
 
   // Notification Message
-  await prisma.message.create({
-    data: {
+  const content = `${studio?.name || "A studio"} added your agency as a collaboration partner.`;
+  const existing = await prisma.message.findFirst({
+    where: {
       senderId: Number(studioId),
       receiverId: Number(data.agencyId),
-      content: `${studio?.name || "A studio"} added your agency as a collaboration partner.`
+      content,
+      createdAt: { gte: new Date(Date.now() - 1000 * 60 * 5) }
     }
   });
+
+  if (!existing) {
+    await prisma.message.create({
+      data: {
+        senderId: Number(studioId),
+        receiverId: Number(data.agencyId),
+        content
+      }
+    });
+  }
 
   return collab;
 }
