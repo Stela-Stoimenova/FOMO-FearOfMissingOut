@@ -44,7 +44,7 @@ export default function PublicProfilePage() {
                 // Fetch events created by this user if they are a Studio or Agency
                 if (data.role === "STUDIO" || data.role === "AGENCY") {
                     try {
-                        const evtData = await getEvents({ creatorId: id, limit: 50 });
+                        const evtData = await getEvents({ creatorId: id, limit: 100 });
                         setCreatedEvents(evtData.items ?? []);
                     } catch { /* ignore */ }
                 }

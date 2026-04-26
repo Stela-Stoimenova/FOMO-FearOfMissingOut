@@ -46,7 +46,7 @@ export async function listEvents({ q, city, from, to, minPrice, maxPrice, creato
         ],
     };
 
-    const take = Math.min(Number(limit) || 10, 50);
+    const take = Math.min(Number(limit) || 10, 200);
     const skip = (Number(page) - 1) * take;
 
     const [items, total] = await Promise.all([
