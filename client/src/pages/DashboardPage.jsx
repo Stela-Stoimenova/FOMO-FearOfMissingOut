@@ -25,11 +25,9 @@ export default function DashboardPage() {
     useEffect(() => {
         if (user && (user.role === "STUDIO" || user.role === "AGENCY")) {
             setLoadingEvents(true);
-            apiRequest("/events")
-                .then(data => {
-                    const myEvents = data.items.filter(e => e.creatorId === user.id);
-                    setStudioEvents(myEvents);
-                })
+            // Pass creatorId so the backend filters — avoids client-side filtering on a paged list
+            apiRequest(`/events?creatorId=${user.id}&limit=100`)
+                .then(data => setStudioEvents(data.items ?? []))
                 .catch(err => console.error("Failed to load studio events", err))
                 .finally(() => setLoadingEvents(false));
         }
@@ -163,63 +161,163 @@ export default function DashboardPage() {
             )}
 
             {/* STUDIO Analytics Section */}
-            {(user.role === "STUDIO" || user.role === "AGENCY") && (
-                <div style={{ marginTop: '4rem' }}>
-                    <h2>Studio Analytics</h2>
-                    <p className="subtitle" style={{ marginBottom: '1.5rem', fontSize: '1rem' }}>
-                        Overview of your created events and transaction summaries.
-                    </p>
+            {(user.role === "STUDIO" || user.role === "AGENCY") && (() => {
+                // ── computed analytics ─────────────────────────────────
+                const totalTickets = studioEvents.reduce((s, e) => s + (e._count?.tickets ?? 0), 0);
+                const grossRevenue = studioEvents.reduce((s, e) => s + (e._count?.tickets ?? 0) * e.priceCents, 0);
+                const platformFee  = Math.round(grossRevenue * 0.1);
+                const netEarnings  = grossRevenue - platformFee;
 
-                    {loadingEvents ? (
-                        <p className="hint">Loading business data...</p>
-                    ) : studioEvents.length === 0 ? (
-                        <div className="state-msg" style={{ padding: '2rem', border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)' }}>
-                            <p>No events found. Create an event to see your transaction summary.</p>
-                        </div>
-                    ) : (
-                        <div style={{ display: 'grid', gap: '1rem' }}>
-                            {studioEvents.map(event => {
-                                const ticketsSold = event._count?.tickets || 0;
-                                const baseRevenue = ticketsSold * event.priceCents;
-                                const commission = Math.round(baseRevenue * 0.1);
-                                const netRevenue = baseRevenue - commission;
+                const withFill = studioEvents.map(e => {
+                    const sold = e._count?.tickets ?? 0;
+                    const cap  = e.capacity ?? null;
+                    const fill = cap ? Math.round((sold / cap) * 100) : null;
+                    const gross = sold * e.priceCents;
+                    const net   = gross - Math.round(gross * 0.1);
+                    const upcoming = new Date(e.startAt) > new Date();
+                    return { ...e, sold, cap, fill, gross, net, upcoming };
+                });
 
-                                return (
-                                    <div key={event.id} className="detail-item" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border-light)', paddingBottom: '1rem' }}>
+                const ranked = [...withFill].sort((a, b) => b.sold - a.sold);
+                const best   = ranked[0] ?? null;
+                const worst  = ranked[ranked.length - 1] ?? null;
+                const lowDemandUpcoming = withFill.filter(e => e.upcoming && (e.fill === null || e.fill < 30));
+
+                const avgFill = (() => {
+                    const capped = withFill.filter(e => e.fill !== null);
+                    if (!capped.length) return null;
+                    return Math.round(capped.reduce((s, e) => s + e.fill, 0) / capped.length);
+                })();
+
+                const kpis = [
+                    { label: "Total Events",    value: studioEvents.length,       color: "var(--text-main)" },
+                    { label: "Tickets Sold",    value: totalTickets,              color: "var(--accent)" },
+                    { label: "Gross Revenue",   value: formatPrice(grossRevenue), color: "var(--text-main)" },
+                    { label: "Platform Fee",    value: formatPrice(platformFee),  color: "var(--danger)" },
+                    { label: "Net Earnings",    value: formatPrice(netEarnings),  color: "var(--success)" },
+                    { label: "Avg Fill Rate",   value: avgFill !== null ? `${avgFill}%` : "N/A", color: "var(--warning)" },
+                ];
+
+                function recommendation(e) {
+                    if (e.fill === null) return "Set a capacity to unlock fill-rate insights.";
+                    if (e.fill >= 80) return "High demand — consider adding a second session or increasing capacity.";
+                    if (e.fill >= 50) return "Good traction. A reminder post to your audience could push it higher.";
+                    if (e.fill < 30 && e.upcoming) return "Low demand — consider a promotion, price adjustment, or targeted outreach.";
+                    return "Monitor ticket sales as the date approaches.";
+                }
+
+                return (
+                    <div style={{ marginTop: '4rem' }}>
+                        <h2 style={{ marginBottom: '0.4rem' }}>Studio Analytics</h2>
+                        <p className="subtitle" style={{ marginBottom: '2rem', fontSize: '0.95rem' }}>
+                            Performance overview for your created events.
+                        </p>
+
+                        {loadingEvents ? (
+                            <p className="hint">Loading data...</p>
+                        ) : studioEvents.length === 0 ? (
+                            <div style={{ padding: '2rem', border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                No events found. Create your first event to see analytics here.
+                            </div>
+                        ) : (<>
+
+                            {/* KPI Cards */}
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+                                {kpis.map(k => (
+                                    <div key={k.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '1.25rem 1rem', boxShadow: 'var(--shadow-sm)' }}>
+                                        <span style={{ display: 'block', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '0.5rem', fontWeight: 600 }}>{k.label}</span>
+                                        <strong style={{ fontSize: '1.4rem', color: k.color, fontFamily: 'var(--font-display)' }}>{k.value}</strong>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Best / Lowest Demand */}
+                            {studioEvents.length > 1 && (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+                                    <div style={{ background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
+                                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--success)', fontWeight: 700 }}>Best Selling</span>
+                                        <p style={{ margin: '0.4rem 0 0.2rem', fontWeight: 700, fontSize: '1rem' }}>{best.title}</p>
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{best.sold} ticket{best.sold !== 1 ? 's' : ''} sold{best.fill !== null ? ` — ${best.fill}% full` : ''}</span>
+                                    </div>
+                                    <div style={{ background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-md)', padding: '1.25rem' }}>
+                                        <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--danger)', fontWeight: 700 }}>Lowest Demand</span>
+                                        <p style={{ margin: '0.4rem 0 0.2rem', fontWeight: 700, fontSize: '1rem' }}>{worst.title}</p>
+                                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{worst.sold} ticket{worst.sold !== 1 ? 's' : ''} sold{worst.fill !== null ? ` — ${worst.fill}% full` : ''}</span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Low-demand upcoming events alert */}
+                            {lowDemandUpcoming.length > 0 && (
+                                <div style={{ marginBottom: '2rem', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.25)', borderRadius: 'var(--radius-md)', padding: '1.1rem 1.25rem' }}>
+                                    <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--warning)', fontWeight: 700 }}>Attention Required</span>
+                                    <p style={{ marginTop: '0.4rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                                        {lowDemandUpcoming.length} upcoming event{lowDemandUpcoming.length !== 1 ? 's' : ''} with low ticket demand:{' '}
+                                        <strong style={{ color: 'var(--text-main)' }}>{lowDemandUpcoming.map(e => e.title).join(', ')}</strong>.{' '}
+                                        Consider running a promotion or adjusting the price.
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Per-event breakdown */}
+                            <h3 style={{ marginBottom: '1rem', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 700 }}>Per-Event Breakdown</h3>
+                            <div style={{ display: 'grid', gap: '1rem' }}>
+                                {withFill.map(event => (
+                                    <div key={event.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '1.25rem 1.5rem', boxShadow: 'var(--shadow-sm)' }}>
+                                        {/* Header row */}
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
                                             <div>
-                                                <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{event.title}</h3>
-                                                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                                                    {new Date(event.startAt).toLocaleDateString()}
+                                                <h4 style={{ margin: '0 0 0.2rem', fontSize: '1rem' }}>{event.title}</h4>
+                                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                                    {new Date(event.startAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                    {event.upcoming
+                                                        ? <span style={{ marginLeft: '0.5rem', color: 'var(--accent)', fontWeight: 600 }}>Upcoming</span>
+                                                        : <span style={{ marginLeft: '0.5rem', color: 'var(--text-muted)' }}>Past</span>}
                                                 </span>
                                             </div>
-                                            <div style={{ textAlign: 'right' }}>
-                                                <strong style={{ display: 'block' }}>{ticketsSold} / {event.capacity || '∞'}</strong>
-                                                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Tickets Sold</span>
+                                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                <strong style={{ display: 'block', fontSize: '1.1rem', color: 'var(--success)' }}>{formatPrice(event.net)}</strong>
+                                                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>net earnings</span>
                                             </div>
                                         </div>
 
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', fontSize: '0.9rem' }}>
-                                            <div>
-                                                <span style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase' }}>Gross Revenue</span>
-                                                <strong>{formatPrice(baseRevenue)}</strong>
-                                            </div>
-                                            <div>
-                                                <span style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase' }}>Platform Fee (10%)</span>
-                                                <strong style={{ color: 'var(--danger)' }}>-{formatPrice(commission)}</strong>
-                                            </div>
-                                            <div>
-                                                <span style={{ display: 'block', color: 'var(--text-muted)', fontSize: '0.8rem', textTransform: 'uppercase' }}>Net Earnings</span>
-                                                <strong style={{ color: 'var(--success)' }}>{formatPrice(netRevenue)}</strong>
-                                            </div>
+                                        {/* Stats row */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
+                                            {[
+                                                { label: 'Tickets', value: `${event.sold}${event.cap ? ` / ${event.cap}` : ''}` },
+                                                { label: 'Fill Rate', value: event.fill !== null ? `${event.fill}%` : 'No cap' },
+                                                { label: 'Gross', value: formatPrice(event.gross) },
+                                                { label: 'Platform Fee', value: `-${formatPrice(event.gross - event.net)}` },
+                                            ].map(stat => (
+                                                <div key={stat.label} style={{ background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', padding: '0.6rem 0.75rem' }}>
+                                                    <span style={{ display: 'block', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.25rem' }}>{stat.label}</span>
+                                                    <strong style={{ fontSize: '0.95rem' }}>{stat.value}</strong>
+                                                </div>
+                                            ))}
                                         </div>
+
+                                        {/* Fill bar */}
+                                        {event.fill !== null && (
+                                            <div style={{ marginBottom: '0.75rem' }}>
+                                                <div style={{ height: '4px', background: 'var(--bg-input)', borderRadius: '2px', overflow: 'hidden' }}>
+                                                    <div style={{ height: '100%', width: `${Math.min(event.fill, 100)}%`, background: event.fill >= 80 ? 'var(--success)' : event.fill >= 50 ? 'var(--accent)' : 'var(--warning)', borderRadius: '2px', transition: 'width 0.4s ease' }} />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Recommendation */}
+                                        <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem' }}>
+                                            <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Insight: </span>
+                                            {recommendation(event)}
+                                        </p>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-            )}
+                                ))}
+                            </div>
+                        </>)}
+                    </div>
+                );
+            })()}
+
 
             {/* DANCER Memberships & Subscriptions */}
             {user?.role === "DANCER" && (
