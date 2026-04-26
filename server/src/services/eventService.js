@@ -272,7 +272,28 @@ export async function deleteEvent(id, userId) {
         throw err;
     }
 
-    await prisma.event.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+        // Find tickets for this event
+        const tickets = await tx.ticket.findMany({
+            where: { eventId: id },
+            select: { id: true }
+        });
+        const ticketIds = tickets.map(t => t.id);
+
+        if (ticketIds.length > 0) {
+            // Delete transactions linked to those tickets
+            await tx.transaction.deleteMany({
+                where: { ticketId: { in: ticketIds } }
+            });
+            // Delete tickets
+            await tx.ticket.deleteMany({
+                where: { eventId: id }
+            });
+        }
+
+        // Delete the event
+        await tx.event.delete({ where: { id } });
+    });
 }
 
 export async function purchaseTicket(eventId, userId, usePoints = false) {

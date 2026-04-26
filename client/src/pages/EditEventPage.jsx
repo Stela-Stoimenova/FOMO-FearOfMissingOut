@@ -106,7 +106,7 @@ export default function EditEventPage() {
                 title: form.title,
                 description: form.description || null,
                 location: form.location,
-                imageUrl: form.imageUrl || null,
+                imageUrl: form.imageUrl?.trim() || "",
                 startAt: form.startAt,
                 endAt: form.endAt || null,
                 priceCents: Number(form.priceCents),
@@ -159,113 +159,145 @@ export default function EditEventPage() {
 
     // ── Form ────────────────────────────────────────────────────────────────────
     return (
-        <main className="page page-narrow">
-            <Link to={`/events/${id}`} className="back-link">← Cancel</Link>
-            <h1 style={{ marginTop: "1.5rem" }}>Edit Event</h1>
-            <p className="subtitle">Update the details for your event.</p>
+        <main className="page">
+            <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+                <Link to={`/events/${id}`} className="back-link">← Cancel</Link>
+                <h1 style={{ marginTop: "1.5rem", marginBottom: "0.5rem" }}>Edit Event</h1>
+                <p className="subtitle">Update the details for your event.</p>
 
-            {error && <div className="form-error">{error}</div>}
+                {error && <div className="form-error">{error}</div>}
 
-            <form className="auth-form" onSubmit={handleSubmit}>
-                <label>
-                    Title *
-                    <input
-                        name="title"
-                        value={form.title}
-                        onChange={handleChange}
-                        placeholder="Event name"
-                        required
-                    />
-                </label>
+                <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2.5rem', alignItems: 'start' }}>
+                    {/* Left Column: Form Fields */}
+                    <div className="auth-form" style={{ margin: 0 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                            <label style={{ gridColumn: '1 / -1' }}>
+                                Title *
+                                <input
+                                    name="title"
+                                    value={form.title}
+                                    onChange={handleChange}
+                                    placeholder="Event name"
+                                    required
+                                />
+                            </label>
 
-                <label>
-                    Description
-                    <textarea
-                        name="description"
-                        value={form.description}
-                        onChange={handleChange}
-                        rows={3}
-                        placeholder="What's this event about?"
-                    />
-                </label>
+                            <label style={{ gridColumn: '1 / -1' }}>
+                                Description
+                                <textarea
+                                    name="description"
+                                    value={form.description}
+                                    onChange={handleChange}
+                                    rows={4}
+                                    placeholder="What's this event about?"
+                                />
+                            </label>
 
-                <label>
-                    Cover Photo URL
-                    <input
-                        name="imageUrl"
-                        value={form.imageUrl}
-                        onChange={handleChange}
-                        placeholder="https://images.unsplash.com/..."
-                    />
-                    <small style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
-                        Paste a direct image URL. The photo will appear on the event card and detail page.
-                    </small>
-                </label>
+                            <label style={{ gridColumn: '1 / -1' }}>
+                                Location *
+                                <input
+                                    name="location"
+                                    value={form.location}
+                                    onChange={handleChange}
+                                    placeholder="e.g. Sofia Dance Studio, Berlin, or Millennium Complex Budapest"
+                                    required
+                                />
+                                <small style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: '0.25rem' }}>
+                                    We'll automatically place this on the map.
+                                </small>
+                            </label>
 
-                <label>
-                    Location *
-                    <input
-                        name="location"
-                        value={form.location}
-                        onChange={handleChange}
-                        placeholder="e.g. Sofia Dance Studio, Berlin, or Millennium Complex Budapest"
-                        required
-                    />
-                    <small style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>
-                        We'll automatically place this on the map using Mapbox.
-                    </small>
-                </label>
+                            <label>
+                                Start date &amp; time *
+                                <input
+                                    type="datetime-local"
+                                    name="startAt"
+                                    value={form.startAt}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </label>
 
-                <label>
-                    Start date &amp; time *
-                    <input
-                        type="datetime-local"
-                        name="startAt"
-                        value={form.startAt}
-                        onChange={handleChange}
-                        required
-                    />
-                </label>
+                            <label>
+                                End date &amp; time
+                                <input
+                                    type="datetime-local"
+                                    name="endAt"
+                                    value={form.endAt}
+                                    onChange={handleChange}
+                                />
+                            </label>
 
-                <label>
-                    End date &amp; time
-                    <input
-                        type="datetime-local"
-                        name="endAt"
-                        value={form.endAt}
-                        onChange={handleChange}
-                    />
-                </label>
+                            <label>
+                                Price (cents) *
+                                <input
+                                    type="number"
+                                    name="priceCents"
+                                    value={form.priceCents}
+                                    onChange={handleChange}
+                                    min={0}
+                                    placeholder="e.g. 2500 for €25.00"
+                                    required
+                                />
+                            </label>
 
-                <label>
-                    Price (in cents — e.g. 2500 = €25.00) *
-                    <input
-                        type="number"
-                        name="priceCents"
-                        value={form.priceCents}
-                        onChange={handleChange}
-                        min={0}
-                        placeholder="2500"
-                        required
-                    />
-                </label>
+                            <label>
+                                Capacity
+                                <input
+                                    type="number"
+                                    name="capacity"
+                                    value={form.capacity}
+                                    onChange={handleChange}
+                                    min={1}
+                                    placeholder="Leave blank for unlimited"
+                                />
+                            </label>
+                        </div>
 
-                <label>
-                    Capacity (leave blank for unlimited)
-                    <input
-                        type="number"
-                        name="capacity"
-                        value={form.capacity}
-                        onChange={handleChange}
-                        min={1}
-                        placeholder="50"
-                    />
-                </label>
+                        <div style={{ marginTop: '2rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            <button type="submit" className="btn-primary" disabled={saving} style={{ padding: '0.75rem 2.5rem' }}>
+                                {saving ? "Saving…" : "Save Changes"}
+                            </button>
+                        </div>
+                    </div>
 
-                <button type="submit" className="btn-primary" disabled={saving}>
-                    {saving ? "Saving…" : "Save Changes"}
-                </button>
-            </form>
+                    {/* Right Column: Image Preview */}
+                    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '1.5rem', position: 'sticky', top: '100px', boxShadow: 'var(--shadow-md)' }}>
+                        <h3 style={{ fontSize: '1.1rem', marginBottom: '1rem' }}>Cover Photo</h3>
+
+                        <div style={{
+                            width: '100%',
+                            aspectRatio: '16/9',
+                            background: form.imageUrl ? `url(${form.imageUrl}) center/cover no-repeat` : 'var(--bg-input)',
+                            borderRadius: 'var(--radius-md)',
+                            border: '1px solid var(--border-light)',
+                            marginBottom: '1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            overflow: 'hidden'
+                        }}>
+                            {!form.imageUrl && (
+                                <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Image Preview</span>
+                            )}
+                        </div>
+
+                        <label>
+                            Image URL
+                            <input
+                                name="imageUrl"
+                                value={form.imageUrl}
+                                onChange={handleChange}
+                                placeholder="https://..."
+                                style={{ width: '100%', marginTop: '0.5rem', background: 'var(--bg-input)', border: '1px solid var(--border-light)', padding: '0.65rem 0.9rem', borderRadius: 'var(--radius-md)', color: 'var(--text-main)', fontFamily: 'var(--font-sans)' }}
+                            />
+                        </label>
+                        <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                            Paste a direct link to an image. We recommend a 16:9 ratio for best appearance.
+                        </p>
+                    </div>
+                </form>
+            </div>
         </main>
     );
 }

@@ -9,6 +9,7 @@ export const createEventSchema = z.object({
     capacity: z.number().int().positive().optional(),
     latitude: z.number().min(-90).max(90).optional(),
     longitude: z.number().min(-180).max(180).optional(),
+    imageUrl: z.string().url("Invalid URL").optional().or(z.literal('')),
 });
 
 export const updateEventSchema = z.object({
@@ -21,6 +22,7 @@ export const updateEventSchema = z.object({
     capacity: z.number().int().positive().optional(),
     latitude: z.number().min(-90).max(90).optional(),
     longitude: z.number().min(-180).max(180).optional(),
+    imageUrl: z.string().url("Invalid URL").optional().or(z.literal('')),
 });
 
 export const nearbyQuerySchema = z.object({
