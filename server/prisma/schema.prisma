@@ -13,6 +13,37 @@ enum Role {
   AGENCY
 }
 
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum ClassLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  PROFESSIONAL
+  ALL_LEVELS
+}
+
+enum TeamRole {
+  DANCER
+  INSTRUCTOR
+  CHOREOGRAPHER
+}
+
+enum CvEntryType {
+  TRAINING
+  PROJECT
+  WORKSHOP
+  COMPETITION
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
@@ -47,6 +78,27 @@ model User {
   // Messaging
   sentMessages     Message[] @relation("UserSentMessages")
   receivedMessages Message[] @relation("UserReceivedMessages")
+
+  // Weekly Classes
+  studioClasses   WeeklyClass[] @relation("StudioClasses")
+  teacherClasses  WeeklyClass[] @relation("TeacherClasses")
+
+  // Memberships
+  membershipTiers      MembershipTier[] @relation("StudioMemberships")
+  purchasedMemberships UserMembership[] @relation("DancerMemberships")
+
+  // Team
+  studioTeamMembers StudioTeamMember[] @relation("StudioTeam")
+  teamsJoined       StudioTeamMember[] @relation("UserTeams")
+
+  // Collaborations
+  studioCollaborations Collaboration[] @relation("StudioCollaborations")
+  agencyCollaborations Collaboration[] @relation("AgencyCollaborations")
+
+  // CV
+  cvEntries          CvEntry[] @relation("DancerCv")
+  taggedInCvAsStudio CvEntry[] @relation("TaggedInCvAsStudio")
+  taggedInCvAsAgency CvEntry[] @relation("TaggedInCvAsAgency")
 }
 
 model Event {
@@ -151,4 +203,121 @@ model Message {
 
   sender   User @relation("UserSentMessages", fields: [senderId], references: [id])
   receiver User @relation("UserReceivedMessages", fields: [receiverId], references: [id])
+}
+
+model WeeklyClass {
+  id          Int        @id @default(autoincrement())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  studioId    Int
+  title       String
+  dayOfWeek   DayOfWeek
+  startTime   String     // e.g., "18:00"
+  endTime     String     // e.g., "19:30"
+  style       String
+  level       ClassLevel
+  teacherName String?    // Used if the teacher is not registered on the platform
+  teacherId   Int?       // Used if the teacher is a registered User
+  capacity    Int?       // Null means unlimited
+
+  studio      User       @relation("StudioClasses", fields: [studioId], references: [id], onDelete: Cascade)
+  teacher     User?      @relation("TeacherClasses", fields: [teacherId], references: [id], onDelete: SetNull)
+
+  @@index([studioId])
+  @@index([teacherId])
+}
+
+model MembershipTier {
+  id           Int      @id @default(autoincrement())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  studioId     Int
+  name         String   
+  description  String?
+  priceCents   Int
+  classLimit   Int?     // Null means unlimited classes
+  durationDays Int      // e.g., 30 for monthly
+  isActive     Boolean  @default(true)
+  
+  studio       User     @relation("StudioMemberships", fields: [studioId], references: [id], onDelete: Cascade)
+  purchases    UserMembership[]
+
+  @@index([studioId])
+}
+
+model UserMembership {
+  id              Int      @id @default(autoincrement())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  dancerId        Int
+  tierId          Int
+  purchasedAt     DateTime @default(now())
+  expiresAt       DateTime
+  creditsTotal    Int?     // Copied from tier at time of purchase
+  creditsUsed     Int      @default(0)
+  active          Boolean  @default(true)
+  
+  dancer          User           @relation("DancerMemberships", fields: [dancerId], references: [id], onDelete: Cascade)
+  tier            MembershipTier @relation(fields: [tierId], references: [id], onDelete: Cascade)
+
+  @@index([dancerId])
+  @@index([tierId])
+}
+
+model StudioTeamMember {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  studioId  Int
+  userId    Int
+  role      TeamRole
+  joinedAt  DateTime @default(now())
+
+  studio    User     @relation("StudioTeam", fields: [studioId], references: [id], onDelete: Cascade)
+  user      User     @relation("UserTeams", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([studioId, userId, role])
+  @@index([studioId])
+  @@index([userId])
+}
+
+model Collaboration {
+  studioId    Int
+  agencyId    Int
+  description String?
+  status      String   @default("ACTIVE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  studio      User @relation("StudioCollaborations", fields: [studioId], references: [id], onDelete: Cascade)
+  agency      User @relation("AgencyCollaborations", fields: [agencyId], references: [id], onDelete: Cascade)
+
+  @@id([studioId, agencyId])
+  @@index([studioId])
+  @@index([agencyId])
+}
+
+model CvEntry {
+  id              Int         @id @default(autoincrement())
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  userId          Int
+  type            CvEntryType
+  title           String
+  description     String?
+  startDate       DateTime?
+  endDate         DateTime?
+  choreographer   String?     // Manual entry if choreographer is not on platform
+  
+  // Optional linking to existing entities
+  taggedStudioId  Int?
+  taggedAgencyId  Int?
+
+  user            User  @relation("DancerCv", fields: [userId], references: [id], onDelete: Cascade)
+  taggedStudio    User? @relation("TaggedInCvAsStudio", fields: [taggedStudioId], references: [id], onDelete: SetNull)
+  taggedAgency    User? @relation("TaggedInCvAsAgency", fields: [taggedAgencyId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([taggedStudioId])
+  @@index([taggedAgencyId])
 }
