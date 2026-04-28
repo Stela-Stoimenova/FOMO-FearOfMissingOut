@@ -13,6 +13,12 @@ enum Role {
   AGENCY
 }
 
+enum CollaborationStatus {
+  PENDING
+  ACTIVE
+  ENDED
+}
+
 enum DayOfWeek {
   MONDAY
   TUESDAY
@@ -99,6 +105,10 @@ model User {
   cvEntries          CvEntry[] @relation("DancerCv")
   taggedInCvAsStudio CvEntry[] @relation("TaggedInCvAsStudio")
   taggedInCvAsAgency CvEntry[] @relation("TaggedInCvAsAgency")
+
+  // Agency roster
+  managedDancers AgencyRoster[] @relation("AgencyRoster")
+  representedBy  AgencyRoster[] @relation("DancerInRoster")
 }
 
 model Event {
@@ -258,7 +268,7 @@ model UserMembership {
   active          Boolean  @default(true)
   
   dancer          User           @relation("DancerMemberships", fields: [dancerId], references: [id], onDelete: Cascade)
-  tier            MembershipTier @relation(fields: [tierId], references: [id], onDelete: Cascade)
+  tier            MembershipTier @relation(fields: [tierId], references: [id], onDelete: Restrict)
 
   @@index([dancerId])
   @@index([tierId])
@@ -285,7 +295,7 @@ model Collaboration {
   studioId    Int
   agencyId    Int
   description String?
-  status      String   @default("ACTIVE")
+  status      CollaborationStatus @default(PENDING)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -320,4 +330,19 @@ model CvEntry {
   @@index([userId])
   @@index([taggedStudioId])
   @@index([taggedAgencyId])
+}
+
+model AgencyRoster {
+  id        Int      @id @default(autoincrement())
+  agencyId  Int
+  dancerId  Int
+  notes     String?
+  createdAt DateTime @default(now())
+
+  agency    User     @relation("AgencyRoster", fields: [agencyId], references: [id], onDelete: Cascade)
+  dancer    User     @relation("DancerInRoster", fields: [dancerId], references: [id], onDelete: Cascade)
+
+  @@unique([agencyId, dancerId])
+  @@index([agencyId])
+  @@index([dancerId])
 }
