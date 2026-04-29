@@ -445,3 +445,84 @@ export async function getUserTickets(userId) {
 
     return tickets;
 }
+
+/** Save an event to user's wishlist */
+export async function saveEventById(userId, eventId) {
+    try {
+        return await prisma.savedEvent.create({
+            data: { userId, eventId },
+        });
+    } catch (err) {
+        if (String(err).includes("Unique constraint")) return { success: true }; // already saved
+        throw err;
+    }
+}
+
+/** Remove an event from wishlist */
+export async function unsaveEventById(userId, eventId) {
+    try {
+        await prisma.savedEvent.delete({
+            where: { userId_eventId: { userId, eventId } },
+        });
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: "Not found in wishlist" };
+    }
+}
+
+/** List user's wishlist */
+export async function getUserSavedEvents(userId) {
+    const saved = await prisma.savedEvent.findMany({
+        where: { userId },
+        include: {
+            event: {
+                include: {
+                    creator: { select: { id: true, name: true, role: true } },
+                    _count: { select: { tickets: true } },
+                },
+            },
+        },
+        orderBy: { createdAt: "desc" },
+    });
+    return saved.map(s => s.event);
+}
+
+/** Cancel a ticket with 90% refund logic */
+export async function cancelTicketById(userId, ticketId) {
+    const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId },
+        include: { event: true }
+    });
+
+    if (!ticket || ticket.userId !== userId) {
+        const err = new Error("Ticket not found");
+        err.status = 404;
+        throw err;
+    }
+
+    if (ticket.status === "CANCELLED") {
+        const err = new Error("Ticket is already cancelled");
+        err.status = 400;
+        throw err;
+    }
+
+    // Check if event has already started
+    if (new Date() > new Date(ticket.event.startAt)) {
+        const err = new Error("Cannot cancel an event that has already started");
+        err.status = 400;
+        throw err;
+    }
+
+    const refundAmount = Math.floor(ticket.priceCents * 0.9);
+
+    const updated = await prisma.ticket.update({
+        where: { id: ticketId },
+        data: {
+            status: "CANCELLED",
+            refundAmount
+        }
+    });
+
+    return { success: true, refundAmount, ticket: updated };
+}
+

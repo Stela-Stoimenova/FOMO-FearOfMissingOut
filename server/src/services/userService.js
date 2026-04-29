@@ -305,3 +305,13 @@ export async function toggleEventTag(userId, eventId) {
         return { tagged: true };
     }
 }
+
+/** Delete own account and all related data (handled by DB cascade) */
+export async function deleteUserAccount(userId) {
+    // Cascades on most models are set in prisma schema.
+    // Some logic might be needed if external assets (images) need cleanup.
+    return prisma.user.delete({
+        where: { id: userId },
+    });
+}
+

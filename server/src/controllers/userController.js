@@ -10,7 +10,8 @@ import {
     searchUsers,
     addPortfolioItem,
     deletePortfolioItem,
-    toggleEventTag
+    toggleEventTag,
+    deleteUserAccount
 } from "../services/userService.js";
 
 export async function getMe(req, res, next) {
@@ -21,6 +22,16 @@ export async function getMe(req, res, next) {
         return next(err);
     }
 }
+
+export async function deleteMe(req, res, next) {
+    try {
+        await deleteUserAccount(req.user.userId);
+        return res.status(204).send();
+    } catch (err) {
+        return next(err);
+    }
+}
+
 
 export async function updateMe(req, res, next) {
     try {

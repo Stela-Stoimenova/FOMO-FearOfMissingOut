@@ -27,6 +27,8 @@ export default function StudioManager({ studioId }) {
   const [collabs, setCollabs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+
 
   // Add forms
   const [classForm, setClassForm] = useState(EMPTY_CLASS_FORM);
@@ -68,8 +70,11 @@ export default function StudioManager({ studioId }) {
       await createStudioClass(payload);
       setClassForm(EMPTY_CLASS_FORM);
       await loadAll();
+      setSuccess("Class added to schedule successfully!");
+      setTimeout(() => setSuccess(null), 3000);
     } catch (err) { setError(err.message); }
   }
+
 
   async function handleUpdateClass(e) {
     e.preventDefault();
@@ -189,6 +194,14 @@ export default function StudioManager({ studioId }) {
           {error}
         </div>
       )}
+
+      {success && (
+        <div style={{ padding: "1rem 1.25rem", background: "rgba(16, 185, 129, 0.1)", border: "1px solid var(--success)", borderRadius: "16px", color: "var(--success)", fontSize: "0.95rem" }}>
+          {success}
+        </div>
+      )}
+
+
 
       {/* ── Classes ── */}
       <section className="detail-card" style={cardStyle}>

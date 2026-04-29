@@ -1,7 +1,8 @@
 import { useAuth } from "../context/AuthContext.jsx";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
-import { updateMe, getMe, addPortfolioItem, deletePortfolioItem, tagEvent } from "../api/users.js";
+import { updateMe, getMe, addPortfolioItem, deletePortfolioItem, tagEvent, deleteMe } from "../api/users.js";
+
 import { getMyTickets } from "../api/events.js";
 import FollowListModal from "../components/FollowListModal.jsx";
 import CvManager from "../components/CvManager.jsx";
@@ -156,6 +157,21 @@ export default function ProfilePage() {
             setTimeout(() => setErrorMsg(""), 4000);
         }
     }
+
+    async function handleDeleteAccount() {
+        if (!window.confirm("CRITICAL: Are you sure you want to delete your account? This will permanently remove all your data, tickets, and history. This action cannot be undone.")) return;
+        
+        try {
+            await deleteMe();
+            // Logout and redirect
+            localStorage.removeItem("token");
+            window.location.href = "/login";
+        } catch (err) {
+            setErrorMsg(err.message || "Failed to delete account");
+            setTimeout(() => setErrorMsg(""), 4000);
+        }
+    }
+
 
     // ─── VIEW MODE ─────────────────────────────────────────────────
     if (!editing) {
@@ -468,7 +484,6 @@ export default function ProfilePage() {
                     </div>
                 )}
 
-                {/* Action buttons */}
                 <div style={{ display: 'flex', gap: '1rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)' }}>
                     <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ flex: 1, borderRadius: '14px', padding: '0.8rem' }}>
                         {saving ? "Saving…" : "Save Basic Details"}
@@ -477,7 +492,21 @@ export default function ProfilePage() {
                         Cancel & View
                     </button>
                 </div>
+
+                <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '2px solid rgba(239, 68, 68, 0.1)' }}>
+                    <h4 style={{ color: 'var(--danger)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Danger Zone</h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Once you delete your account, there is no going back. Please be certain.</p>
+                    <button 
+                        onClick={handleDeleteAccount}
+                        style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--danger)', padding: '0.75rem 1.5rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s' }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                    >
+                        Delete My Account
+                    </button>
+                </div>
             </div>
+
         </main>
     );
 }

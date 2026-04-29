@@ -3,7 +3,6 @@ import Map, { Marker, Popup, NavigationControl } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Link } from 'react-router-dom';
 
-// We format the price cleanly
 function formatPrice(cents) {
     if (!cents && cents !== 0) return 'Free';
     return `€${(cents / 100).toFixed(2)}`;
@@ -12,15 +11,14 @@ function formatPrice(cents) {
 export default function EventMap({ events, userLocation, nearbyEventIds = [] }) {
     const [popupInfo, setPopupInfo] = useState(null);
     const mapRef = useRef(null);
+    const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
-    // Initial View State centers roughly around Europe
     const initialViewState = {
         longitude: 12.0,
         latitude: 48.0,
         zoom: 3.5
     };
 
-    // Listen for user location updates to fly camera
     useEffect(() => {
         if (userLocation && mapRef.current) {
             mapRef.current.flyTo({
@@ -32,13 +30,11 @@ export default function EventMap({ events, userLocation, nearbyEventIds = [] }) 
         }
     }, [userLocation]);
 
-    // We use useMemo to prevent re-rendering all markers every time a popup opens/closes
     const markers = useMemo(() =>
         events
-            .filter(e => e.latitude && e.longitude) // Only plot physical ones
+            .filter(e => e.latitude && e.longitude)
             .map((event) => {
                 const isNearby = nearbyEventIds.includes(event.id);
-
                 return (
                     <Marker
                         key={event.id}
@@ -46,12 +42,10 @@ export default function EventMap({ events, userLocation, nearbyEventIds = [] }) 
                         latitude={event.latitude}
                         anchor="bottom"
                         onClick={(e) => {
-                            // If we let the click propagate, it might close the popup immediately
                             e.originalEvent.stopPropagation();
                             setPopupInfo(event);
                         }}
                     >
-                        {/* A custom elegant map marker */}
                         <div style={{
                             width: isNearby ? '32px' : '24px',
                             height: isNearby ? '32px' : '24px',
@@ -69,18 +63,31 @@ export default function EventMap({ events, userLocation, nearbyEventIds = [] }) 
                 );
             }), [events, nearbyEventIds]);
 
+    if (!MAPBOX_TOKEN || MAPBOX_TOKEN.length < 20) {
+        return (
+            <div style={{ width: '100%', height: '100%', minHeight: '400px', borderRadius: 'var(--radius-lg)', background: 'rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '2rem', border: '1px solid var(--border-light)' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '1.5rem' }}>🌍</div>
+                <h3 style={{ margin: '0 0 0.75rem 0', fontFamily: 'var(--font-display)' }}>Map Not Configured</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '350px', lineHeight: 1.6 }}>
+                    Your Mapbox token is missing or invalid. Please check <code>client/.env</code> and ensure <code>VITE_MAPBOX_TOKEN</code> is set correctly.
+                </p>
+                <div style={{ marginTop: '1.5rem', fontSize: '0.8rem', opacity: 0.5 }}>
+                    Token starts with: {MAPBOX_TOKEN ? MAPBOX_TOKEN.substring(0, 10) + '...' : 'None'}
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div style={{ width: '100%', height: '100%', minHeight: '400px', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+        <div style={{ width: '100%', height: '100%', minHeight: '400px', borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--border-light)' }}>
             <Map
                 ref={mapRef}
                 initialViewState={initialViewState}
-                mapStyle="mapbox://styles/mapbox/dark-v11"
-                mapboxAccessToken={import.meta.env.VITE_MAPBOX_TOKEN}
+                mapStyle="mapbox://styles/mapbox/streets-v12"
+                mapboxAccessToken={MAPBOX_TOKEN}
             >
                 <NavigationControl position="top-right" />
-
                 {markers}
-
                 {popupInfo && (
                     <Popup
                         anchor="top"
@@ -98,14 +105,14 @@ export default function EventMap({ events, userLocation, nearbyEventIds = [] }) 
                                 {popupInfo.location}
                             </p>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem' }}>
-                                <span style={{ fontWeight: 600, color: 'var(--success)' }}>
+                                <span style={{ fontWeight: 600, color: 'var(--accent)' }}>
                                     {formatPrice(popupInfo.priceCents)}
                                 </span>
                                 <Link
                                     to={`/events/${popupInfo.id}`}
-                                    style={{ background: 'var(--primary)', color: 'var(--bg-card)', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}
+                                    style={{ background: 'var(--primary)', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}
                                 >
-                                    View
+                                    Details
                                 </Link>
                             </div>
                         </div>

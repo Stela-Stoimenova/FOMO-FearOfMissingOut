@@ -13,6 +13,7 @@ import {
     createPortfolioItem,
     removePortfolioItem,
     tagEvent,
+    deleteMe,
 } from "../controllers/userController.js";
 
 const router = Router();
@@ -25,6 +26,10 @@ router.get("/me", requireAuth, getMe);
 
 // PUT /api/users/me  – update own profile (auth required)
 router.put("/me", requireAuth, updateMe);
+
+// DELETE /api/users/me  – delete own account (auth required)
+router.delete("/me", requireAuth, deleteMe);
+
 
 // GET /api/users/me/loyalty  – own loyalty balance (auth required)
 router.get("/me/loyalty", requireAuth, loyaltyBalance);

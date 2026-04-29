@@ -12,6 +12,10 @@ import {
   remove,
   buyTicket,
   myTickets,
+  saveEvent,
+  unsaveEvent,
+  getSavedEvents,
+  cancelTicket,
 } from "../controllers/eventController.js";
 
 const router = Router();
@@ -28,6 +32,10 @@ router.get("/nearby", validateQuery(nearbyQuerySchema), nearby);
 // GET /api/events/me/tickets (DANCER sees own tickets)
 router.get("/me/tickets", requireAuth, requireRole(["DANCER"]), myTickets);
 
+// GET /api/events/me/saved (DANCER sees saved events)
+router.get("/me/saved", requireAuth, requireRole(["DANCER"]), getSavedEvents);
+
+
 // GET /api/events/:id (public details)
 router.get("/:id", getById);
 
@@ -42,5 +50,15 @@ router.delete("/:id", requireAuth, requireRole(["STUDIO", "AGENCY"]), remove);
 
 // POST /api/events/:id/tickets (DANCER buys ticket)
 router.post("/:id/tickets", requireAuth, requireRole(["DANCER"]), buyTicket);
+
+// POST /api/events/:id/save (DANCER saves event)
+router.post("/:id/save", requireAuth, requireRole(["DANCER"]), saveEvent);
+
+// DELETE /api/events/:id/save (DANCER unsaves event)
+router.delete("/:id/save", requireAuth, requireRole(["DANCER"]), unsaveEvent);
+
+// POST /api/events/tickets/:id/cancel (DANCER cancels ticket)
+router.post("/tickets/:id/cancel", requireAuth, requireRole(["DANCER"]), cancelTicket);
+
 
 export default router;
