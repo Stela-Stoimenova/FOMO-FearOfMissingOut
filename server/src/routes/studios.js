@@ -40,7 +40,17 @@ router.delete(
 );
 
 // --- Memberships ---
-// Public: List studio memberships
+// IMPORTANT: specific /me/* routes must be defined BEFORE /:id/* to avoid "me" being captured as :id
+
+// Studio owner: all tiers including inactive (for management UI)
+router.get(
+  "/me/memberships-manage",
+  requireAuth,
+  requireRole(["STUDIO"]),
+  studioController.listOwnMemberships
+);
+
+// Public: List active tiers
 router.get("/:id/memberships", studioController.listMemberships);
 
 // Protected (STUDIO only):
@@ -71,6 +81,14 @@ router.post(
   requireAuth,
   requireRole(["DANCER"]),
   studioController.purchaseMembership
+);
+
+// Protected (DANCER only): Get own purchased memberships
+router.get(
+  "/me/memberships/purchased",
+  requireAuth,
+  requireRole(["DANCER"]),
+  studioController.getMyMemberships
 );
 
 // --- Studio Team ---

@@ -10,6 +10,7 @@ import userRoutes from "./routes/users.js";
 import messageRoutes from "./routes/messages.js";
 import studioRoutes from "./routes/studios.js";
 import cvRoutes from "./routes/cv.js";
+import agencyRoutes from "./routes/agency.js";
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/studios", studioRoutes);
 app.use("/api/cv", cvRoutes);
+app.use("/api/agency", agencyRoutes);
 
 // Centralized error handler (must be last)
 app.use((err, req, res, next) => {

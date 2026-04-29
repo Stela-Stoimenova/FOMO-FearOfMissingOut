@@ -14,7 +14,6 @@ export async function listByUser(userId) {
 }
 
 export async function create(userId, data) {
-  console.log("[cvService] create - User ID:", userId);
   const user = await prisma.user.findUnique({ where: { id: Number(userId) }, select: { name: true } });
   const entry = await prisma.cvEntry.create({
     data: {
@@ -31,29 +30,23 @@ export async function create(userId, data) {
     include: DEFAULT_INCLUDE,
   });
 
-  // Notification Messages if tagged
   const existingMessages = await prisma.message.findMany({
     where: {
       senderId: Number(userId),
       OR: [
-        { receiverId: data.taggedStudioId ? Number(data.taggedStudioId) : undefined },
-        { receiverId: data.taggedAgencyId ? Number(data.taggedAgencyId) : undefined },
+        data.taggedStudioId ? { receiverId: Number(data.taggedStudioId) } : undefined,
+        data.taggedAgencyId ? { receiverId: Number(data.taggedAgencyId) } : undefined,
       ].filter(Boolean),
-      createdAt: { gte: new Date(Date.now() - 1000 * 60 * 5) } // Last 5 mins
-    }
+      createdAt: { gte: new Date(Date.now() - 1000 * 60 * 5) },
+    },
   });
 
   if (data.taggedStudioId) {
     const content = `${user?.name || "A dancer"} tagged your studio in a CV entry: ${data.title}.`;
     const isDuplicate = existingMessages.some(m => m.receiverId === Number(data.taggedStudioId) && m.content === content);
-    
     if (!isDuplicate) {
       await prisma.message.create({
-        data: {
-          senderId: Number(userId),
-          receiverId: Number(data.taggedStudioId),
-          content
-        }
+        data: { senderId: Number(userId), receiverId: Number(data.taggedStudioId), content },
       });
     }
   }
@@ -61,14 +54,9 @@ export async function create(userId, data) {
   if (data.taggedAgencyId) {
     const content = `${user?.name || "A dancer"} tagged your agency in a CV entry: ${data.title}.`;
     const isDuplicate = existingMessages.some(m => m.receiverId === Number(data.taggedAgencyId) && m.content === content);
-
     if (!isDuplicate) {
       await prisma.message.create({
-        data: {
-          senderId: Number(userId),
-          receiverId: Number(data.taggedAgencyId),
-          content
-        }
+        data: { senderId: Number(userId), receiverId: Number(data.taggedAgencyId), content },
       });
     }
   }
@@ -79,18 +67,25 @@ export async function create(userId, data) {
 export async function update(id, userId, data) {
   const entry = await prisma.cvEntry.findUnique({ where: { id: Number(id) } });
   if (!entry) {
-    const err = new Error("CV Entry not found");
-    err.status = 404;
-    throw err;
+    const err = new Error("CV Entry not found"); err.status = 404; throw err;
   }
   if (entry.userId !== Number(userId)) {
-    const err = new Error("Forbidden");
-    err.status = 403;
-    throw err;
+    const err = new Error("Forbidden"); err.status = 403; throw err;
   }
+  // Explicit field picking prevents userId or other fields from being overwritten
+  const update = {};
+  if (data.type !== undefined) update.type = data.type;
+  if (data.title !== undefined) update.title = data.title;
+  if (data.description !== undefined) update.description = data.description || null;
+  if (data.choreographer !== undefined) update.choreographer = data.choreographer || null;
+  if (data.startDate !== undefined) update.startDate = data.startDate ? new Date(data.startDate) : null;
+  if (data.endDate !== undefined) update.endDate = data.endDate ? new Date(data.endDate) : null;
+  if (data.taggedStudioId !== undefined) update.taggedStudioId = data.taggedStudioId ? Number(data.taggedStudioId) : null;
+  if (data.taggedAgencyId !== undefined) update.taggedAgencyId = data.taggedAgencyId ? Number(data.taggedAgencyId) : null;
+
   return prisma.cvEntry.update({
     where: { id: Number(id) },
-    data,
+    data: update,
     include: DEFAULT_INCLUDE,
   });
 }
@@ -98,16 +93,10 @@ export async function update(id, userId, data) {
 export async function remove(id, userId) {
   const entry = await prisma.cvEntry.findUnique({ where: { id: Number(id) } });
   if (!entry) {
-    const err = new Error("CV Entry not found");
-    err.status = 404;
-    throw err;
+    const err = new Error("CV Entry not found"); err.status = 404; throw err;
   }
   if (entry.userId !== Number(userId)) {
-    const err = new Error("Forbidden");
-    err.status = 403;
-    throw err;
+    const err = new Error("Forbidden"); err.status = 403; throw err;
   }
-  return prisma.cvEntry.delete({
-    where: { id: Number(id) },
-  });
+  return prisma.cvEntry.delete({ where: { id: Number(id) } });
 }
