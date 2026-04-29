@@ -8,6 +8,10 @@ import {
     deleteEvent,
     purchaseTicket,
     getUserTickets,
+    saveEventById,
+    unsaveEventById,
+    getUserSavedEvents,
+    cancelTicketById,
 } from "../services/eventService.js";
 
 export async function list(req, res, next) {
@@ -95,3 +99,43 @@ export async function myTickets(req, res, next) {
         return next(err);
     }
 }
+
+export async function saveEvent(req, res, next) {
+    try {
+        const eventId = Number(req.params.id);
+        const result = await saveEventById(req.user.userId, eventId);
+        return res.status(201).json(result);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+export async function unsaveEvent(req, res, next) {
+    try {
+        const eventId = Number(req.params.id);
+        const result = await unsaveEventById(req.user.userId, eventId);
+        return res.json(result);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+export async function getSavedEvents(req, res, next) {
+    try {
+        const events = await getUserSavedEvents(req.user.userId);
+        return res.json(events);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+export async function cancelTicket(req, res, next) {
+    try {
+        const ticketId = Number(req.params.id);
+        const result = await cancelTicketById(req.user.userId, ticketId);
+        return res.json(result);
+    } catch (err) {
+        return next(err);
+    }
+}
+

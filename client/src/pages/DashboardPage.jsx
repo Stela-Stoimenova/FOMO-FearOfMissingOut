@@ -23,6 +23,8 @@ export default function DashboardPage() {
     const [showList, setShowList] = useState(null); // 'followers' | 'following' | null
     const [myMemberships, setMyMemberships] = useState([]);
     const [loadingMemberships, setLoadingMemberships] = useState(false);
+    const [savedEvents, setSavedEvents] = useState([]);
+    const [loadingSaved, setLoadingSaved] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
 
     useEffect(() => {
@@ -35,16 +37,27 @@ export default function DashboardPage() {
                 .then(data => setMyTickets(Array.isArray(data) ? data : []))
                 .catch(() => { })
                 .finally(() => setLoadingTickets(false));
+            
             getLoyaltyBalance()
                 .then(data => setLoyalty(data))
                 .catch(() => { });
+
             setLoadingMemberships(true);
             getMyPurchasedMemberships()
                 .then(data => setMyMemberships(Array.isArray(data) ? data : []))
                 .catch(() => { })
                 .finally(() => setLoadingMemberships(false));
+
+            setLoadingSaved(true);
+            import("../api/events.js").then(api => {
+                api.getSavedEvents()
+                    .then(data => setSavedEvents(Array.isArray(data) ? data : []))
+                    .catch(() => { })
+                    .finally(() => setLoadingSaved(false));
+            });
         }
     }, [user]);
+
 
     function loadStudioEvents() {
         setLoadingEvents(true);
@@ -185,6 +198,39 @@ export default function DashboardPage() {
                 </section>
             )}
 
+            {/* DANCER — Wish List */}
+            {user.role === "DANCER" && (
+                <section style={{ marginTop: '3rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', margin: 0 }}>My Wish List</h2>
+                        <Link to="/" style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: 600 }}>Browse More</Link>
+                    </div>
+                    {loadingSaved ? (
+                        <p className="hint">Loading saved events…</p>
+                    ) : savedEvents.length === 0 ? (
+                        <div style={{ padding: '2rem', background: 'var(--bg-card)', border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+                            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Your wish list is empty. Heart an event to save it here!</p>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                            {savedEvents.map(event => (
+                                <Link key={event.id} to={`/events/${event.id}`} style={{ textDecoration: 'none', color: 'inherit' }} title={event.title}>
+                                    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', overflow: 'hidden', transition: 'transform 0.2s' }} onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-3px)'} onMouseLeave={e => e.currentTarget.style.transform = 'none'}>
+                                        <div style={{ height: '100px', background: event.imageUrl ? `url(${event.imageUrl}) center/cover` : 'var(--bg-input)' }} />
+                                        <div style={{ padding: '0.75rem' }}>
+                                            <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{event.title}</h4>
+                                            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{new Date(event.startAt).toLocaleDateString()}</span>
+                                        </div>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </section>
+            )}
+
+
+
             {/* STUDIO Analytics Section */}
             {(user.role === "STUDIO" || user.role === "AGENCY") && (() => {
                 // ── computed analytics ─────────────────────────────────
@@ -214,14 +260,28 @@ export default function DashboardPage() {
                     return Math.round(capped.reduce((s, e) => s + e.fill, 0) / capped.length);
                 })();
 
-                const kpis = [
-                    { label: "Total Events",    value: studioEvents.length,       color: "var(--text-main)" },
-                    { label: "Tickets Sold",    value: totalTickets,              color: "var(--accent)" },
-                    { label: "Gross Revenue",   value: formatPrice(grossRevenue), color: "var(--text-main)" },
-                    { label: "Platform Fee",    value: formatPrice(platformFee),  color: "var(--danger)" },
-                    { label: "Net Earnings",    value: formatPrice(netEarnings),  color: "var(--success)" },
-                    { label: "Avg Fill Rate",   value: avgFill !== null ? `${avgFill}%` : "N/A", color: "var(--warning)" },
-                ];
+                // --- Agency specific counts (placeholders or fetched) ---
+                // For a more complete experience, we'd fetch these in the useEffect
+                // but we can show what we have or generic metrics.
+                
+                const kpis = user.role === "AGENCY" 
+                  ? [
+                      { label: "Created Events",  value: studioEvents.length,       color: "var(--text-main)" },
+                      { label: "Tickets Sold",    value: totalTickets,              color: "var(--accent)" },
+                      { label: "Gross Revenue",   value: formatPrice(grossRevenue), color: "var(--text-main)" },
+                      { label: "Net Earnings",    value: formatPrice(netEarnings),  color: "var(--success)" },
+                      { label: "Managed Talent",  value: user._count?.managedDancers ?? 0, color: "var(--primary)" },
+                      { label: "Collaborations",  value: user._count?.agencyCollaborations ?? 0, color: "var(--warning)" },
+                    ]
+                  : [
+                      { label: "Total Events",    value: studioEvents.length,       color: "var(--text-main)" },
+                      { label: "Tickets Sold",    value: totalTickets,              color: "var(--accent)" },
+                      { label: "Gross Revenue",   value: formatPrice(grossRevenue), color: "var(--text-main)" },
+                      { label: "Platform Fee",    value: formatPrice(platformFee),  color: "var(--danger)" },
+                      { label: "Net Earnings",    value: formatPrice(netEarnings),  color: "var(--success)" },
+                      { label: "Avg Fill Rate",   value: avgFill !== null ? `${avgFill}%` : "N/A", color: "var(--warning)" },
+                    ];
+
 
                 function recommendation(e) {
                     if (e.fill === null) return "Set a capacity to unlock fill-rate insights.";
@@ -233,7 +293,8 @@ export default function DashboardPage() {
 
                 return (
                     <div style={{ marginTop: '4rem' }}>
-                        <h2 style={{ marginBottom: '0.4rem' }}>Studio Analytics</h2>
+                        <h2 style={{ marginBottom: '0.4rem' }}>{user.role === "AGENCY" ? "Agency Insights" : "Studio Analytics"}</h2>
+
                         <p className="subtitle" style={{ marginBottom: '2rem', fontSize: '0.95rem' }}>
                             Performance overview for your created events.
                         </p>

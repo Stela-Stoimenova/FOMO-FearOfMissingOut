@@ -3,7 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import { getUserProfile, followUser, unfollowUser, getMe, getFollowers } from "../api/users.js";
 import { sendMessage } from "../api/messages.js";
 import { getEvents } from "../api/events.js";
-import { getStudioClasses, getStudioMemberships, getStudioTeam, getStudioCollaborations } from "../api/studios.js";
+import { getStudioClasses, getStudioMemberships, getStudioTeam, getStudioCollaborations, purchaseMembership } from "../api/studios.js";
+
 import { getUserCv } from "../api/cv.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import FollowListModal from "../components/FollowListModal.jsx";
@@ -129,7 +130,32 @@ export default function PublicProfilePage() {
         }
     }
 
+    async function handlePurchaseMembership(tierId) {
+        if (!me) {
+            setErrorMsg("Please log in to purchase a membership.");
+            setTimeout(() => setErrorMsg(""), 4000);
+            return;
+        }
+        if (me.role !== "DANCER") {
+            setErrorMsg("Only Dancers can purchase studio memberships.");
+            setTimeout(() => setErrorMsg(""), 4000);
+            return;
+        }
+
+        if (!window.confirm("Do you want to purchase this membership?")) return;
+
+        try {
+            await purchaseMembership(tierId);
+            setMsgSent(true);
+            setTimeout(() => setMsgSent(false), 3000);
+        } catch (err) {
+            setErrorMsg(err.message || "Failed to purchase membership");
+            setTimeout(() => setErrorMsg(""), 4000);
+        }
+    }
+
     function handleShowList(type) {
+
         setShowList(type);
     }
 
@@ -281,15 +307,26 @@ export default function PublicProfilePage() {
                     <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem', fontWeight: 700 }}>Membership Plans</h3>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1.25rem' }}>
                         {memberships.map(m => (
-                            <div key={m.id} style={{ padding: '1.5rem', background: 'var(--bg-hover)', borderRadius: '24px', border: '1px solid var(--border-light)' }}>
-                                <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontWeight: 700 }}>{m.name}</h4>
-                                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent)', marginBottom: '0.75rem' }}>
-                                    €{(m.priceCents / 100).toFixed(2)}
+                            <div key={m.id} style={{ padding: '1.5rem', background: 'var(--bg-hover)', borderRadius: '24px', border: '1px solid var(--border-light)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                                <div>
+                                    <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem', fontWeight: 700 }}>{m.name}</h4>
+                                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent)', marginBottom: '0.75rem' }}>
+                                        €{(m.priceCents / 100).toFixed(2)}
+                                    </div>
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '1.5rem' }}>
+                                        <span style={{ display: 'block' }}>{m.durationDays} Days Validity</span>
+                                        <span>{m.classLimit ? `${m.classLimit} Classes` : 'Unlimited Classes'}</span>
+                                    </div>
                                 </div>
-                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                                    <span style={{ display: 'block' }}>{m.durationDays} Days Validity</span>
-                                    <span>{m.classLimit ? `${m.classLimit} Classes` : 'Unlimited Classes'}</span>
-                                </div>
+                                {me?.role === "DANCER" && !isOwnProfile && (
+                                    <button 
+                                        className="btn-primary" 
+                                        onClick={() => handlePurchaseMembership(m.id)}
+                                        style={{ width: '100%', padding: '0.6rem', fontSize: '0.85rem', borderRadius: '12px' }}
+                                    >
+                                        Purchase
+                                    </button>
+                                )}
                             </div>
                         ))}
                     </div>

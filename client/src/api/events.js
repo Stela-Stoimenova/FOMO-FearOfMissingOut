@@ -123,3 +123,36 @@ export async function updateEvent(id, eventData) {
 export async function deleteEvent(id) {
     return apiRequest(`/events/${id}`, { method: "DELETE" });
 }
+
+/**
+ * POST /api/events/tickets/:id/cancel
+ * Cancel a ticket and get a 90% refund.
+ */
+export async function cancelTicket(ticketId) {
+    return apiRequest(`/events/tickets/${ticketId}/cancel`, { method: "POST" });
+}
+
+/**
+ * POST /api/events/:id/save
+ * Save event to wishlist.
+ */
+export async function saveEvent(eventId) {
+    return apiRequest(`/events/${eventId}/save`, { method: "POST" });
+}
+
+/**
+ * DELETE /api/events/:id/save
+ * Remove from wishlist.
+ */
+export async function unsaveEvent(eventId) {
+    return apiRequest(`/events/${eventId}/save`, { method: "DELETE" });
+}
+
+/**
+ * GET /api/events/me/saved
+ * Get own wishlist.
+ */
+export async function getSavedEvents() {
+    return apiRequest("/events/me/saved");
+}
+

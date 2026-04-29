@@ -1,9 +1,10 @@
 // Event detail page — fetches a single event from GET /api/events/:id
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { getEventById, buyTicket } from "../api/events.js";
+import { getEventById, buyTicket, saveEvent, unsaveEvent, getSavedEvents } from "../api/events.js";
 import { getMe } from "../api/users.js";
 import { useAuth } from "../context/AuthContext.jsx";
+
 
 function formatPrice(cents) {
     return `€${(cents / 100).toFixed(2)}`;
@@ -34,6 +35,7 @@ export default function EventDetailPage() {
     const [buyError, setBuyError] = useState(null);
     const [purchaseResult, setPurchaseResult] = useState(null);
     const [usePoints, setUsePoints] = useState(true); // default to using points if available
+    const [isSaved, setIsSaved] = useState(false);
 
     useEffect(() => {
         async function fetchEvent() {
@@ -48,9 +50,39 @@ export default function EventDetailPage() {
                 setLoading(false);
             }
         }
-
         fetchEvent();
-    }, [id]); // re-runs if the id in the URL changes
+    }, [id]);
+
+    useEffect(() => {
+        if (isLoggedIn && user?.role === "DANCER" && event) {
+            getSavedEvents()
+                .then(saved => {
+                    setIsSaved(saved.some(e => e.id === event.id));
+                })
+                .catch(err => {
+                    console.warn("Wishlist check failed (backend might be outdated):", err);
+                });
+        }
+    }, [isLoggedIn, user, event]);
+
+    async function handleToggleSave() {
+        if (!isLoggedIn) {
+            navigate("/login");
+            return;
+        }
+        try {
+            if (isSaved) {
+                await unsaveEvent(id);
+                setIsSaved(false);
+            } else {
+                await saveEvent(id);
+                setIsSaved(true);
+            }
+        } catch (err) {
+            console.error("Failed to toggle save", err);
+        }
+    }
+
 
     async function handleBuyTicket() {
         setBuying(true);
@@ -133,15 +165,58 @@ export default function EventDetailPage() {
                             alignItems: 'flex-end'
                         }}>
                             <h1 style={{ margin: 0, fontSize: '2.5rem', textShadow: '0 2px 10px rgba(0,0,0,0.8)' }}>{event.title}</h1>
+                            <button 
+                                onClick={handleToggleSave}
+                                style={{
+                                    background: 'rgba(0,0,0,0.4)',
+                                    border: 'none',
+                                    borderRadius: '50%',
+                                    width: '50px',
+                                    height: '50px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    color: isSaved ? '#ff4757' : '#fff',
+                                    fontSize: '1.5rem',
+                                    transition: 'all 0.3s ease',
+                                    marginLeft: '1.5rem',
+                                    backdropFilter: 'blur(10px)',
+                                    boxShadow: '0 4px 15px rgba(0,0,0,0.2)'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
+                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            >
+                                {isSaved ? '❤️' : '🤍'}
+                            </button>
                         </div>
                     </div>
                 ) : (
                     <div style={{
                         width: '100%', height: '200px',
                         background: 'linear-gradient(135deg, rgba(99,102,241,0.25) 0%, rgba(124,58,237,0.1) 50%, rgba(24,24,27,1) 100%)',
-                        display: 'flex', alignItems: 'flex-end', padding: '2rem',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2rem',
                     }}>
                         <h1 style={{ margin: 0, fontSize: '2rem' }}>{event.title}</h1>
+                        <button 
+                            onClick={handleToggleSave}
+                            style={{
+                                background: 'rgba(255,255,255,0.1)',
+                                border: 'none',
+                                borderRadius: '50%',
+                                width: '44px',
+                                height: '44px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                color: isSaved ? '#ff4757' : '#fff',
+                                fontSize: '1.2rem',
+                                transition: 'all 0.3s'
+                            }}
+                        >
+                            {isSaved ? '❤️' : '🤍'}
+                        </button>
                     </div>
                 )}
 

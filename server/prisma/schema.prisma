@@ -50,6 +50,13 @@ enum CvEntryType {
   COMPETITION
 }
 
+enum TicketStatus {
+
+  VALID
+  CANCELLED
+  REFUNDED
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
@@ -72,6 +79,7 @@ model User {
   // Core
   events  Event[]  @relation("EventCreator")
   tickets Ticket[]
+  savedEvents SavedEvent[] @relation("SavedEvents")
 
   // Loyalty
   loyaltyAccount      LoyaltyAccount?
@@ -127,10 +135,11 @@ model Event {
   imageUrl String?
 
   creatorId Int
-  creator   User @relation("EventCreator", fields: [creatorId], references: [id])
+  creator   User @relation("EventCreator", fields: [creatorId], references: [id], onDelete: Cascade)
 
   tickets Ticket[]
   taggedUsers User[] @relation("TaggedEvents")
+  savedByUsers SavedEvent[] @relation("SavedByUsers")
 }
 
 model PortfolioItem {
@@ -152,9 +161,11 @@ model Ticket {
   userId     Int
   eventId    Int
   priceCents Int
+  status     TicketStatus @default(VALID)
+  refundAmount Int?
 
-  user  User  @relation(fields: [userId], references: [id])
-  event Event @relation(fields: [eventId], references: [id])
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   transaction Transaction?
 
@@ -162,13 +173,28 @@ model Ticket {
   @@index([eventId])
 }
 
+model SavedEvent {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  eventId   Int
+  createdAt DateTime @default(now())
+
+  user  User  @relation("SavedEvents", fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation("SavedByUsers", fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@index([userId])
+  @@index([eventId])
+}
+
+
 model LoyaltyAccount {
   id        Int      @id @default(autoincrement())
   userId    Int      @unique
   points    Int      @default(0)
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model LoyaltyTransaction {
@@ -178,7 +204,7 @@ model LoyaltyTransaction {
   reason    String
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Transaction {
@@ -189,7 +215,7 @@ model Transaction {
   netCents        Int
   createdAt       DateTime @default(now())
 
-  ticket Ticket @relation(fields: [ticketId], references: [id])
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 }
 
 model Follow {
@@ -197,8 +223,8 @@ model Follow {
   followingId Int
   createdAt   DateTime @default(now())
 
-  follower  User @relation("UserFollowing", fields: [followerId], references: [id])
-  following User @relation("UserFollowers", fields: [followingId], references: [id])
+  follower  User @relation("UserFollowing", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("UserFollowers", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@id([followerId, followingId])
 }
@@ -211,9 +237,10 @@ model Message {
   createdAt  DateTime  @default(now())
   readAt     DateTime?
 
-  sender   User @relation("UserSentMessages", fields: [senderId], references: [id])
-  receiver User @relation("UserReceivedMessages", fields: [receiverId], references: [id])
+  sender   User @relation("UserSentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("UserReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
 }
+
 
 model WeeklyClass {
   id          Int        @id @default(autoincrement())

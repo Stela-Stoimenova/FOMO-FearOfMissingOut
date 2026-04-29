@@ -106,3 +106,12 @@ export async function deletePortfolioItem(itemId) {
 export async function tagEvent(eventId) {
     return apiRequest(`/users/me/tags/${eventId}`, { method: "POST" });
 }
+
+/**
+ * DELETE /api/users/me
+ * Delete own account
+ */
+export async function deleteMe() {
+    return apiRequest("/users/me", { method: "DELETE" });
+}
+
