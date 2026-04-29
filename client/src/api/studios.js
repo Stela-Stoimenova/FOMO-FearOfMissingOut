@@ -56,6 +56,16 @@ export async function purchaseMembership(tierId) {
   });
 }
 
+// DANCER: get own purchased memberships
+export async function getMyPurchasedMemberships() {
+  return apiRequest("/studios/me/memberships/purchased");
+}
+
+// STUDIO: get all own tiers including inactive (for management)
+export async function getOwnMembershipsManage() {
+  return apiRequest("/studios/me/memberships-manage");
+}
+
 // --- Team ---
 export async function getStudioTeam(studioId) {
   return apiRequest(`/studios/${studioId}/team`);

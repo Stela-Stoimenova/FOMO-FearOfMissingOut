@@ -6,6 +6,7 @@ import { getMyTickets } from "../api/events.js";
 import FollowListModal from "../components/FollowListModal.jsx";
 import CvManager from "../components/CvManager.jsx";
 import StudioManager from "../components/StudioManager.jsx";
+import AgencyManager from "../components/AgencyManager.jsx";
 
 const ALL_STYLES = ["Hip Hop", "Contemporary", "Heels", "Ballet", "Breaking", "House", "Popping", "Commercial", "Jazz", "Afro"];
 const EXPERIENCE_LEVELS = ["Beginner", "Intermediate", "Advanced", "Professional"];
@@ -83,6 +84,7 @@ export default function ProfilePage() {
     const Initials = (user.name || user.email).charAt(0).toUpperCase();
     const isDancer = user.role === "DANCER";
     const isStudio = user.role === "STUDIO";
+    const isAgency = user.role === "AGENCY";
 
     function toggleStyle(style) {
         setForm(prev => ({
@@ -224,6 +226,12 @@ export default function ProfilePage() {
                 {isStudio && (
                     <div style={{ marginBottom: "2rem" }}>
                         <StudioManager studioId={user.id} />
+                    </div>
+                )}
+
+                {isAgency && (
+                    <div style={{ marginBottom: "2rem" }}>
+                        <AgencyManager />
                     </div>
                 )}
 

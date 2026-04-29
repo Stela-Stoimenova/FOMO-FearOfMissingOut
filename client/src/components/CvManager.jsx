@@ -1,14 +1,26 @@
 import { useState, useEffect, useCallback } from "react";
-import { getUserCv, createCvEntry, deleteCvEntry } from "../api/cv.js";
+import { getUserCv, createCvEntry, updateCvEntry, deleteCvEntry } from "../api/cv.js";
 import UserSelect from "./UserSelect.jsx";
 
 const CV_TYPES = ["TRAINING", "PROJECT", "WORKSHOP", "COMPETITION"];
+const EMPTY_FORM = { type: "PROJECT", title: "", description: "", startDate: "", endDate: "", choreographer: "", taggedStudioId: null, taggedAgencyId: null };
+
+function toDateInput(iso) {
+  if (!iso) return "";
+  return iso.split("T")[0];
+}
+
+function toIso(dateStr) {
+  if (!dateStr) return "";
+  return new Date(dateStr).toISOString();
+}
 
 export default function CvManager({ userId }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [form, setForm] = useState({ type: "PROJECT", title: "", description: "", startDate: "", endDate: "", choreographer: "", taggedStudioId: null, taggedAgencyId: null });
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [editingEntry, setEditingEntry] = useState(null); // null = add mode, entry = edit mode
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -25,17 +37,54 @@ export default function CvManager({ userId }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const clearError = () => setError(null);
+  function startEdit(entry) {
+    setEditingEntry({
+      ...entry,
+      startDate: toDateInput(entry.startDate),
+      endDate: toDateInput(entry.endDate),
+      taggedStudioId: entry.taggedStudio?.id || null,
+      taggedAgencyId: entry.taggedAgency?.id || null,
+    });
+  }
+
+  function cancelEdit() {
+    setEditingEntry(null);
+    setError(null);
+  }
 
   async function handleAdd(e) {
     e.preventDefault();
-    clearError();
+    setError(null);
     try {
-      const payload = { ...form };
-      if (!payload.startDate) delete payload.startDate;
-      if (!payload.endDate) delete payload.endDate;
+      const payload = {
+        ...form,
+        startDate: form.startDate ? toIso(form.startDate) : null,
+        endDate: form.endDate ? toIso(form.endDate) : null,
+      };
       await createCvEntry(payload);
-      setForm({ type: "PROJECT", title: "", description: "", startDate: "", endDate: "", choreographer: "", taggedStudioId: null, taggedAgencyId: null });
+      setForm(EMPTY_FORM);
+      await load();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleUpdate(e) {
+    e.preventDefault();
+    setError(null);
+    try {
+      const payload = {
+        type: editingEntry.type,
+        title: editingEntry.title,
+        description: editingEntry.description,
+        choreographer: editingEntry.choreographer,
+        startDate: editingEntry.startDate ? toIso(editingEntry.startDate) : null,
+        endDate: editingEntry.endDate ? toIso(editingEntry.endDate) : null,
+        taggedStudioId: editingEntry.taggedStudioId,
+        taggedAgencyId: editingEntry.taggedAgencyId,
+      };
+      await updateCvEntry(editingEntry.id, payload);
+      setEditingEntry(null);
       await load();
     } catch (err) {
       setError(err.message);
@@ -43,7 +92,8 @@ export default function CvManager({ userId }) {
   }
 
   async function handleDelete(id) {
-    clearError();
+    if (!window.confirm("Delete this CV entry? This cannot be undone.")) return;
+    setError(null);
     try {
       await deleteCvEntry(id);
       await load();
@@ -71,25 +121,63 @@ export default function CvManager({ userId }) {
         {/* List */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "2rem" }}>
           {entries.length > 0 ? entries.map(e => (
-            <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "1.25rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px solid var(--border-light)" }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginBottom: "0.5rem" }}>
-                  <span className="role-badge" style={{ fontSize: "0.65rem", padding: "0.2rem 0.6rem", borderRadius: "8px" }}>{e.type}</span>
-                  <strong style={{ fontSize: "1.05rem", fontWeight: 700 }}>{e.title}</strong>
-                </div>
-                <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
-                  {e.startDate && <span>{new Date(e.startDate).getFullYear()}</span>}
-                  {e.choreographer && <span>• Choreo: <strong style={{ color: "var(--text-main)" }}>{e.choreographer}</strong></span>}
-                </div>
-                {e.description && <p style={{ fontSize: "0.95rem", color: "var(--text-main)", lineHeight: 1.5, margin: "0.5rem 0" }}>{e.description}</p>}
-                {(e.taggedStudio || e.taggedAgency) && (
-                  <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
-                    {e.taggedStudio && <span style={{ fontSize: "0.75rem", color: "var(--accent)", background: "var(--accent-soft)", padding: "0.2rem 0.6rem", borderRadius: "6px" }}>@ {e.taggedStudio.name}</span>}
-                    {e.taggedAgency && <span style={{ fontSize: "0.75rem", color: "var(--accent)", background: "var(--accent-soft)", padding: "0.2rem 0.6rem", borderRadius: "6px" }}>@ {e.taggedAgency.name}</span>}
+            <div key={e.id}>
+              {editingEntry?.id === e.id ? (
+                /* ── Inline edit form ── */
+                <form onSubmit={handleUpdate} style={{ display: "flex", flexDirection: "column", gap: "1rem", padding: "1.5rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px solid var(--accent-border)" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <h4 style={{ margin: 0, color: "var(--accent)", fontSize: "0.9rem" }}>Editing entry</h4>
+                    <button type="button" onClick={cancelEdit} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "1.2rem" }}>&times;</button>
                   </div>
-                )}
-              </div>
-              <button type="button" onClick={() => handleDelete(e.id)} className="btn-secondary" style={{ padding: "0.5rem 1rem", fontSize: "0.8rem", borderRadius: "12px", border: "1px solid rgba(239, 68, 68, 0.3)", color: "var(--warning)" }}>Delete</button>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "1rem" }}>
+                    <div className="form-group"><label className="form-label">Type *</label><select className="filter-select" value={editingEntry.type} onChange={ev => setEditingEntry({ ...editingEntry, type: ev.target.value })} required>{CV_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                    <div className="form-group"><label className="form-label">Title *</label><input type="text" className="form-input" value={editingEntry.title} onChange={ev => setEditingEntry({ ...editingEntry, title: ev.target.value })} required /></div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
+                    <div className="form-group"><label className="form-label">Choreographer</label><input type="text" className="form-input" value={editingEntry.choreographer || ""} onChange={ev => setEditingEntry({ ...editingEntry, choreographer: ev.target.value })} /></div>
+                    <div className="form-group"><label className="form-label">Start Date</label><input type="date" className="form-input" value={editingEntry.startDate || ""} onChange={ev => setEditingEntry({ ...editingEntry, startDate: ev.target.value })} /></div>
+                    <div className="form-group"><label className="form-label">End Date</label><input type="date" className="form-input" value={editingEntry.endDate || ""} onChange={ev => setEditingEntry({ ...editingEntry, endDate: ev.target.value })} /></div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                    <div className="form-group"><label className="form-label">Tag Studio</label><UserSelect role="STUDIO" value={editingEntry.taggedStudioId} onChange={id => setEditingEntry({ ...editingEntry, taggedStudioId: id })} placeholder="Search Studio..." /></div>
+                    <div className="form-group"><label className="form-label">Tag Agency</label><UserSelect role="AGENCY" value={editingEntry.taggedAgencyId} onChange={id => setEditingEntry({ ...editingEntry, taggedAgencyId: id })} placeholder="Search Agency..." /></div>
+                  </div>
+                  <div className="form-group"><label className="form-label">Description</label><textarea className="form-input" value={editingEntry.description || ""} onChange={ev => setEditingEntry({ ...editingEntry, description: ev.target.value })} rows={3} style={{ resize: "vertical" }} /></div>
+                  <div style={{ display: "flex", gap: "0.75rem" }}>
+                    <button type="submit" className="btn-primary" style={{ padding: "0.65rem 2rem", borderRadius: "12px", fontSize: "0.9rem" }}>Save Changes</button>
+                    <button type="button" onClick={cancelEdit} className="btn-secondary" style={{ padding: "0.65rem 1.5rem", borderRadius: "12px", fontSize: "0.9rem" }}>Cancel</button>
+                  </div>
+                </form>
+              ) : (
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "1.25rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px solid var(--border-light)" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginBottom: "0.5rem" }}>
+                      <span className="role-badge" style={{ fontSize: "0.65rem", padding: "0.2rem 0.6rem", borderRadius: "8px" }}>{e.type}</span>
+                      <strong style={{ fontSize: "1.05rem", fontWeight: 700 }}>{e.title}</strong>
+                    </div>
+                    <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
+                      {e.startDate && (
+                        <span>
+                          {new Date(e.startDate).getFullYear()}
+                          {e.endDate ? ` – ${new Date(e.endDate).getFullYear()}` : ""}
+                        </span>
+                      )}
+                      {e.choreographer && <span>• Choreo: <strong style={{ color: "var(--text-main)" }}>{e.choreographer}</strong></span>}
+                    </div>
+                    {e.description && <p style={{ fontSize: "0.95rem", color: "var(--text-main)", lineHeight: 1.5, margin: "0.5rem 0" }}>{e.description}</p>}
+                    {(e.taggedStudio || e.taggedAgency) && (
+                      <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
+                        {e.taggedStudio && <span style={{ fontSize: "0.75rem", color: "var(--accent)", background: "var(--accent-soft)", padding: "0.2rem 0.6rem", borderRadius: "6px" }}>@ {e.taggedStudio.name}</span>}
+                        {e.taggedAgency && <span style={{ fontSize: "0.75rem", color: "var(--accent)", background: "var(--accent-soft)", padding: "0.2rem 0.6rem", borderRadius: "6px" }}>@ {e.taggedAgency.name}</span>}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
+                    <button type="button" onClick={() => startEdit(e)} className="btn-secondary" style={{ padding: "0.5rem 1rem", fontSize: "0.8rem", borderRadius: "12px" }}>Edit</button>
+                    <button type="button" onClick={() => handleDelete(e.id)} className="btn-secondary" style={{ padding: "0.5rem 1rem", fontSize: "0.8rem", borderRadius: "12px", border: "1px solid rgba(239, 68, 68, 0.3)", color: "var(--warning)" }}>Delete</button>
+                  </div>
+                </div>
+              )}
             </div>
           )) : (
             <div style={{ textAlign: "center", padding: "3rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px dashed var(--border-light)" }}>
@@ -102,47 +190,20 @@ export default function CvManager({ userId }) {
         <div style={{ background: "var(--bg-hover)", padding: "1.5rem", borderRadius: "20px", border: "1px solid var(--border-light)" }}>
           <h4 style={{ margin: "0 0 1.25rem 0", fontSize: "0.95rem", color: "var(--text-muted)" }}>Add a New Experience</h4>
           <form onSubmit={handleAdd} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-            
             <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "1rem" }}>
-              <div className="form-group">
-                <label className="form-label">Entry Type *</label>
-                <select className="filter-select" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} required>
-                  {CV_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Project/Training Title *</label>
-                <input type="text" className="form-input" placeholder="e.g. World of Dance Finals" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required />
-              </div>
+              <div className="form-group"><label className="form-label">Entry Type *</label><select className="filter-select" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} required>{CV_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+              <div className="form-group"><label className="form-label">Title *</label><input type="text" className="form-input" placeholder="e.g. World of Dance Finals" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required /></div>
             </div>
-            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
+              <div className="form-group"><label className="form-label">Choreographer (Optional)</label><input type="text" className="form-input" placeholder="e.g. Kyle Hanagami" value={form.choreographer} onChange={e => setForm({ ...form, choreographer: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label">Start Date (Optional)</label><input type="date" className="form-input" value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label">End Date (Optional)</label><input type="date" className="form-input" value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} /></div>
+            </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-              <div className="form-group">
-                <label className="form-label">Choreographer (Optional)</label>
-                <input type="text" className="form-input" placeholder="e.g. Kyle Hanagami" value={form.choreographer} onChange={e => setForm({ ...form, choreographer: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Year/Date (Optional)</label>
-                <input type="date" className="form-input" value={form.startDate ? form.startDate.split('T')[0] : ""} onChange={e => setForm({ ...form, startDate: e.target.value ? new Date(e.target.value).toISOString() : "" })} />
-              </div>
+              <div className="form-group"><label className="form-label">Tag Studio (Optional)</label><UserSelect role="STUDIO" value={form.taggedStudioId} onChange={id => setForm({ ...form, taggedStudioId: id })} placeholder="Search Studio..." /></div>
+              <div className="form-group"><label className="form-label">Tag Agency (Optional)</label><UserSelect role="AGENCY" value={form.taggedAgencyId} onChange={id => setForm({ ...form, taggedAgencyId: id })} placeholder="Search Agency..." /></div>
             </div>
-            
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-              <div className="form-group">
-                <label className="form-label">Tag Studio (Optional)</label>
-                <UserSelect role="STUDIO" value={form.taggedStudioId} onChange={id => setForm({ ...form, taggedStudioId: id })} placeholder="Search Studio..." />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Tag Agency (Optional)</label>
-                <UserSelect role="AGENCY" value={form.taggedAgencyId} onChange={id => setForm({ ...form, taggedAgencyId: id })} placeholder="Search Agency..." />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Short Description (Optional)</label>
-              <textarea className="form-input" placeholder="What did you do/learn?" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} style={{ resize: "vertical" }} />
-            </div>
-            
+            <div className="form-group"><label className="form-label">Short Description (Optional)</label><textarea className="form-input" placeholder="What did you do/learn?" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} style={{ resize: "vertical" }} /></div>
             <button type="submit" className="btn-primary" style={{ alignSelf: "flex-start", padding: "0.75rem 2.5rem", borderRadius: "14px" }}>Add Entry</button>
           </form>
         </div>

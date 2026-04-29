@@ -30,9 +30,19 @@ export async function removeClass(req, res, next) {
 }
 
 // --- Memberships ---
+
+// Public: only active tiers
 export async function listMemberships(req, res, next) {
   try {
     const tiers = await studioService.listMemberships(req.params.id);
+    res.json(tiers);
+  } catch (err) { next(err); }
+}
+
+// Studio owner: all tiers including inactive (for management)
+export async function listOwnMemberships(req, res, next) {
+  try {
+    const tiers = await studioService.listAllMemberships(req.user.userId);
     res.json(tiers);
   } catch (err) { next(err); }
 }
@@ -60,9 +70,16 @@ export async function removeMembership(req, res, next) {
 
 export async function purchaseMembership(req, res, next) {
   try {
-    // req.user.userId is the dancer buying it
     const purchase = await studioService.purchaseMembership(req.params.tierId, req.user.userId);
     res.status(201).json(purchase);
+  } catch (err) { next(err); }
+}
+
+// Dancer's purchased memberships
+export async function getMyMemberships(req, res, next) {
+  try {
+    const memberships = await studioService.getMyMemberships(req.user.userId);
+    res.json(memberships);
   } catch (err) { next(err); }
 }
 

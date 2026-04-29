@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { apiRequest } from "../api/client.js";
 import { getMyTickets, deleteEvent } from "../api/events.js";
 import { getLoyaltyBalance } from "../api/users.js";
+import { getMyPurchasedMemberships } from "../api/studios.js";
 import FollowListModal from "../components/FollowListModal.jsx";
 
 function formatPrice(cents) {
@@ -20,7 +21,8 @@ export default function DashboardPage() {
     const [loadingTickets, setLoadingTickets] = useState(false);
     const [loyalty, setLoyalty] = useState(null);
     const [showList, setShowList] = useState(null); // 'followers' | 'following' | null
-    const [selectedPass, setSelectedPass] = useState(null); // ID of the pass currently selected for checkout
+    const [myMemberships, setMyMemberships] = useState([]);
+    const [loadingMemberships, setLoadingMemberships] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
 
     useEffect(() => {
@@ -36,6 +38,11 @@ export default function DashboardPage() {
             getLoyaltyBalance()
                 .then(data => setLoyalty(data))
                 .catch(() => { });
+            setLoadingMemberships(true);
+            getMyPurchasedMemberships()
+                .then(data => setMyMemberships(Array.isArray(data) ? data : []))
+                .catch(() => { })
+                .finally(() => setLoadingMemberships(false));
         }
     }, [user]);
 
@@ -385,94 +392,65 @@ export default function DashboardPage() {
                 <section style={{ marginTop: '3rem', padding: '2rem', background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-light)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                         <h2 style={{ fontSize: '1.25rem', margin: 0 }}>Memberships & Passes</h2>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--primary)', padding: '0.2rem 0.6rem', background: 'rgba(99,102,241,0.1)', borderRadius: '1rem', border: '1px solid rgba(99,102,241,0.2)' }}>Pro Feature</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--accent)', padding: '0.2rem 0.6rem', background: 'var(--accent-soft)', borderRadius: '1rem', border: '1px solid var(--accent-border)' }}>
+                            {myMemberships.length} Active
+                        </span>
                     </div>
-                    <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
-                        {/* Monthly Class Pass (Flow Academy Sofia - Studio) */}
-                        <div style={{ flex: '0 0 280px', padding: '1.5rem', background: 'var(--bg-card)', border: selectedPass === 'cp-flow' ? '2px solid var(--accent)' : '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', transition: 'transform 0.2s, box-shadow 0.2s, border 0.2s', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
-                            onClick={() => setSelectedPass('cp-flow')}
-                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
-                            <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--accent)' }} />
-                            {selectedPass === 'cp-flow' && <div style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '1.2rem', color: 'var(--accent)' }}>✓</div>}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--accent-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--accent-border)', fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent)' }}>CP</div>
-                                <div>
-                                    <h4 style={{ margin: 0, fontSize: '1rem' }}>10-Class Pass</h4>
-                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Flow Academy Sofia</span>
-                                </div>
-                            </div>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-                                <span style={{ color: 'var(--text-main)', fontWeight: 600, fontSize: '1.1rem' }}>€89</span> / 10 classes
-                            </div>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>7 classes remaining • Expires Apr 15</div>
-                            <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.8rem', color: 'var(--success)' }}>● Active</span>
-                                <button className="btn-primary" style={{ padding: '0.3rem 0.75rem', fontSize: '0.75rem', borderRadius: '100px', opacity: selectedPass === 'cp-flow' ? 0.7 : 1 }} onClick={(e) => { e.stopPropagation(); setSelectedPass(selectedPass === 'cp-flow' ? null : 'cp-flow'); }}>
-                                    {selectedPass === 'cp-flow' ? "Selected" : "Use Pass"}
-                                </button>
-                            </div>
-                            {selectedPass === 'cp-flow' && <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--accent)', textAlign: 'right' }}>Will be applied at checkout</div>}
-                        </div>
 
-                        {/* Monthly Unlimited (Urban Dance Camp - Studio) */}
-                        <div style={{ flex: '0 0 280px', padding: '1.5rem', background: 'var(--bg-card)', border: selectedPass === 'um-urban' ? '2px solid #8b5cf6' : '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', transition: 'transform 0.2s, box-shadow 0.2s, border 0.2s', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
-                            onClick={() => setSelectedPass('um-urban')}
-                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
-                            <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#8b5cf6' }} />
-                            {selectedPass === 'um-urban' && <div style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '1.2rem', color: '#8b5cf6' }}>✓</div>}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(139,92,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(139,92,246,0.3)', fontSize: '0.75rem', fontWeight: 700, color: '#8b5cf6' }}>UM</div>
-                                <div>
-                                    <h4 style={{ margin: 0, fontSize: '1rem' }}>Unlimited Monthly</h4>
-                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Urban Dance Camp</span>
-                                </div>
-                            </div>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-                                <span style={{ color: 'var(--text-main)', fontWeight: 600, fontSize: '1.1rem' }}>€149</span> / month
-                            </div>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>All styles • Unlimited drop-ins</div>
-                            <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.8rem', color: 'var(--success)' }}>● Active</span>
-                                <button style={{ background: 'transparent', border: '1px solid var(--border-light)', color: selectedPass === 'um-urban' ? '#8b5cf6' : 'var(--text-main)', padding: '0.3rem 0.75rem', fontSize: '0.75rem', borderRadius: '100px', cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); setSelectedPass(selectedPass === 'um-urban' ? null : 'um-urban'); }}>
-                                    {selectedPass === 'um-urban' ? "Selected" : "Use Pass"}
-                                </button>
-                            </div>
-                            {selectedPass === 'um-urban' && <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#8b5cf6', textAlign: 'right' }}>Will be applied at checkout</div>}
-                        </div>
+                    {loadingMemberships ? (
+                        <p className="hint">Loading memberships...</p>
+                    ) : (
+                        <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                            {myMemberships.map(m => {
+                                const isExpired = new Date(m.expiresAt) < new Date();
+                                const creditsLeft = m.creditsTotal != null ? m.creditsTotal - m.creditsUsed : null;
+                                const studioInitials = (m.tier.studio?.name || "?").slice(0, 2).toUpperCase();
+                                const accentColor = isExpired ? 'var(--text-muted)' : (m.active ? 'var(--accent)' : 'var(--warning)');
 
-                        {/* Beginner 4-Week Program (Groove Studio) */}
-                        <div style={{ flex: '0 0 280px', padding: '1.5rem', background: 'var(--bg-card)', border: selectedPass === 'bp-groove' ? '2px solid var(--primary)' : '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', transition: 'transform 0.2s, box-shadow 0.2s, border 0.2s', cursor: 'pointer', position: 'relative', overflow: 'hidden' }}
-                            onClick={() => setSelectedPass('bp-groove')}
-                            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
-                            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}>
-                            <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: 'var(--primary)' }} />
-                            {selectedPass === 'bp-groove' && <div style={{ position: 'absolute', top: '10px', right: '10px', fontSize: '1.2rem', color: 'var(--primary)' }}>✓</div>}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(99,102,241,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(99,102,241,0.3)', fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)' }}>BP</div>
-                                <div>
-                                    <h4 style={{ margin: 0, fontSize: '1rem' }}>4-Week Beginner Info</h4>
-                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Groove Studio</span>
-                                </div>
-                            </div>
-                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
-                                <span style={{ color: 'var(--text-main)', fontWeight: 600, fontSize: '1.1rem' }}>€59</span> / course
-                            </div>
-                            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Starts May 1st • 8 total classes</div>
-                             <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>● Enrolled</span>
-                                <Link to="/discover" className="btn-primary" style={{ padding: '0.3rem 0.75rem', fontSize: '0.75rem', borderRadius: '100px', background: 'var(--bg-hover)', border: '1px solid var(--border-light)', color: 'var(--text-main)', textDecoration: 'none' }}>Schedule</Link>
-                            </div>
-                        </div>
+                                return (
+                                    <div key={m.id} style={{ flex: '0 0 280px', padding: '1.5rem', background: 'var(--bg-card)', border: `1px solid ${isExpired ? 'rgba(239,68,68,0.2)' : 'var(--border-light)'}`, borderRadius: 'var(--radius-md)', position: 'relative', overflow: 'hidden', opacity: isExpired ? 0.7 : 1 }}>
+                                        <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: accentColor }} />
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                                            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: `${accentColor}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1px solid ${accentColor}40`, fontSize: '0.75rem', fontWeight: 700, color: accentColor }}>
+                                                {studioInitials}
+                                            </div>
+                                            <div>
+                                                <h4 style={{ margin: 0, fontSize: '1rem' }}>{m.tier.name}</h4>
+                                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{m.tier.studio?.name || "Unknown Studio"}</span>
+                                            </div>
+                                        </div>
+                                        <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
+                                            <span style={{ color: 'var(--text-main)', fontWeight: 600, fontSize: '1.1rem' }}>€{(m.tier.priceCents / 100).toFixed(2)}</span>
+                                            {m.tier.classLimit ? ` / ${m.tier.classLimit} classes` : ' / unlimited'}
+                                        </div>
+                                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                            {creditsLeft != null ? `${creditsLeft} classes remaining • ` : "Unlimited • "}
+                                            Expires {new Date(m.expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        </div>
+                                        <div style={{ marginTop: '0.75rem', borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            {isExpired ? (
+                                                <span style={{ fontSize: '0.8rem', color: 'var(--warning)' }}>● Expired</span>
+                                            ) : (
+                                                <span style={{ fontSize: '0.8rem', color: 'var(--success)' }}>● Active</span>
+                                            )}
+                                            {m.tier.studio && (
+                                                <Link to={`/users/${m.tier.studio.id}`} style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem', borderRadius: '100px', background: 'var(--bg-hover)', border: '1px solid var(--border-light)', color: 'var(--text-main)', textDecoration: 'none' }}>
+                                                    Studio Profile
+                                                </Link>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
 
-                        {/* Browse more */}
-                        <Link to="/discover?role=STUDIO" style={{ flex: '0 0 280px', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)', color: 'var(--text-muted)', cursor: 'pointer', transition: 'background 0.2s', textDecoration: 'none' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                            <span style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: 'var(--text-main)' }}>+</span>
-                            <span style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>Browse Studio Plans</span>
-                            <span style={{ fontSize: '0.75rem', textDecoration: 'underline', marginTop: '0.25rem' }}>Find local studios</span>
-                        </Link>
-                    </div>
+                            {/* Browse studios CTA */}
+                            <Link to="/discover?role=STUDIO" style={{ flex: '0 0 240px', padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)', color: 'var(--text-muted)', cursor: 'pointer', transition: 'background 0.2s', textDecoration: 'none' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                                <span style={{ fontSize: '1.5rem', marginBottom: '0.5rem', color: 'var(--text-main)' }}>+</span>
+                                <span style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>Browse Studio Plans</span>
+                                <span style={{ fontSize: '0.75rem', textDecoration: 'underline', marginTop: '0.25rem' }}>Find local studios</span>
+                            </Link>
+                        </div>
+                    )}
                 </section>
             )}
 
