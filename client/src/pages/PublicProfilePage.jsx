@@ -4,10 +4,10 @@ import { getUserProfile, followUser, unfollowUser, getMe, getFollowers } from ".
 import { sendMessage } from "../api/messages.js";
 import { getEvents } from "../api/events.js";
 import { getStudioClasses, getStudioMemberships, getStudioTeam, getStudioCollaborations, purchaseMembership } from "../api/studios.js";
-
 import { getUserCv } from "../api/cv.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import FollowListModal from "../components/FollowListModal.jsx";
+import Toast, { showToast, friendlyError } from "../components/Toast.jsx";
 
 export default function PublicProfilePage() {
     const { id } = useParams();
@@ -19,10 +19,12 @@ export default function PublicProfilePage() {
     const [isFollowing, setIsFollowing] = useState(false);
     const [followLoading, setFollowLoading] = useState(false);
     const [msgSent, setMsgSent] = useState(false);
+    const [purchaseSuccess, setPurchaseSuccess] = useState(false); // separate from msgSent
     const [isWritingMessage, setIsWritingMessage] = useState(false);
     const [messageContent, setMessageContent] = useState("");
     const [messageLoading, setMessageLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
+    const [toast, setToast] = useState(null);
     const [createdEvents, setCreatedEvents] = useState([]);
 
     // New Data States
@@ -57,7 +59,7 @@ export default function PublicProfilePage() {
                     try {
                         const evtData = await getEvents({ creatorId: id, limit: 100 });
                         setCreatedEvents(evtData.items ?? []);
-                    } catch { /* ignore */ }
+                    } catch { /* non-critical */ }
                 }
 
                 if (data.role === "STUDIO") {
@@ -67,14 +69,17 @@ export default function PublicProfilePage() {
                             getStudioTeam(id), getStudioCollaborations(id)
                         ]);
                         setClasses(cls); setMemberships(mem); setTeam(tm); setCollabs(col);
-                    } catch { /* ignore */ }
+                    } catch (err) {
+                        // Individual section still renders as empty; inform via toast
+                        showToast(setToast, `Could not load studio details: ${friendlyError(err)}`);
+                    }
                 }
 
                 if (data.role === "DANCER") {
                     try {
                         const cv = await getUserCv(id);
                         setCvEntries(cv);
-                    } catch { /* ignore */ }
+                    } catch { /* non-critical, renders empty */ }
                 }
             } catch (err) {
                 setError(err.message || "Failed to load profile");
@@ -123,8 +128,7 @@ export default function PublicProfilePage() {
             setMessageContent("");
             setTimeout(() => setMsgSent(false), 3000);
         } catch (err) {
-            setErrorMsg(err.message || "Failed to send message");
-            setTimeout(() => setErrorMsg(""), 4000);
+            showToast(setToast, friendlyError(err));
         } finally {
             setMessageLoading(false);
         }
@@ -146,11 +150,11 @@ export default function PublicProfilePage() {
 
         try {
             await purchaseMembership(tierId);
-            setMsgSent(true);
-            setTimeout(() => setMsgSent(false), 3000);
+            setPurchaseSuccess(true);
+            showToast(setToast, "Membership purchased successfully!", "success");
+            setTimeout(() => setPurchaseSuccess(false), 4000);
         } catch (err) {
-            setErrorMsg(err.message || "Failed to purchase membership");
-            setTimeout(() => setErrorMsg(""), 4000);
+            showToast(setToast, friendlyError(err));
         }
     }
 
@@ -168,6 +172,7 @@ export default function PublicProfilePage() {
 
     return (
         <main className="page" style={{ maxWidth: '800px' }}>
+            <Toast toast={toast} onClose={() => setToast(null)} />
             <Link to="/" className="back-link">← Back to events</Link>
 
             {errorMsg && (

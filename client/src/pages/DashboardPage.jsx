@@ -8,6 +8,7 @@ import { getMyTickets, deleteEvent } from "../api/events.js";
 import { getLoyaltyBalance } from "../api/users.js";
 import { getMyPurchasedMemberships } from "../api/studios.js";
 import FollowListModal from "../components/FollowListModal.jsx";
+import Toast, { showToast, friendlyError } from "../components/Toast.jsx";
 
 function formatPrice(cents) {
     return `€${(cents / 100).toFixed(2)}`;
@@ -26,6 +27,7 @@ export default function DashboardPage() {
     const [savedEvents, setSavedEvents] = useState([]);
     const [loadingSaved, setLoadingSaved] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
+    const [toast, setToast] = useState(null);
 
     useEffect(() => {
         if (user && (user.role === "STUDIO" || user.role === "AGENCY")) {
@@ -35,24 +37,24 @@ export default function DashboardPage() {
             setLoadingTickets(true);
             getMyTickets()
                 .then(data => setMyTickets(Array.isArray(data) ? data : []))
-                .catch(() => { })
+                .catch(err => showToast(setToast, friendlyError(err)))
                 .finally(() => setLoadingTickets(false));
-            
+
             getLoyaltyBalance()
                 .then(data => setLoyalty(data))
-                .catch(() => { });
+                .catch(() => { /* non-critical — already visible from user context */ });
 
             setLoadingMemberships(true);
             getMyPurchasedMemberships()
                 .then(data => setMyMemberships(Array.isArray(data) ? data : []))
-                .catch(() => { })
+                .catch(err => showToast(setToast, friendlyError(err)))
                 .finally(() => setLoadingMemberships(false));
 
             setLoadingSaved(true);
             import("../api/events.js").then(api => {
                 api.getSavedEvents()
                     .then(data => setSavedEvents(Array.isArray(data) ? data : []))
-                    .catch(() => { })
+                    .catch(err => showToast(setToast, friendlyError(err)))
                     .finally(() => setLoadingSaved(false));
             });
         }
@@ -72,10 +74,9 @@ export default function DashboardPage() {
         if (!window.confirm("Are you sure you want to delete this event? This action cannot be undone.")) return;
         try {
             await deleteEvent(id);
-            loadStudioEvents(); // Refresh list after delete
+            loadStudioEvents();
         } catch (err) {
-            setErrorMsg(err.message || "Failed to delete event.");
-            setTimeout(() => setErrorMsg(""), 4000);
+            showToast(setToast, friendlyError(err));
         }
     }
 
@@ -83,6 +84,7 @@ export default function DashboardPage() {
 
     return (
         <main className="page">
+            <Toast toast={toast} onClose={() => setToast(null)} />
             <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
                 {user.avatarUrl ? (
                     <img src={user.avatarUrl} alt="Avatar" style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }} />
@@ -126,17 +128,17 @@ export default function DashboardPage() {
                             </strong>
                         </p>
                         <p className="hint" style={{ textAlign: 'left', marginTop: '0.25rem' }}>
-                            Earn 5% points on every ticket purchase!
+                            Earn 5% of every ticket price as points. 10 points = €0.10 off your next ticket.
                         </p>
 
-                        {/* Loyalty Tips */}
+                        {/* Loyalty mechanic explanation */}
                         <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--accent-soft)', borderRadius: 'var(--radius-md)', border: '1px solid var(--accent-border)' }}>
-                            <h4 style={{ fontSize: '0.9rem', margin: '0 0 0.75rem 0', color: 'var(--accent)' }}>Ways to Use Your Points</h4>
+                            <h4 style={{ fontSize: '0.9rem', margin: '0 0 0.75rem 0', color: 'var(--accent)' }}>How Points Work</h4>
                             <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.8 }}>
-                                <li><strong>500 pts</strong> → 10% off your next ticket</li>
-                                <li><strong>1000 pts</strong> → Free workshop entry</li>
-                                <li><strong>2000 pts</strong> → VIP access at partner festivals</li>
-                                <li><strong>5000 pts</strong> → Exclusive 1-on-1 masterclass session</li>
+                                <li>You earn <strong>5%</strong> of the ticket price as points on every purchase</li>
+                                <li><strong>10 points = €0.10</strong> discount (exchange rate: 10 pts → 1 cent)</li>
+                                <li>Points are applied automatically — just check <strong>"Use Points"</strong> at checkout</li>
+                                <li>You currently have <strong>{loyalty?.points ?? user.loyaltyAccount.points} pts</strong> = up to <strong>€{((loyalty?.points ?? user.loyaltyAccount.points) / 10 / 10).toFixed(2)}</strong> off</li>
                             </ul>
                         </div>
                     </div>
