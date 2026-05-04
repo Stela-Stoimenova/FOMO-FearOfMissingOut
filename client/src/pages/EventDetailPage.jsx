@@ -4,6 +4,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { getEventById, buyTicket, saveEvent, unsaveEvent, getSavedEvents } from "../api/events.js";
 import { getMe } from "../api/users.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import Toast, { showToast, friendlyError } from "../components/Toast.jsx";
 
 
 function formatPrice(cents) {
@@ -30,12 +31,12 @@ export default function EventDetailPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Ticket purchase state
     const [buying, setBuying] = useState(false);
     const [buyError, setBuyError] = useState(null);
     const [purchaseResult, setPurchaseResult] = useState(null);
     const [usePoints, setUsePoints] = useState(true); // default to using points if available
     const [isSaved, setIsSaved] = useState(false);
+    const [toast, setToast] = useState(null);
 
     useEffect(() => {
         async function fetchEvent() {
@@ -74,12 +75,14 @@ export default function EventDetailPage() {
             if (isSaved) {
                 await unsaveEvent(id);
                 setIsSaved(false);
+                showToast(setToast, "Removed from wish list", "success", 2000);
             } else {
                 await saveEvent(id);
                 setIsSaved(true);
+                showToast(setToast, "Saved to wish list ❤️", "success", 2000);
             }
         } catch (err) {
-            console.error("Failed to toggle save", err);
+            showToast(setToast, friendlyError(err));
         }
     }
 
@@ -141,6 +144,7 @@ export default function EventDetailPage() {
 
     return (
         <main className="page page-narrow">
+            <Toast toast={toast} onClose={() => setToast(null)} />
             {/* Back link */}
             <Link to="/" className="back-link" style={{ marginBottom: "1rem" }}>← All events</Link>
 
@@ -255,7 +259,8 @@ export default function EventDetailPage() {
                                         <strong style={{ color: 'var(--accent)' }}>Loyalty Discount Available</strong>
                                         <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
                                             You have <strong>{user.loyaltyAccount.points}</strong> points.
-                                            Apply them to save up to {formatPrice(Math.min(user.loyaltyAccount.points * 10, surgeWarning ? Math.round(event.priceCents * 1.15) : event.priceCents))}.
+                                            {/* 10 points = 1 cent discount. Max discount = min(points/10 cents, ticket price) */}
+                                            Apply them to save up to €{(Math.min(user.loyaltyAccount.points / 10, (surgeWarning ? Math.round(event.priceCents * 1.15) : event.priceCents)) / 100).toFixed(2)}.
                                         </p>
                                     </div>
                                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>

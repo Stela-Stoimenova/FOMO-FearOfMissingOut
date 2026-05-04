@@ -164,3 +164,111 @@ server/
 | Messages | `POST /messages`, `GET /messages`, `/messages/sent`, `PUT /messages/:id/read` |
 
 Full reference: see `docs/api.md` or the Postman collection.
+
+---
+
+## Frontend Demo (Thesis Walkthrough)
+
+### Prerequisites
+
+Both servers must be running simultaneously in two separate terminals:
+
+```bash
+# Terminal 1 — Backend API
+cd server
+npm start
+# → Runs at http://localhost:5000
+
+# Terminal 2 — React frontend
+cd client
+npm run dev
+# → Opens at http://localhost:5173
+```
+
+Make sure the database has seed data loaded first:
+
+```bash
+cd server
+npm run seed
+```
+
+---
+
+### Demo Accounts (from seed)
+
+| Role   | Email              | Password   | What they can do |
+|--------|--------------------|------------|------------------|
+| DANCER | dancer@fomo.dev    | dancer123  | Browse events, buy tickets, earn/spend loyalty points, follow users |
+| STUDIO | studio@fomo.dev    | studio123  | Create events, manage weekly classes, publish membership tiers |
+| AGENCY | agency@fomo.dev    | agency123  | Manage talent roster, accept/decline studio collaborations |
+
+---
+
+### Full Ticket Purchase Flow (step-by-step)
+
+**1. Browse Events**
+- Open `http://localhost:5173`
+- The homepage shows the upcoming event grid loaded from `GET /api/events`
+- Click any event card to open the detail page
+
+**2. Log in as Dancer**
+- Click **Login** in the navbar
+- Email: `dancer@fomo.dev` / Password: `dancer123`
+- The navbar now shows your role badge and a link to **Dashboard**
+
+**3. Buy a Ticket with Loyalty Points**
+- Navigate to any event (e.g. the first card on the homepage)
+- On the event detail page you will see:
+  - The current price (possibly with a **+15% surge** badge if >50% sold)
+  - A **Loyalty Discount Available** box showing your points balance
+  - A **"Use Points"** checkbox (enabled by default)
+- Leave the checkbox checked and click **Buy Ticket — €X.XX**
+- After purchase you see a receipt showing:
+  - Base price / Discount applied / Final paid
+  - Platform commission (10%)
+  - Points deducted + Points earned + New balance
+
+**4. Check Your Tickets**
+- Click **Dashboard** → **My Tickets** (or navigate to `/my-tickets`)
+- Your ticket appears with status **Confirmed** and the exact price paid
+- Click **Cancel** to test the 90% refund flow
+
+**5. Explore the Wish List**
+- On any event detail page, click the **❤** button to save the event
+- Go to **Dashboard** — the event appears in your **Wish List** section
+- Click it again to unsave (a toast confirms the action)
+
+**6. Studio Profile & Memberships**
+- Log out → Log in as `studio@fomo.dev`
+- Go to **My Profile** → you'll see the **Studio Manager** with tabs:
+  - **Schedule** — add/edit weekly classes
+  - **Memberships** — create tiered plans (e.g. 10-class pass)
+  - **Team** — link instructors by searching dancers
+  - **Collaborations** — send a partnership request to the agency
+- Navigate to **`/users/<studio-id>`** to see the public-facing studio profile
+
+**7. Agency Collaboration Flow**
+- Log out → Log in as `agency@fomo.dev`
+- Go to **My Profile** → **Agency Manager**
+  - **Collaborations** tab: the studio request appears as *Pending* → click **Accept**
+  - **Talent Roster** tab: search for a dancer and add them to your managed roster
+  - **CV Mentions** tab: any dancer who tagged this agency in their CV appears here
+
+**8. Dancer CV**
+- Log out → Log in as `dancer@fomo.dev`
+- Go to **My Profile** → **CV Manager**
+- Add a CV entry (e.g. a training or project) and optionally tag the studio/agency
+- Navigate to your public profile (`/users/<dancer-id>`) to see the professional timeline
+
+---
+
+### Key Business Rules Demonstrated
+
+| Scenario | Expected result |
+|----------|----------------|
+| Buy same ticket twice | `409` error toast: "You already have a ticket for this event" |
+| Buy when sold out | Button shows **Sold Out** (disabled) |
+| Buy when >50% sold | Price shows +15% surge badge, original price struck through |
+| Cancel a ticket | Status → CANCELLED, 90% refund shown; commission transaction reversed |
+| Use loyalty points | Discount deducted from price; points balance updates immediately |
+

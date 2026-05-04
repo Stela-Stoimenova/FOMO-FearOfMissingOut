@@ -315,7 +315,7 @@ export async function purchaseTicket(eventId, userId, usePoints = false) {
     let surgeApplied = false;
 
     if (event.capacity != null && event.capacity > 0) {
-        const ticketsSold = await prisma.ticket.count({ where: { eventId } });
+        const ticketsSold = await prisma.ticket.count({ where: { eventId, status: "VALID" } });
 
         if (ticketsSold >= event.capacity) {
             const err = new Error("Event is sold out");
@@ -515,14 +515,22 @@ export async function cancelTicketById(userId, ticketId) {
 
     const refundAmount = Math.floor(ticket.priceCents * 0.9);
 
-    const updated = await prisma.ticket.update({
-        where: { id: ticketId },
-        data: {
-            status: "CANCELLED",
-            refundAmount
-        }
+    const result = await prisma.$transaction(async (tx) => {
+        // Update ticket status
+        const updated = await tx.ticket.update({
+            where: { id: ticketId },
+            data: { status: "CANCELLED", refundAmount },
+        });
+
+        // Reverse the commission transaction so the platform does not keep
+        // commission on a sale that was refunded
+        await tx.transaction.deleteMany({
+            where: { ticketId },
+        });
+
+        return { success: true, refundAmount, ticket: updated };
     });
 
-    return { success: true, refundAmount, ticket: updated };
+    return result;
 }
 
