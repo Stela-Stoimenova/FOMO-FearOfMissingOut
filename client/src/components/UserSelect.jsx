@@ -117,7 +117,7 @@ export default function UserSelect({ role, value, onChange, placeholder = "Searc
               <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
                 <span style={{ fontSize: "0.95rem", color: "var(--text-main)", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.name || u.email.split('@')[0]}</span>
                 <div style={{ display: "flex", gap: "0.6rem", alignItems: "center" }}>
-                  <span className="role-badge" style={{ fontSize: "0.65rem", padding: "0.15rem 0.5rem", borderRadius: "6px" }}>{u.role}</span>
+                  <span className="role-badge" style={{ fontSize: "0.65rem", padding: "0.15rem 0.5rem", borderRadius: "999px" }}>{u.role}</span>
                   {u.city && <span style={{ fontSize: "0.8rem", color: "var(--text-muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{u.city}</span>}
                 </div>
               </div>

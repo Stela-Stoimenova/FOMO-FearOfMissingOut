@@ -110,7 +110,7 @@ export default function EventMap({ events, userLocation, nearbyEventIds = [] }) 
                                 </span>
                                 <Link
                                     to={`/events/${popupInfo.id}`}
-                                    style={{ background: 'var(--primary)', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}
+                                    style={{ background: 'var(--primary)', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}
                                 >
                                     Details
                                 </Link>

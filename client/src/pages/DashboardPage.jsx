@@ -343,7 +343,7 @@ export default function DashboardPage() {
                                                 <div style={{ width: "60px", height: "60px", borderRadius: "50%", background: dancer.avatarUrl ? `url(${dancer.avatarUrl}) center/cover` : "var(--bg-input)", margin: "0 auto 0.75rem" }} />
                                                 <h4 style={{ margin: "0 0 0.25rem 0", fontSize: "0.95rem" }}>{dancer.name}</h4>
                                                 <div style={{ fontSize: "0.75rem", color: "var(--success)", fontWeight: 700, marginBottom: "0.5rem" }}>{dancer.matchScore}% Match</div>
-                                                <Link to={`/users/${dancer.id}`} className="btn-primary" style={{ padding: "0.4rem 1rem", fontSize: "0.75rem", borderRadius: "8px", textDecoration: "none", display: "inline-block" }}>View Profile</Link>
+                                                <Link to={`/users/${dancer.id}`} className="btn-primary" style={{ padding: "0.4rem 1rem", fontSize: "0.75rem", textDecoration: "none", display: "inline-block" }}>View Profile</Link>
                                             </div>
                                         ))}
                                     </div>

@@ -190,7 +190,7 @@ export default function RealPaymentModal({ isOpen, amount, onConfirm, onCancel, 
                             type="button"
                             onClick={onCancel}
                             disabled={isBusy}
-                            style={{ flex: 1, padding: "0.85rem", borderRadius: "14px", border: "1px solid var(--border-light)", background: "transparent", color: "var(--text-main)", fontWeight: 600, cursor: isBusy ? "not-allowed" : "pointer", fontSize: "0.95rem" }}
+                            style={{ flex: 1, padding: "0.85rem", borderRadius: "999px", border: "1px solid var(--border-light)", background: "transparent", color: "var(--text-main)", fontWeight: 600, cursor: isBusy ? "not-allowed" : "pointer", fontSize: "0.95rem" }}
                         >
                             Cancel
                         </button>
@@ -204,6 +204,7 @@ export default function RealPaymentModal({ isOpen, amount, onConfirm, onCancel, 
                                 cursor: (!stripe || isBusy) ? "not-allowed" : "pointer",
                                 fontSize: "0.95rem", transition: "all 0.2s",
                                 opacity: (!stripe || isBusy) ? 0.7 : 1,
+                                borderRadius: "999px",
                             }}
                         >
                             {isBusy ? (
