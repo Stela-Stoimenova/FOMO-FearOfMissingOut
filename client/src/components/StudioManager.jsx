@@ -4,6 +4,7 @@ import {
   getOwnMembershipsManage, createMembershipTier, updateMembershipTier, deleteMembershipTier,
   getStudioTeam, addStudioTeamMember, deleteStudioTeamMember,
   getStudioCollaborations, createCollaboration, deleteCollaboration,
+  getTaggedCvEntries, acceptCvTag, declineCvTag,
 } from "../api/studios.js";
 import { getRecommendedDancers } from "../api/users.js";
 import UserSelect from "./UserSelect.jsx";
@@ -22,10 +23,12 @@ const STATUS_STYLE = {
 };
 
 export default function StudioManager({ studioId }) {
+
   const [classes, setClasses] = useState([]);
   const [memberships, setMemberships] = useState([]);
   const [team, setTeam] = useState([]);
   const [collabs, setCollabs] = useState([]);
+  const [cvTags, setCvTags] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -46,14 +49,15 @@ export default function StudioManager({ studioId }) {
     if (!studioId) return;
     setLoading(true);
     try {
-      const [cls, mem, tm, col, recs] = await Promise.all([
+      const [cls, mem, tm, col, recs, cv] = await Promise.all([
         getStudioClasses(studioId),
         getOwnMembershipsManage(),      // uses /studios/me/memberships-manage → all tiers
         getStudioTeam(studioId),
         getStudioCollaborations(studioId),
-        getRecommendedDancers(),
+        getRecommendedDancers().catch(e => { console.error("Recommendations error:", e); return []; }),
+        getTaggedCvEntries().catch(e => { console.error("CV error:", e); return []; }),
       ]);
-      setClasses(cls); setMemberships(mem); setTeam(tm); setCollabs(col); setRecommendations(recs);
+      setClasses(cls); setMemberships(mem); setTeam(tm); setCollabs(col); setRecommendations(recs); setCvTags(cv);
     } catch (err) {
       console.error("Load failed:", err);
     } finally {
@@ -182,6 +186,22 @@ export default function StudioManager({ studioId }) {
     } catch (err) { setError(err.message); }
   }
 
+  // --- CV Mentions handlers ---
+  async function handleAcceptCv(cvId) {
+    try {
+      await acceptCvTag(cvId);
+      await loadAll();
+    } catch (err) { setError(err.message); }
+  }
+
+  async function handleDeclineCv(cvId) {
+    if (!window.confirm("Reject this CV mention?")) return;
+    try {
+      await declineCvTag(cvId);
+      await loadAll();
+    } catch (err) { setError(err.message); }
+  }
+
   if (loading && !classes.length && !memberships.length) {
     return <div style={{ padding: "4rem", textAlign: "center", color: "var(--text-muted)" }}>Loading Studio Data...</div>;
   }
@@ -211,8 +231,8 @@ export default function StudioManager({ studioId }) {
         <section className="detail-card" style={{ ...cardStyle, border: "2px solid var(--accent)", background: "linear-gradient(145deg, var(--bg-card), var(--bg-hover))" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
             <div>
-              <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                ✨ AI Dancer Recommendations
+              <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700 }}>
+                AI Dancer Recommendations
               </h3>
               <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>Talent matching your studio's location and styles.</p>
             </div>
@@ -475,6 +495,54 @@ export default function StudioManager({ studioId }) {
             <button type="submit" className="btn-primary" style={{ alignSelf: "flex-start", padding: "0.75rem 2.5rem", borderRadius: "14px" }}>Send Request</button>
           </form>
         </div>
+      </section>
+
+      {/* ── CV Mentions ── */}
+      <section className="detail-card" style={cardStyle}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+          <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700 }}>Dancers Who Mentioned Your Studio</h3>
+          <span style={{ fontSize: "0.8rem", color: "var(--accent)", background: "var(--accent-soft)", padding: "0.3rem 0.8rem", borderRadius: "20px" }}>{cvTags.length} Mentions</span>
+        </div>
+        {cvTags.length > 0 ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {cvTags.map(entry => (
+              <div key={entry.id} style={{ display: "flex", gap: "1rem", padding: "1.25rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px solid var(--border-light)", alignItems: "flex-start" }}>
+                <div style={{ width: "44px", height: "44px", borderRadius: "14px", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
+                  <img src={entry.user.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginBottom: "0.4rem", flexWrap: "wrap" }}>
+                    <strong style={{ fontSize: "0.95rem" }}>{entry.user.name || "Unnamed Dancer"}</strong>
+                    <span style={{ fontSize: "0.7rem", padding: "0.15rem 0.5rem", borderRadius: "8px", background: `var(--accent-soft)`, color: 'var(--accent)', fontWeight: 700 }}>{entry.type}</span>
+                    {entry.user.city && <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{entry.user.city}</span>}
+                  </div>
+                  <div style={{ fontWeight: 600, fontSize: "0.95rem", color: "var(--text-main)", marginBottom: "0.3rem" }}>{entry.title}</div>
+                  {entry.startDate && <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{new Date(entry.startDate).getFullYear()}{entry.endDate ? ` – ${new Date(entry.endDate).getFullYear()}` : ""}</div>}
+                  {entry.description && <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0.4rem 0 0 0" }}>{entry.description}</p>}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end', flexShrink: 0 }}>
+                    <span style={{ 
+                        fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '12px', fontWeight: 700,
+                        background: entry.verificationStatus === 'VERIFIED' ? 'rgba(16,185,129,0.1)' : entry.verificationStatus === 'REJECTED' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
+                        color: entry.verificationStatus === 'VERIFIED' ? 'var(--success)' : entry.verificationStatus === 'REJECTED' ? 'var(--danger)' : 'var(--warning)'
+                    }}>
+                        {entry.verificationStatus}
+                    </span>
+                    {entry.verificationStatus === "PENDING" && (
+                        <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.5rem' }}>
+                            <button onClick={() => handleDeclineCv(entry.id)} className="btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', borderRadius: '8px' }}>Reject</button>
+                            <button onClick={() => handleAcceptCv(entry.id)} className="btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', borderRadius: '8px' }}>Verify</button>
+                        </div>
+                    )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: "center", padding: "3rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px dashed var(--border-light)" }}>
+            <p style={{ color: "var(--text-muted)", margin: 0 }}>No dancers have mentioned your studio in their CV yet.</p>
+          </div>
+        )}
       </section>
     </div>
   );

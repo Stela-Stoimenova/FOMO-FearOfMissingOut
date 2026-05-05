@@ -155,3 +155,25 @@ export async function getTaggedCvEntries(agencyId) {
     },
   });
 }
+
+export async function acceptCvTag(agencyId, cvId) {
+  const cv = await prisma.cvEntry.findUnique({ where: { id: Number(cvId) } });
+  if (!cv || cv.taggedAgencyId !== Number(agencyId)) {
+    const err = new Error("Not found"); err.status = 404; throw err;
+  }
+  return prisma.cvEntry.update({
+    where: { id: Number(cvId) },
+    data: { verificationStatus: "VERIFIED" }
+  });
+}
+
+export async function declineCvTag(agencyId, cvId) {
+  const cv = await prisma.cvEntry.findUnique({ where: { id: Number(cvId) } });
+  if (!cv || cv.taggedAgencyId !== Number(agencyId)) {
+    const err = new Error("Not found"); err.status = 404; throw err;
+  }
+  return prisma.cvEntry.update({
+    where: { id: Number(cvId) },
+    data: { verificationStatus: "REJECTED" }
+  });
+}

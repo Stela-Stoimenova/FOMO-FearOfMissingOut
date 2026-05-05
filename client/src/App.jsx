@@ -1,6 +1,10 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements } from "@stripe/react-stripe-js";
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 
 import Navbar from "./components/Navbar.jsx";
@@ -58,11 +62,13 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Navbar />
-        <AppRoutes />
-        <Footer />
-      </BrowserRouter>
+      <Elements stripe={stripePromise}>
+        <BrowserRouter>
+          <Navbar />
+          <AppRoutes />
+          <Footer />
+        </BrowserRouter>
+      </Elements>
     </AuthProvider>
   );
 }

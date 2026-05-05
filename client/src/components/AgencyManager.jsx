@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   getAgencyCollaborations, acceptCollaboration, declineCollaboration,
   getAgencyRoster, addToRoster, removeFromRoster,
-  getTaggedCvEntries,
+  getTaggedCvEntries, acceptCvTag, declineCvTag,
 } from "../api/agency.js";
 import { getRecommendedDancers } from "../api/users.js";
 import UserSelect from "./UserSelect.jsx";
@@ -38,7 +38,7 @@ export default function AgencyManager() {
         getAgencyCollaborations(),
         getAgencyRoster(),
         getTaggedCvEntries(),
-        getRecommendedDancers(),
+        getRecommendedDancers().catch(e => { console.error("Recommendations error:", e); return []; }),
       ]);
       setCollabs(c);
       setRoster(r);
@@ -90,13 +90,30 @@ export default function AgencyManager() {
     } catch (err) { setError(err.message); }
   }
 
+  async function handleAcceptCv(cvId) {
+    try {
+      await acceptCvTag(cvId);
+      await loadAll();
+    } catch (err) { setError(err.message); }
+  }
+
+  async function handleDeclineCv(cvId) {
+    if (!window.confirm("Reject this CV mention?")) return;
+    try {
+      await declineCvTag(cvId);
+      await loadAll();
+    } catch (err) { setError(err.message); }
+  }
+
   const pendingCollabs = collabs.filter(c => c.status === "PENDING");
   const activeCollabs = collabs.filter(c => c.status === "ACTIVE");
+
+  const pendingCvTags = cvTags.filter(cv => cv.verificationStatus === "PENDING");
 
   const tabs = [
     { id: "collabs", label: `Collaborations`, badge: pendingCollabs.length > 0 ? pendingCollabs.length : null },
     { id: "roster", label: `Talent Roster`, badge: roster.length || null },
-    { id: "tags", label: `CV Mentions`, badge: cvTags.length || null },
+    { id: "tags", label: `CV Mentions`, badge: pendingCvTags.length > 0 ? pendingCvTags.length : null },
   ];
 
   if (loading && !collabs.length && !roster.length) {
@@ -145,18 +162,18 @@ export default function AgencyManager() {
       </div>
 
       {/* ── AI Dancer Recommendations ── */}
-      {recommendations.length > 0 && (
-        <section className="detail-card" style={{ padding: "2rem", borderRadius: "24px", border: "2px solid var(--accent)", background: "linear-gradient(145deg, var(--bg-card), var(--bg-hover))", boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                ✨ AI Dancer Recommendations
-              </h3>
-              <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>Talent matching your agency's location and styles.</p>
-            </div>
-            <span style={{ fontSize: "0.8rem", color: "var(--accent)", background: "var(--accent-soft)", padding: "0.3rem 0.8rem", borderRadius: "20px" }}>{recommendations.length} Matches</span>
+      <section className="detail-card" style={{ padding: "2rem", borderRadius: "24px", border: "2px solid var(--accent)", background: "linear-gradient(145deg, var(--bg-card), var(--bg-hover))", boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+          <div>
+            <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700 }}>
+              AI Dancer Recommendations
+            </h3>
+            <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>Talent matching your agency's location and styles.</p>
           </div>
+          <span style={{ fontSize: "0.8rem", color: "var(--accent)", background: "var(--accent-soft)", padding: "0.3rem 0.8rem", borderRadius: "20px" }}>{recommendations.length} Matches</span>
+        </div>
 
+        {recommendations.length > 0 ? (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1.25rem" }}>
             {recommendations.map(dancer => (
               <div key={dancer.id} style={{ display: "flex", flexDirection: "column", padding: "1.25rem", background: "var(--bg-card)", borderRadius: "20px", border: "1px solid var(--border-light)", transition: "transform 0.2s, border-color 0.2s", cursor: "pointer" }}
@@ -191,8 +208,14 @@ export default function AgencyManager() {
               </div>
             ))}
           </div>
-        </section>
-      )}
+        ) : (
+          <div style={{ padding: "3rem", textAlign: "center", background: "rgba(255,255,255,0.02)", borderRadius: "20px", border: "1px dashed var(--border-light)" }}>
+             <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", margin: 0 }}>
+               {loading ? "Searching for the perfect matches..." : "No recommended dancers found yet. Try adding more styles to your profile to improve matching!"}
+             </p>
+          </div>
+        )}
+      </section>
 
       {/* ── Collaborations Tab ── */}
       {activeTab === "collabs" && (
@@ -348,6 +371,21 @@ export default function AgencyManager() {
                           <span key={s} style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem", borderRadius: "6px", background: "var(--bg-card)", color: "var(--text-muted)", border: "1px solid var(--border-light)" }}>{s}</span>
                         ))}
                       </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end', flexShrink: 0 }}>
+                    <span style={{ 
+                        fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '12px', fontWeight: 700,
+                        background: entry.verificationStatus === 'VERIFIED' ? 'rgba(16,185,129,0.1)' : entry.verificationStatus === 'REJECTED' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
+                        color: entry.verificationStatus === 'VERIFIED' ? 'var(--success)' : entry.verificationStatus === 'REJECTED' ? 'var(--danger)' : 'var(--warning)'
+                    }}>
+                        {entry.verificationStatus}
+                    </span>
+                    {entry.verificationStatus === "PENDING" && (
+                        <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.5rem' }}>
+                            <button onClick={() => handleDeclineCv(entry.id)} className="btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', borderRadius: '8px' }}>Reject</button>
+                            <button onClick={() => handleAcceptCv(entry.id)} className="btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', borderRadius: '8px' }}>Verify</button>
+                        </div>
                     )}
                   </div>
                 </div>

@@ -37,7 +37,7 @@ const globalLimiter = rateLimit({
 
 app.use(globalLimiter);
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || "http://localhost:5174",
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(",") : ["http://localhost:5174", "http://localhost:5175"],
   credentials: true,
 }));
 app.use(morgan("dev"));
@@ -49,13 +49,19 @@ app.get("/api/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 
 // Routes
 app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/studios", studioRoutes);
 app.use("/api/cv", cvRoutes);
 app.use("/api/agency", agencyRoutes);
-app.use("/api/payments", paymentRoutes);
+
+// 404 Handler (Helpful for debugging)
+app.use((req, res, next) => {
+  console.log(`[404] ${req.method} ${req.url}`);
+  res.status(404).json({ error: { message: `Route ${req.method} ${req.url} not found`, status: 404 } });
+});
 
 // Centralized error handler (must be last)
 app.use((err, req, res, next) => {

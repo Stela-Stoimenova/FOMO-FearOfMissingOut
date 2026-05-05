@@ -1,7 +1,9 @@
 import { useAuth } from "../context/AuthContext.jsx";
 import { Link } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
-import { updateMe, getMe, addPortfolioItem, deletePortfolioItem, tagEvent, deleteMe } from "../api/users.js";
+import { updateMe, getMe, addPortfolioItem, deletePortfolioItem, tagEvent, deleteMe, getMyInvites, acceptRosterInvite, declineRosterInvite, acceptTeamInvite, declineTeamInvite } from "../api/users.js";
+import { getStripeOnboardingLink, checkStripeStatus, getWallet, deleteCard } from "../api/payments.js";
+import AddCardModal from "../components/AddCardModal.jsx";
 
 import { getMyTickets } from "../api/events.js";
 import FollowListModal from "../components/FollowListModal.jsx";
@@ -19,11 +21,12 @@ export default function ProfilePage() {
     const [successMsg, setSuccessMsg] = useState("");
     const [errorMsg, setErrorMsg] = useState("");
     const [showList, setShowList] = useState(null); // 'followers' | 'following' | null
+    const [showAddCard, setShowAddCard] = useState(false);
 
     // Form state
     const [form, setForm] = useState({
         name: "", avatarUrl: "", bio: "", city: "",
-        danceStyles: [], experienceLevel: "", portfolioLinks: [], payoutDetails: "",
+        danceStyles: [], experienceLevel: "", portfolioLinks: [],
     });
     const [newLink, setNewLink] = useState("");
     const [styleInput, setStyleInput] = useState("");
@@ -32,6 +35,9 @@ export default function ProfilePage() {
     const [newPortfolio, setNewPortfolio] = useState({ url: "", title: "", description: "", type: "VIDEO" });
     const [myTickets, setMyTickets] = useState([]);
     const [selectedEventToTag, setSelectedEventToTag] = useState("");
+    const [invites, setInvites] = useState({ rosterInvites: [], teamInvites: [] });
+    const [wallet, setWallet] = useState([]);
+    const [stripeStatus, setStripeStatus] = useState(null);
 
     // Reset and Load fresh profile data
     const resetAndLoad = useCallback(async () => {
@@ -46,12 +52,20 @@ export default function ProfilePage() {
                 danceStyles: freshUser.danceStyles || [],
                 experienceLevel: freshUser.experienceLevel || "",
                 portfolioLinks: freshUser.portfolioLinks || [],
-                payoutDetails: freshUser.payoutDetails || "",
             });
         } catch (err) {
             console.error("Failed to load fresh profile:", err);
         }
     }, [setUser]);
+
+    const loadWallet = useCallback(async () => {
+        try {
+            const data = await getWallet();
+            setWallet(data);
+        } catch (err) {
+            console.error("Failed to load wallet:", err);
+        }
+    }, []);
 
     useEffect(() => {
         if (user) {
@@ -63,17 +77,71 @@ export default function ProfilePage() {
                 danceStyles: user.danceStyles || [],
                 experienceLevel: user.experienceLevel || "",
                 portfolioLinks: user.portfolioLinks || [],
-                payoutDetails: user.payoutDetails || "",
             });
         }
     }, [user?.id, user?.role]); // Re-sync if user ID or role changes
 
-    // Fetch tickets for MVP event tagging
+    // Fetch tickets and invites
     useEffect(() => {
-        if (user?.role === "DANCER" && editing) {
-            getMyTickets().then(setMyTickets).catch(console.error);
+        if (user?.role === "DANCER") {
+            if (editing) {
+                getMyTickets().then(setMyTickets).catch(console.error);
+            } else {
+                getMyInvites().then(setInvites).catch(console.error);
+                loadWallet();
+            }
         }
-    }, [user?.role, editing]);
+        if (user?.role === "STUDIO" || user?.role === "AGENCY") {
+            checkStripeStatus().then(setStripeStatus).catch(console.error);
+        }
+    }, [user?.role, editing, loadWallet]);
+
+    async function handleSetupStripe() {
+        try {
+            const { url } = await getStripeOnboardingLink();
+            window.location.href = url;
+        } catch (err) { alert("Failed to get onboarding link: " + err.message); }
+    }
+
+    async function handleDeleteCard(cardId) {
+        if (!window.confirm("Remove this card from your wallet?")) return;
+        try {
+            await deleteCard(cardId);
+            loadWallet();
+        } catch (err) { alert("Failed to delete card: " + err.message); }
+    }
+
+    async function handleAcceptRoster(id) {
+        try {
+            await acceptRosterInvite(id);
+            const fresh = await getMyInvites();
+            setInvites(fresh);
+        } catch (err) { console.error(err); }
+    }
+    
+    async function handleDeclineRoster(id) {
+        try {
+            await declineRosterInvite(id);
+            const fresh = await getMyInvites();
+            setInvites(fresh);
+        } catch (err) { console.error(err); }
+    }
+
+    async function handleAcceptTeam(id) {
+        try {
+            await acceptTeamInvite(id);
+            const fresh = await getMyInvites();
+            setInvites(fresh);
+        } catch (err) { console.error(err); }
+    }
+    
+    async function handleDeclineTeam(id) {
+        try {
+            await declineTeamInvite(id);
+            const fresh = await getMyInvites();
+            setInvites(fresh);
+        } catch (err) { console.error(err); }
+    }
 
     if (!user) {
         return (
@@ -87,6 +155,7 @@ export default function ProfilePage() {
     const isDancer = user.role === "DANCER";
     const isStudio = user.role === "STUDIO";
     const isAgency = user.role === "AGENCY";
+    const isMyProfile = true; // Always true in ProfilePage.jsx
 
     function toggleStyle(style) {
         setForm(prev => ({
@@ -266,6 +335,219 @@ export default function ProfilePage() {
                     </div>
                 )}
 
+                {/* Invites Section */}
+                {isDancer && (invites.rosterInvites.length > 0 || invites.teamInvites.length > 0) && (
+                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px', padding: '2rem', border: '1px solid var(--accent-border)' }}>
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--accent)' }}>Pending Invitations</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {invites.rosterInvites.map(inv => (
+                                <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--bg-hover)', borderRadius: '16px' }}>
+                                    <div>
+                                        <strong style={{ display: 'block', fontSize: '0.95rem' }}>{inv.agency.name || 'Agency'}</strong>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Invited you to their Talent Roster</span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <button onClick={() => handleDeclineRoster(inv.id)} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '8px' }}>Decline</button>
+                                        <button onClick={() => handleAcceptRoster(inv.id)} className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '8px' }}>Accept</button>
+                                    </div>
+                                </div>
+                            ))}
+                            {invites.teamInvites.map(inv => (
+                                <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--bg-hover)', borderRadius: '16px' }}>
+                                    <div>
+                                        <strong style={{ display: 'block', fontSize: '0.95rem' }}>{inv.studio.name || 'Studio'}</strong>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Invited you to their Team as <b>{inv.role}</b></span>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                        <button onClick={() => handleDeclineTeam(inv.id)} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '8px' }}>Decline</button>
+                                        <button onClick={() => handleAcceptTeam(inv.id)} className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '8px' }}>Accept</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* Payout / Stripe Section */}
+                {isMyProfile && (user?.role === "STUDIO" || user?.role === "AGENCY") && (
+                    <section className="detail-card" style={{ marginBottom: "2rem", padding: "2rem", borderRadius: "24px", border: `1px solid ${stripeStatus?.complete ? "rgba(16,185,129,0.3)" : "var(--border-light)"}`, background: stripeStatus?.complete ? "linear-gradient(145deg, rgba(16,185,129,0.05), var(--bg-card))" : "linear-gradient(145deg, var(--bg-card), var(--bg-hover))" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
+                            <div style={{ flex: 1 }}>
+                                <h3 style={{ margin: "0 0 0.4rem", fontSize: "1.1rem", fontWeight: 700 }}>
+                                    Payout Settings
+                                </h3>
+                                <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: 0, lineHeight: 1.6 }}>
+                                    {stripeStatus?.complete
+                                        ? "Your Stripe account is connected. Ticket revenue is transferred to your bank automatically after each event."
+                                        : "Connect your bank account via Stripe to receive ticket payments directly. You'll be redirected to Stripe's secure onboarding."
+                                    }
+                                </p>
+                            </div>
+                            {stripeStatus?.complete ? (
+                                <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "0.3rem", flexShrink: 0 }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: "var(--success)", fontWeight: 700, fontSize: "0.9rem" }}>
+                                        <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "var(--success)", boxShadow: "0 0 6px var(--success)" }} />
+                                        Connected
+                                    </div>
+                                    <button
+                                        onClick={handleSetupStripe}
+                                        style={{ fontSize: "0.75rem", color: "var(--text-muted)", background: "none", border: "none", cursor: "pointer", textDecoration: "underline", padding: 0 }}
+                                    >
+                                        Update bank details
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={handleSetupStripe}
+                                    className="btn-primary"
+                                    style={{ padding: "0.7rem 1.5rem", borderRadius: "12px", fontSize: "0.9rem", flexShrink: 0 }}
+                                >
+                                    Connect Stripe →
+                                </button>
+                            )}
+                        </div>
+                        {!stripeStatus?.complete && (
+                            <div style={{ marginTop: "1.25rem", paddingTop: "1.25rem", borderTop: "1px solid var(--border-light)", display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
+                                {[
+                                    { text: "Bank-level security" },
+                                    { text: "Fast payouts" },
+                                    { text: "Revenue dashboard" },
+                                ].map(f => (
+                                    <div key={f.text} style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                                        {f.text}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </section>
+                )}
+
+                {/* Wallet Section */}
+                {isMyProfile && isDancer && (
+                    <section className="detail-card" style={{ marginBottom: "2rem", padding: "2rem", borderRadius: "24px", background: "var(--bg-card)", border: "1px solid var(--border-light)" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.75rem" }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>My Wallet</h3>
+                                <p style={{ margin: "0.3rem 0 0", fontSize: "0.8rem", color: "var(--text-muted)" }}>
+                                    Saved cards for quick checkout at events
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowAddCard(true)}
+                                className="btn-primary"
+                                style={{ fontSize: "0.85rem", padding: "0.55rem 1.2rem", borderRadius: "12px", display: "flex", alignItems: "center", gap: "0.4rem" }}
+                            >
+                                <span style={{ fontSize: "1.1rem", lineHeight: 1 }}>+</span> Add Card
+                            </button>
+                        </div>
+
+                        {wallet.length === 0 ? (
+                            <div style={{ textAlign: "center", padding: "3rem 2rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px dashed var(--border-light)" }}>
+                                <h4 style={{ margin: "0 0 0.5rem", fontSize: "1rem", color: "var(--text-main)" }}>No saved cards yet</h4>
+                                <p style={{ margin: "0 0 1.5rem", fontSize: "0.85rem", color: "var(--text-muted)", maxWidth: "300px", marginLeft: "auto", marginRight: "auto" }}>
+                                    Add a card to check out instantly at any event — no need to re-enter your details each time.
+                                </p>
+                                <button onClick={() => setShowAddCard(true)} className="btn-primary" style={{ padding: "0.7rem 2rem", borderRadius: "14px", fontSize: "0.9rem" }}>
+                                    Add your first card
+                                </button>
+                            </div>
+                        ) : (
+                            <div style={{ display: "flex", gap: "1.25rem", overflowX: "auto", paddingBottom: "0.75rem" }}>
+                                {wallet.map(card => {
+                                    const CARD_GRADIENTS = {
+                                        visa: "linear-gradient(135deg, #1a1f71 0%, #1565c0 100%)",
+                                        mastercard: "linear-gradient(135deg, #1a1a1a 0%, #eb001b 60%, #f79e1b 100%)",
+                                        amex: "linear-gradient(135deg, #007b5e 0%, #00b388 100%)",
+                                        discover: "linear-gradient(135deg, #ff6600 0%, #ff9900 100%)",
+                                        default: "linear-gradient(135deg, #2d2d2d 0%, #6366f1 100%)",
+                                    };
+                                    const gradient = CARD_GRADIENTS[card.brand?.toLowerCase()] || CARD_GRADIENTS.default;
+
+                                    return (
+                                        <div key={card.id} style={{
+                                            minWidth: "300px", maxWidth: "300px",
+                                            height: "180px",
+                                            padding: "1.5rem",
+                                            borderRadius: "20px",
+                                            background: gradient,
+                                            color: "#fff",
+                                            position: "relative",
+                                            boxShadow: "0 12px 30px rgba(0,0,0,0.4)",
+                                            flexShrink: 0,
+                                            overflow: "hidden",
+                                        }}>
+                                            {/* Decorative circle */}
+                                            <div style={{ position: "absolute", top: "-30px", right: "-30px", width: "120px", height: "120px", borderRadius: "50%", background: "rgba(255,255,255,0.08)" }} />
+                                            <div style={{ position: "absolute", bottom: "-40px", right: "30px", width: "140px", height: "140px", borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
+
+                                            {/* Delete button */}
+                                            <button
+                                                onClick={() => handleDeleteCard(card.id)}
+                                                title="Remove card"
+                                                style={{ position: "absolute", top: "0.75rem", right: "0.75rem", background: "rgba(0,0,0,0.3)", border: "none", color: "rgba(255,255,255,0.6)", cursor: "pointer", width: "26px", height: "26px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", backdropFilter: "blur(4px)", transition: "all 0.2s" }}
+                                                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,0,0,0.4)"; e.currentTarget.style.color = "#fff"; }}
+                                                onMouseLeave={e => { e.currentTarget.style.background = "rgba(0,0,0,0.3)"; e.currentTarget.style.color = "rgba(255,255,255,0.6)"; }}
+                                            >×</button>
+
+                                            {/* Chip + Brand */}
+                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.5rem" }}>
+                                                {/* SIM chip */}
+                                                <div style={{ width: "36px", height: "28px", borderRadius: "5px", background: "linear-gradient(135deg, #d4af37, #f5e07a)", boxShadow: "0 2px 4px rgba(0,0,0,0.3)" }} />
+                                                <span style={{ fontSize: "0.8rem", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", opacity: 0.9 }}>
+                                                    {card.brand?.toUpperCase() || "CARD"}
+                                                </span>
+                                            </div>
+
+                                            {/* Card number */}
+                                            <div style={{ fontSize: "1.25rem", letterSpacing: "3px", fontFamily: "'Courier New', monospace", marginBottom: "1.25rem", textShadow: "0 1px 3px rgba(0,0,0,0.4)" }}>
+                                                •••• •••• •••• {card.last4}
+                                            </div>
+
+                                            {/* Expiry */}
+                                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                                                <div>
+                                                    <div style={{ fontSize: "0.55rem", textTransform: "uppercase", opacity: 0.7, letterSpacing: "0.05em" }}>Expires</div>
+                                                    <div style={{ fontSize: "0.9rem", fontWeight: 600 }}>
+                                                        {String(card.expMonth).padStart(2, "0")}/{String(card.expYear).slice(-2)}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+
+                                {/* Add another card tile */}
+                                <button
+                                    onClick={() => setShowAddCard(true)}
+                                    style={{
+                                        minWidth: "180px", height: "180px",
+                                        borderRadius: "20px",
+                                        border: "2px dashed var(--border-light)",
+                                        background: "transparent",
+                                        color: "var(--text-muted)",
+                                        cursor: "pointer",
+                                        display: "flex", flexDirection: "column",
+                                        alignItems: "center", justifyContent: "center",
+                                        gap: "0.5rem",
+                                        fontSize: "0.85rem",
+                                        flexShrink: 0,
+                                        transition: "all 0.2s",
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
+                                    onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--border-light)"; e.currentTarget.style.color = "var(--text-muted)"; }}
+                                >
+                                    <span style={{ fontSize: "2rem" }}>+</span>
+                                    <span>Add Card</span>
+                                </button>
+                            </div>
+                        )}
+
+                        <p style={{ margin: "1rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                            Card details are encrypted and stored securely by Stripe. We never see your full card number.
+                        </p>
+                    </section>
+                )}
+
                 {/* Dance Styles */}
                 {user.danceStyles?.length > 0 && (
                     <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px', padding: '2rem' }}>
@@ -334,15 +616,15 @@ export default function ProfilePage() {
                     </section>
                 )}
 
-                {/* Payout Details (Private) */}
-                {isDancer && (
-                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderColor: 'rgba(239,68,68,0.2)', borderRadius: '24px', padding: '2rem' }}>
-                        <h3 style={{ marginBottom: '0.75rem', fontSize: '1.1rem' }}>Payout Details <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 400 }}>(Private)</span></h3>
-                        <p style={{ color: user.payoutDetails ? 'var(--text-main)' : 'var(--text-muted)', fontSize: '0.9rem' }}>
-                            {user.payoutDetails || "No payout details configured yet."}
-                        </p>
-                    </section>
-                )}
+
+                <AddCardModal 
+                    isOpen={showAddCard} 
+                    onClose={() => setShowAddCard(false)} 
+                    onSuccess={() => {
+                        loadWallet();
+                        setShowAddCard(false);
+                    }} 
+                />
             </main>
         );
     }
@@ -501,13 +783,6 @@ export default function ProfilePage() {
                     </div>
                 )}
 
-                {/* Payout Details */}
-                {isDancer && (
-                    <div className="form-group">
-                        <label className="form-label">Payout / Bank Details <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: '0.75rem' }}>(Private)</span></label>
-                        <input type="text" className="form-input" placeholder="IBAN or PayPal email…" value={form.payoutDetails} onChange={e => setForm({ ...form, payoutDetails: e.target.value })} />
-                    </div>
-                )}
 
                 <div style={{ display: 'flex', gap: '1rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-light)' }}>
                     <button className="btn-primary" onClick={handleSave} disabled={saving} style={{ flex: 1, borderRadius: '14px', padding: '0.8rem' }}>

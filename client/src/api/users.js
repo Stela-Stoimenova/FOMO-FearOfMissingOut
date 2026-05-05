@@ -123,3 +123,24 @@ export async function getRecommendedDancers() {
     return apiRequest("/users/recommendations");
 }
 
+// --- Invites & Requests ---
+export async function getMyInvites() {
+    return apiRequest("/users/me/invites");
+}
+
+export async function acceptRosterInvite(id) {
+    return apiRequest(`/users/me/invites/roster/${id}/accept`, { method: "PATCH" });
+}
+
+export async function declineRosterInvite(id) {
+    return apiRequest(`/users/me/invites/roster/${id}`, { method: "DELETE" });
+}
+
+export async function acceptTeamInvite(id) {
+    return apiRequest(`/users/me/invites/team/${id}/accept`, { method: "PATCH" });
+}
+
+export async function declineTeamInvite(id) {
+    return apiRequest(`/users/me/invites/team/${id}`, { method: "DELETE" });
+}
+

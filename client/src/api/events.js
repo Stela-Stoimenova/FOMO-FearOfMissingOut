@@ -176,21 +176,25 @@ export async function getEventsByCreator(creatorId) {
  * POST /api/payments/intent
  * Create a Stripe PaymentIntent (or simulated mode) before buying a ticket.
  */
-export async function createPaymentIntent(eventId, usePoints) {
+export async function createPaymentIntent(eventId, usePoints, paymentMethodId = null) {
     return apiRequest("/payments/intent", {
         method: "POST",
-        body: JSON.stringify({ eventId, usePoints }),
+        body: JSON.stringify({ eventId, usePoints, paymentMethodId }),
     });
 }
 
 /**
- * POST /api/events/:id/tickets  (with stripePaymentIntentId)
- * Confirm ticket purchase after Stripe payment.
+ * POST /api/events/:id/tickets
+ * Finalize ticket purchase.
+ *
+ * @param {string} eventId
+ * @param {boolean} usePoints
+ * @param {object} paymentData - { paymentIntentId, simulated, ... }
  */
-export async function buyTicketWithPayment(eventId, usePoints, stripePaymentIntentId) {
+export async function buyTicketWithPayment(eventId, usePoints, paymentData) {
     return apiRequest(`/events/${eventId}/tickets`, {
         method: "POST",
-        body: JSON.stringify({ usePoints, stripePaymentIntentId }),
+        body: JSON.stringify({ usePoints, ...paymentData }),
     });
 }
 

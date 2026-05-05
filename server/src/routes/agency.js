@@ -31,4 +31,10 @@ router.delete("/me/roster/:dancerId", ...agencyOnly, agencyController.removeFrom
 // GET /api/agency/me/cv-tags — CV entries where this agency was tagged
 router.get("/me/cv-tags", ...agencyOnly, agencyController.getTaggedCvEntries);
 
+// PATCH /api/agency/me/cv-tags/:cvId/accept
+router.patch("/me/cv-tags/:cvId/accept", ...agencyOnly, agencyController.acceptCvTag);
+
+// DELETE /api/agency/me/cv-tags/:cvId
+router.delete("/me/cv-tags/:cvId", ...agencyOnly, agencyController.declineCvTag);
+
 export default router;

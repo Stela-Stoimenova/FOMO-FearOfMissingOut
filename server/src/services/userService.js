@@ -319,6 +319,59 @@ export async function deleteUserAccount(userId) {
     });
 }
 
+/** Invites and Requests for Dancers */
+export async function getMyInvites(userId) {
+    const [roster, team] = await Promise.all([
+        prisma.agencyRoster.findMany({
+            where: { dancerId: userId, status: "PENDING" },
+            include: { agency: { select: { id: true, name: true, avatarUrl: true } } }
+        }),
+        prisma.studioTeamMember.findMany({
+            where: { userId: userId, status: "PENDING" },
+            include: { studio: { select: { id: true, name: true, avatarUrl: true } } }
+        })
+    ]);
+    return { rosterInvites: roster, teamInvites: team };
+}
+
+export async function acceptRosterInvite(userId, id) {
+    const entry = await prisma.agencyRoster.findUnique({ where: { id: Number(id) } });
+    if (!entry || entry.dancerId !== userId) {
+        const err = new Error("Not found"); err.status = 404; throw err;
+    }
+    return prisma.agencyRoster.update({
+        where: { id: Number(id) },
+        data: { status: "ACTIVE" }
+    });
+}
+
+export async function declineRosterInvite(userId, id) {
+    const entry = await prisma.agencyRoster.findUnique({ where: { id: Number(id) } });
+    if (!entry || entry.dancerId !== userId) {
+        const err = new Error("Not found"); err.status = 404; throw err;
+    }
+    return prisma.agencyRoster.delete({ where: { id: Number(id) } });
+}
+
+export async function acceptTeamInvite(userId, id) {
+    const entry = await prisma.studioTeamMember.findUnique({ where: { id: Number(id) } });
+    if (!entry || entry.userId !== userId) {
+        const err = new Error("Not found"); err.status = 404; throw err;
+    }
+    return prisma.studioTeamMember.update({
+        where: { id: Number(id) },
+        data: { status: "ACTIVE" }
+    });
+}
+
+export async function declineTeamInvite(userId, id) {
+    const entry = await prisma.studioTeamMember.findUnique({ where: { id: Number(id) } });
+    if (!entry || entry.userId !== userId) {
+        const err = new Error("Not found"); err.status = 404; throw err;
+    }
+    return prisma.studioTeamMember.delete({ where: { id: Number(id) } });
+}
+
 /** Get AI recommended dancers for Studios/Agencies based on their profile */
 export async function getRecommendedDancers(userId) {
     const user = await prisma.user.findUnique({
@@ -348,32 +401,48 @@ export async function getRecommendedDancers(userId) {
             danceStyles: true, experienceLevel: true, bio: true,
             _count: { select: { followers: true } }
         },
-        take: 100 // Fetch a pool of recent/active dancers
+        take: 150
     });
+
+    const EXPERIENCE_SCORES = {
+        PROFESSIONAL: 15,
+        ADVANCED: 10,
+        INTERMEDIATE: 5,
+        BEGINNER: 0,
+    };
 
     const scored = dancers.map(dancer => {
         let score = 0;
         
-        // Match styles (high weight)
-        if (danceStyles && danceStyles.length > 0 && dancer.danceStyles) {
+        // Match styles (high weight) — 20 pts per matching style
+        if (danceStyles && danceStyles.length > 0 && dancer.danceStyles?.length > 0) {
             const overlap = dancer.danceStyles.filter(s => danceStyles.includes(s)).length;
-            score += overlap * 20; // 20 points per matching style
+            score += overlap * 20;
         }
 
         // Match city (medium weight)
         if (city && dancer.city && city.toLowerCase() === dancer.city.toLowerCase()) {
-            score += 10; // 10 points for matching city
+            score += 15;
         }
 
-        // Base score on followers to break ties
-        score += (dancer._count.followers * 0.1);
+        // Experience level bonus
+        score += EXPERIENCE_SCORES[dancer.experienceLevel] ?? 0;
 
-        // Cap at 100 for display purposes (optional, but good for UI "Match %")
+        // Profile completeness bonus
+        if (dancer.bio) score += 5;
+        if (dancer.avatarUrl) score += 5;
+        if (dancer.danceStyles?.length > 0) score += 5;
+
+        // Follower tiebreaker (small weight so it doesn't dominate)
+        score += Math.min(dancer._count.followers * 0.5, 10);
+
+        // Normalize to 0-100
         const normalizedScore = Math.min(Math.round(score), 100);
 
         return { ...dancer, matchScore: normalizedScore };
     })
-    // Only return those with some meaningful match (e.g. at least matched city or a style, or has high followers)
+    // Only return dancers with a meaningful match score (at least one signal matches)
+    .filter(d => d.matchScore > 0)
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, 10);
 

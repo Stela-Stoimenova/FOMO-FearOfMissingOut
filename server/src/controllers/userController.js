@@ -12,7 +12,12 @@ import {
     deletePortfolioItem,
     toggleEventTag,
     deleteUserAccount,
-    getRecommendedDancers
+    getRecommendedDancers,
+    getMyInvites as getMyInvitesSvc,
+    acceptRosterInvite as acceptRosterInviteSvc,
+    declineRosterInvite as declineRosterInviteSvc,
+    acceptTeamInvite as acceptTeamInviteSvc,
+    declineTeamInvite as declineTeamInviteSvc
 } from "../services/userService.js";
 
 export async function getMe(req, res, next) {
@@ -147,4 +152,39 @@ export async function recommendations(req, res, next) {
     } catch (err) {
         return next(err);
     }
+}
+
+export async function getMyInvites(req, res, next) {
+    try {
+        const invites = await getMyInvitesSvc(req.user.userId);
+        res.json(invites);
+    } catch (err) { next(err); }
+}
+
+export async function acceptRosterInvite(req, res, next) {
+    try {
+        const result = await acceptRosterInviteSvc(req.user.userId, req.params.id);
+        res.json(result);
+    } catch (err) { next(err); }
+}
+
+export async function declineRosterInvite(req, res, next) {
+    try {
+        await declineRosterInviteSvc(req.user.userId, req.params.id);
+        res.status(204).end();
+    } catch (err) { next(err); }
+}
+
+export async function acceptTeamInvite(req, res, next) {
+    try {
+        const result = await acceptTeamInviteSvc(req.user.userId, req.params.id);
+        res.json(result);
+    } catch (err) { next(err); }
+}
+
+export async function declineTeamInvite(req, res, next) {
+    try {
+        await declineTeamInviteSvc(req.user.userId, req.params.id);
+        res.status(204).end();
+    } catch (err) { next(err); }
 }

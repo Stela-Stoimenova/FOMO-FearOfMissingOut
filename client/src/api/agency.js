@@ -33,3 +33,11 @@ export async function removeFromRoster(dancerId) {
 export async function getTaggedCvEntries() {
   return apiRequest("/agency/me/cv-tags");
 }
+
+export async function acceptCvTag(cvId) {
+  return apiRequest(`/agency/me/cv-tags/${cvId}/accept`, { method: "PATCH" });
+}
+
+export async function declineCvTag(cvId) {
+  return apiRequest(`/agency/me/cv-tags/${cvId}`, { method: "DELETE" });
+}

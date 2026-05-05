@@ -85,8 +85,9 @@ export async function remove(req, res, next) {
 export async function buyTicket(req, res, next) {
     try {
         const eventId = Number(req.params.id);
-        const { usePoints, stripePaymentIntentId } = req.body || {};
-        const result = await purchaseTicket(eventId, req.user.userId, !!usePoints, stripePaymentIntentId ?? null);
+        const { usePoints, stripePaymentIntentId, paymentIntentId } = req.body || {};
+        const intentId = stripePaymentIntentId || paymentIntentId;
+        const result = await purchaseTicket(eventId, req.user.userId, !!usePoints, intentId ?? null);
         return res.status(201).json(result);
     } catch (err) {
         return next(err);

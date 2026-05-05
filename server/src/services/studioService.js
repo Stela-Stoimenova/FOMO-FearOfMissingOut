@@ -290,3 +290,37 @@ export async function removeCollaboration(agencyId, studioId) {
     where: { studioId_agencyId: { studioId: Number(studioId), agencyId: Number(agencyId) } },
   });
 }
+
+// --- CV Tags ---
+export async function getTaggedCvEntries(studioId) {
+  return prisma.cvEntry.findMany({
+    where: { taggedStudioId: Number(studioId) },
+    orderBy: { createdAt: "desc" },
+    include: {
+      user: { select: { id: true, name: true, avatarUrl: true, city: true, danceStyles: true } },
+      taggedAgency: { select: { id: true, name: true } },
+    },
+  });
+}
+
+export async function acceptCvTag(studioId, cvId) {
+  const cv = await prisma.cvEntry.findUnique({ where: { id: Number(cvId) } });
+  if (!cv || cv.taggedStudioId !== Number(studioId)) {
+    const err = new Error("Not found"); err.status = 404; throw err;
+  }
+  return prisma.cvEntry.update({
+    where: { id: Number(cvId) },
+    data: { verificationStatus: "VERIFIED" }
+  });
+}
+
+export async function declineCvTag(studioId, cvId) {
+  const cv = await prisma.cvEntry.findUnique({ where: { id: Number(cvId) } });
+  if (!cv || cv.taggedStudioId !== Number(studioId)) {
+    const err = new Error("Not found"); err.status = 404; throw err;
+  }
+  return prisma.cvEntry.update({
+    where: { id: Number(cvId) },
+    data: { verificationStatus: "REJECTED" }
+  });
+}
