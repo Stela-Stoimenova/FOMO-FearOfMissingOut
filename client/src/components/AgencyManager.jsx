@@ -196,7 +196,7 @@ export default function AgencyManager() {
                 {dancer.danceStyles?.length > 0 && (
                   <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap", marginBottom: "1rem" }}>
                     {dancer.danceStyles.slice(0, 3).map(s => (
-                      <span key={s} style={{ fontSize: "0.65rem", padding: "0.2rem 0.5rem", borderRadius: "8px", background: "var(--bg-hover)", color: "var(--text-main)", border: "1px solid var(--border-light)" }}>{s}</span>
+                      <span key={s} style={{ fontSize: "0.65rem", padding: "0.2rem 0.5rem", borderRadius: "999px", background: "var(--bg-hover)", color: "var(--text-main)", border: "1px solid var(--border-light)" }}>{s}</span>
                     ))}
                     {dancer.danceStyles.length > 3 && <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", padding: "0.2rem" }}>+{dancer.danceStyles.length - 3}</span>}
                   </div>
@@ -265,7 +265,7 @@ export default function AgencyManager() {
                       <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>{c.studio.name || "Unnamed"}</div>
                       {c.studio.city && <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{c.studio.city}</div>}
                     </div>
-                    <span style={{ fontSize: "0.7rem", padding: "0.2rem 0.5rem", borderRadius: "8px", background: "rgba(16,185,129,0.1)", color: "var(--success)", fontWeight: 600 }}>Active</span>
+                    <span style={{ fontSize: "0.7rem", padding: "0.2rem 0.5rem", borderRadius: "999px", background: "rgba(16,185,129,0.1)", color: "var(--success)", fontWeight: 600 }}>Active</span>
                     <button onClick={() => handleDecline(c.studioId)} style={{ background: "rgba(239,68,68,0.1)", border: "none", color: "var(--warning)", cursor: "pointer", width: "24px", height: "24px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem" }}>&times;</button>
                   </div>
                 ))}
@@ -303,12 +303,12 @@ export default function AgencyManager() {
                       </div>
                     </div>
                     {entry.dancer.experienceLevel && (
-                      <span style={{ fontSize: "0.7rem", padding: "0.2rem 0.5rem", borderRadius: "8px", background: "var(--accent-soft)", color: "var(--accent)", fontWeight: 600 }}>{entry.dancer.experienceLevel}</span>
+                      <span style={{ fontSize: "0.7rem", padding: "0.2rem 0.5rem", borderRadius: "999px", background: "var(--accent-soft)", color: "var(--accent)", fontWeight: 600 }}>{entry.dancer.experienceLevel}</span>
                     )}
                     {entry.dancer.danceStyles?.length > 0 && (
                       <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap", marginTop: "0.6rem" }}>
                         {entry.dancer.danceStyles.slice(0, 3).map(s => (
-                          <span key={s} style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem", borderRadius: "6px", background: "var(--bg-card)", color: "var(--text-muted)", border: "1px solid var(--border-light)" }}>{s}</span>
+                          <span key={s} style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem", borderRadius: "999px", background: "var(--bg-card)", color: "var(--text-muted)", border: "1px solid var(--border-light)" }}>{s}</span>
                         ))}
                         {entry.dancer.danceStyles.length > 3 && <span style={{ fontSize: "0.65rem", color: "var(--text-muted)" }}>+{entry.dancer.danceStyles.length - 3}</span>}
                       </div>
@@ -359,7 +359,7 @@ export default function AgencyManager() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginBottom: "0.4rem", flexWrap: "wrap" }}>
                       <strong style={{ fontSize: "0.95rem" }}>{entry.user.name || "Unnamed Dancer"}</strong>
-                      <span style={{ fontSize: "0.7rem", padding: "0.15rem 0.5rem", borderRadius: "8px", background: `${CV_TYPE_COLORS[entry.type]}20`, color: CV_TYPE_COLORS[entry.type], fontWeight: 700 }}>{entry.type}</span>
+                      <span style={{ fontSize: "0.7rem", padding: "0.15rem 0.5rem", borderRadius: "999px", background: `${CV_TYPE_COLORS[entry.type]}20`, color: CV_TYPE_COLORS[entry.type], fontWeight: 700 }}>{entry.type}</span>
                       {entry.user.city && <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{entry.user.city}</span>}
                     </div>
                     <div style={{ fontWeight: 600, fontSize: "0.95rem", color: "var(--text-main)", marginBottom: "0.3rem" }}>{entry.title}</div>
@@ -368,7 +368,7 @@ export default function AgencyManager() {
                     {entry.user.danceStyles?.length > 0 && (
                       <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
                         {entry.user.danceStyles.slice(0, 4).map(s => (
-                          <span key={s} style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem", borderRadius: "6px", background: "var(--bg-card)", color: "var(--text-muted)", border: "1px solid var(--border-light)" }}>{s}</span>
+                          <span key={s} style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem", borderRadius: "999px", background: "var(--bg-card)", color: "var(--text-muted)", border: "1px solid var(--border-light)" }}>{s}</span>
                         ))}
                       </div>
                     )}
@@ -383,8 +383,8 @@ export default function AgencyManager() {
                     </span>
                     {entry.verificationStatus === "PENDING" && (
                         <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.5rem' }}>
-                            <button onClick={() => handleDeclineCv(entry.id)} className="btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', borderRadius: '8px' }}>Reject</button>
-                            <button onClick={() => handleAcceptCv(entry.id)} className="btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', borderRadius: '8px' }}>Verify</button>
+                            <button onClick={() => handleDeclineCv(entry.id)} className="btn-secondary" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Reject</button>
+                            <button onClick={() => handleAcceptCv(entry.id)} className="btn-primary" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Verify</button>
                         </div>
                     )}
                   </div>

@@ -152,7 +152,7 @@ export default function CvManager({ userId }) {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "1.25rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px solid var(--border-light)" }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginBottom: "0.5rem" }}>
-                      <span className="role-badge" style={{ fontSize: "0.65rem", padding: "0.2rem 0.6rem", borderRadius: "8px" }}>{e.type}</span>
+                      <span className="role-badge" style={{ fontSize: "0.65rem", padding: "0.2rem 0.6rem", borderRadius: "999px" }}>{e.type}</span>
                       <strong style={{ fontSize: "1.05rem", fontWeight: 700 }}>{e.title}</strong>
                     </div>
                     <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
@@ -167,8 +167,8 @@ export default function CvManager({ userId }) {
                     {e.description && <p style={{ fontSize: "0.95rem", color: "var(--text-main)", lineHeight: 1.5, margin: "0.5rem 0" }}>{e.description}</p>}
                     {(e.taggedStudio || e.taggedAgency) && (
                       <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
-                        {e.taggedStudio && <span style={{ fontSize: "0.75rem", color: "var(--accent)", background: "var(--accent-soft)", padding: "0.2rem 0.6rem", borderRadius: "6px" }}>@ {e.taggedStudio.name}</span>}
-                        {e.taggedAgency && <span style={{ fontSize: "0.75rem", color: "var(--accent)", background: "var(--accent-soft)", padding: "0.2rem 0.6rem", borderRadius: "6px" }}>@ {e.taggedAgency.name}</span>}
+                        {e.taggedStudio && <span style={{ fontSize: "0.75rem", color: "var(--accent)", background: "var(--accent-soft)", padding: "0.2rem 0.6rem", borderRadius: "999px" }}>@ {e.taggedStudio.name}</span>}
+                        {e.taggedAgency && <span style={{ fontSize: "0.75rem", color: "var(--accent)", background: "var(--accent-soft)", padding: "0.2rem 0.6rem", borderRadius: "999px" }}>@ {e.taggedAgency.name}</span>}
                       </div>
                     )}
                   </div>

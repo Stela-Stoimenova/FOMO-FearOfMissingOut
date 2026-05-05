@@ -289,12 +289,12 @@ export default function PublicProfilePage() {
                                         c.teacher.id ? (
                                             <Link to={`/users/${c.teacher.id}`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end', textDecoration: 'none' }}>
                                                 <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>w/ <strong style={{ color: 'var(--text-main)' }}>{c.teacher.name}</strong></span>
-                                                {c.teacher.avatarUrl && <img src={c.teacher.avatarUrl} alt="" style={{ width: '28px', height: '28px', borderRadius: '8px', objectFit: 'cover' }} />}
+                                                {c.teacher.avatarUrl && <img src={c.teacher.avatarUrl} alt="" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />}
                                             </Link>
                                         ) : (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
                                                 <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>w/ <strong style={{ color: 'var(--text-main)' }}>{c.teacher.name}</strong></span>
-                                                {c.teacher.avatarUrl && <img src={c.teacher.avatarUrl} alt="" style={{ width: '28px', height: '28px', borderRadius: '8px', objectFit: 'cover' }} />}
+                                                {c.teacher.avatarUrl && <img src={c.teacher.avatarUrl} alt="" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />}
                                                 {(() => { console.warn("Missing linked teacher id", c.teacher); return null; })()}
                                             </div>
                                         )
@@ -419,7 +419,7 @@ export default function PublicProfilePage() {
                                 <div style={{ flex: 1, padding: '1.25rem', background: 'var(--bg-hover)', borderRadius: '24px', border: '1px solid var(--border-light)' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                                         <strong style={{ fontSize: '1.1rem', fontWeight: 700 }}>{e.title}</strong>
-                                        <span className="role-badge" style={{ fontSize: '0.65rem', padding: '0.2rem 0.6rem', borderRadius: '8px' }}>{e.type}</span>
+                                        <span className="role-badge" style={{ fontSize: '0.65rem', padding: '0.2rem 0.6rem', borderRadius: '999px' }}>{e.type}</span>
                                     </div>
                                     <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.75rem' }}>
                                         {e.startDate ? new Date(e.startDate).getFullYear() : ""}

@@ -261,7 +261,7 @@ export default function StudioManager({ studioId }) {
                 {dancer.danceStyles?.length > 0 && (
                   <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap", marginBottom: "1rem" }}>
                     {dancer.danceStyles.slice(0, 3).map(s => (
-                      <span key={s} style={{ fontSize: "0.65rem", padding: "0.2rem 0.5rem", borderRadius: "8px", background: "var(--bg-hover)", color: "var(--text-main)", border: "1px solid var(--border-light)" }}>{s}</span>
+                      <span key={s} style={{ fontSize: "0.65rem", padding: "0.2rem 0.5rem", borderRadius: "999px", background: "var(--bg-hover)", color: "var(--text-main)", border: "1px solid var(--border-light)" }}>{s}</span>
                     ))}
                     {dancer.danceStyles.length > 3 && <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", padding: "0.2rem" }}>+{dancer.danceStyles.length - 3}</span>}
                   </div>
@@ -392,9 +392,9 @@ export default function StudioManager({ studioId }) {
                 </form>
               ) : (
                 <div style={{ padding: "1.5rem", background: "var(--bg-hover)", borderRadius: "24px", border: m.isActive ? "1px solid var(--border-light)" : "1px solid rgba(239,68,68,0.2)", position: "relative", opacity: m.isActive ? 1 : 0.65 }}>
-                  {!m.isActive && <div style={{ position: "absolute", top: "0.6rem", left: "1rem", fontSize: "0.65rem", color: "var(--warning)", background: "rgba(239,68,68,0.1)", padding: "0.1rem 0.4rem", borderRadius: "6px", fontWeight: 700 }}>INACTIVE</div>}
+                  {!m.isActive && <div style={{ position: "absolute", top: "0.6rem", left: "1rem", fontSize: "0.65rem", color: "var(--warning)", background: "rgba(239,68,68,0.1)", padding: "0.1rem 0.4rem", borderRadius: "999px", fontWeight: 700 }}>INACTIVE</div>}
                   <div style={{ display: "flex", justifyContent: "flex-end", gap: "0.4rem", marginBottom: "0.5rem" }}>
-                    <button onClick={() => setEditingMem({ ...m })} className="btn-secondary" style={{ padding: "0.3rem 0.7rem", fontSize: "0.7rem", borderRadius: "8px" }}>Edit</button>
+                    <button onClick={() => setEditingMem({ ...m })} className="btn-secondary" style={{ padding: "0.3rem 0.7rem", fontSize: "0.7rem" }}>Edit</button>
                     <button onClick={() => handleDeleteMembership(m.id)} style={{ width: "24px", height: "24px", borderRadius: "50%", background: "rgba(239,68,68,0.1)", border: "none", color: "var(--warning)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem" }}>&times;</button>
                   </div>
                   <div style={{ fontWeight: 700, fontSize: "1.05rem", marginBottom: "0.5rem" }}>{m.name}</div>
@@ -513,7 +513,7 @@ export default function StudioManager({ studioId }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginBottom: "0.4rem", flexWrap: "wrap" }}>
                     <strong style={{ fontSize: "0.95rem" }}>{entry.user.name || "Unnamed Dancer"}</strong>
-                    <span style={{ fontSize: "0.7rem", padding: "0.15rem 0.5rem", borderRadius: "8px", background: `var(--accent-soft)`, color: 'var(--accent)', fontWeight: 700 }}>{entry.type}</span>
+                    <span style={{ fontSize: "0.7rem", padding: "0.15rem 0.5rem", borderRadius: "999px", background: `var(--accent-soft)`, color: 'var(--accent)', fontWeight: 700 }}>{entry.type}</span>
                     {entry.user.city && <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{entry.user.city}</span>}
                   </div>
                   <div style={{ fontWeight: 600, fontSize: "0.95rem", color: "var(--text-main)", marginBottom: "0.3rem" }}>{entry.title}</div>
@@ -521,8 +521,8 @@ export default function StudioManager({ studioId }) {
                   {entry.description && <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0.4rem 0 0 0" }}>{entry.description}</p>}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end', flexShrink: 0 }}>
-                    <span style={{ 
-                        fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '12px', fontWeight: 700,
+                    <span style={{
+                        fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '999px', fontWeight: 700,
                         background: entry.verificationStatus === 'VERIFIED' ? 'rgba(16,185,129,0.1)' : entry.verificationStatus === 'REJECTED' ? 'rgba(239,68,68,0.1)' : 'rgba(245,158,11,0.1)',
                         color: entry.verificationStatus === 'VERIFIED' ? 'var(--success)' : entry.verificationStatus === 'REJECTED' ? 'var(--danger)' : 'var(--warning)'
                     }}>
@@ -530,8 +530,8 @@ export default function StudioManager({ studioId }) {
                     </span>
                     {entry.verificationStatus === "PENDING" && (
                         <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.5rem' }}>
-                            <button onClick={() => handleDeclineCv(entry.id)} className="btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', borderRadius: '8px' }}>Reject</button>
-                            <button onClick={() => handleAcceptCv(entry.id)} className="btn-primary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', borderRadius: '8px' }}>Verify</button>
+                            <button onClick={() => handleDeclineCv(entry.id)} className="btn-secondary" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Reject</button>
+                            <button onClick={() => handleAcceptCv(entry.id)} className="btn-primary" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem' }}>Verify</button>
                         </div>
                     )}
                 </div>

@@ -19,6 +19,7 @@ export default function ProfilePage() {
     const [editing, setEditing] = useState(false);
     const [saving, setSaving] = useState(false);
     const [successMsg, setSuccessMsg] = useState("");
+    const [stripeConnectMsg, setStripeConnectMsg] = useState("");
     const [errorMsg, setErrorMsg] = useState("");
     const [showList, setShowList] = useState(null); // 'followers' | 'following' | null
     const [showAddCard, setShowAddCard] = useState(false);
@@ -97,10 +98,13 @@ export default function ProfilePage() {
     }, [user?.role, editing, loadWallet]);
 
     async function handleSetupStripe() {
+        setStripeConnectMsg("");
         try {
             const { url } = await getStripeOnboardingLink();
             window.location.href = url;
-        } catch (err) { alert("Failed to get onboarding link: " + err.message); }
+        } catch (err) {
+            setStripeConnectMsg("Stripe Connect is not available in demo mode. To enable payouts, sign up for Stripe Connect at dashboard.stripe.com/connect.");
+        }
     }
 
     async function handleDeleteCard(cardId) {
@@ -347,8 +351,8 @@ export default function ProfilePage() {
                                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Invited you to their Talent Roster</span>
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <button onClick={() => handleDeclineRoster(inv.id)} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '8px' }}>Decline</button>
-                                        <button onClick={() => handleAcceptRoster(inv.id)} className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '8px' }}>Accept</button>
+                                        <button onClick={() => handleDeclineRoster(inv.id)} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>Decline</button>
+                                        <button onClick={() => handleAcceptRoster(inv.id)} className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>Accept</button>
                                     </div>
                                 </div>
                             ))}
@@ -359,8 +363,8 @@ export default function ProfilePage() {
                                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Invited you to their Team as <b>{inv.role}</b></span>
                                     </div>
                                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                        <button onClick={() => handleDeclineTeam(inv.id)} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '8px' }}>Decline</button>
-                                        <button onClick={() => handleAcceptTeam(inv.id)} className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', borderRadius: '8px' }}>Accept</button>
+                                        <button onClick={() => handleDeclineTeam(inv.id)} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>Decline</button>
+                                        <button onClick={() => handleAcceptTeam(inv.id)} className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>Accept</button>
                                     </div>
                                 </div>
                             ))}
@@ -406,6 +410,11 @@ export default function ProfilePage() {
                                 </button>
                             )}
                         </div>
+                        {stripeConnectMsg && (
+                            <div style={{ marginTop: "1rem", padding: "0.85rem 1rem", background: "rgba(245,158,11,0.1)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "14px", fontSize: "0.82rem", color: "var(--warning)", lineHeight: 1.6 }}>
+                                {stripeConnectMsg}
+                            </div>
+                        )}
                         {!stripeStatus?.complete && (
                             <div style={{ marginTop: "1.25rem", paddingTop: "1.25rem", borderTop: "1px solid var(--border-light)", display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
                                 {[
@@ -605,7 +614,7 @@ export default function ProfilePage() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             {user.taggedEvents.map(evt => (
                                 <Link to={`/events/${evt.id}`} key={evt.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem', background: 'var(--bg-hover)', borderRadius: '16px', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
-                                    {evt.imageUrl && <img src={evt.imageUrl} alt={evt.title} style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover' }} />}
+                                    {evt.imageUrl && <img src={evt.imageUrl} alt={evt.title} style={{ width: '40px', height: '40px', borderRadius: '12px', objectFit: 'cover' }} />}
                                     <div>
                                         <h4 style={{ margin: 0, fontSize: '0.95rem' }}>{evt.title}</h4>
                                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{evt.location}</span>
@@ -737,7 +746,7 @@ export default function ProfilePage() {
                                     <div>
                                         <strong style={{ fontSize: '0.9rem' }}>{item.title || "Untitled"}</strong> <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({item.type})</span>
                                     </div>
-                                    <button type="button" onClick={() => handleDeletePortfolio(item.id)} className="btn-secondary" style={{ padding: '0.3rem 0.6rem', fontSize: '0.75rem', color: 'var(--warning)', borderRadius: '8px' }}>Remove</button>
+                                    <button type="button" onClick={() => handleDeletePortfolio(item.id)} className="btn-secondary" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem', color: 'var(--warning)' }}>Remove</button>
                                 </div>
                             ))}
                         </div>
