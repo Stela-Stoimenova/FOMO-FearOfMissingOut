@@ -136,7 +136,6 @@ export default function CreateEventPage() {
         return (
             <main className="page" style={{ maxWidth: "900px", margin: "0 auto" }}>
                 <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-                    <div style={{ fontSize: "3rem", marginBottom: "0.5rem" }}>🎉</div>
                     <h1 style={{ marginBottom: "0.5rem" }}>Event Created!</h1>
                     <p className="subtitle" style={{ marginBottom: "1.5rem" }}>
                         <strong>{createdEvent.title}</strong> is now live on the platform.
@@ -168,7 +167,7 @@ export default function CreateEventPage() {
                                             <div style={{ width: 44, height: 44, borderRadius: "50%", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
                                                 {dancer.avatarUrl
                                                     ? <img src={dancer.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                                    : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem" }}>💃</div>
+                                                    : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", color: "var(--text-muted)" }}>{(dancer.name || "?").charAt(0).toUpperCase()}</div>
                                                 }
                                             </div>
                                             <div>

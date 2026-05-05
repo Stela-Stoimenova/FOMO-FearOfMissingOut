@@ -129,4 +129,24 @@ router.delete(
   studioController.removeCollaboration
 );
 
+// --- CV Tags ---
+router.get(
+  "/me/cv-tags",
+  requireAuth,
+  requireRole(["STUDIO"]),
+  studioController.getTaggedCvEntries
+);
+router.patch(
+  "/me/cv-tags/:cvId/accept",
+  requireAuth,
+  requireRole(["STUDIO"]),
+  studioController.acceptCvTag
+);
+router.delete(
+  "/me/cv-tags/:cvId",
+  requireAuth,
+  requireRole(["STUDIO"]),
+  studioController.declineCvTag
+);
+
 export default router;

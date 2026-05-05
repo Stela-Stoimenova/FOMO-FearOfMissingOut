@@ -48,3 +48,17 @@ export async function getTaggedCvEntries(req, res, next) {
     res.json(entries);
   } catch (err) { next(err); }
 }
+
+export async function acceptCvTag(req, res, next) {
+  try {
+    const cv = await agencyService.acceptCvTag(req.user.userId, req.params.cvId);
+    res.json(cv);
+  } catch (err) { next(err); }
+}
+
+export async function declineCvTag(req, res, next) {
+  try {
+    const cv = await agencyService.declineCvTag(req.user.userId, req.params.cvId);
+    res.json(cv);
+  } catch (err) { next(err); }
+}

@@ -75,7 +75,11 @@ model User {
   portfolioLinks  String[]  @default([])
   portfolioItems  PortfolioItem[]
   taggedEvents    Event[]   @relation("TaggedEvents")
-  payoutDetails   String?
+  // Payout / Payment details
+  payoutDetails         String?
+  stripeCustomerId      String?   @unique
+  stripeConnectAccountId String?   @unique
+  stripeOnboardingComplete Boolean @default(false)
 
   // Core
   events  Event[]  @relation("EventCreator")
@@ -316,6 +320,7 @@ model StudioTeamMember {
   userId    Int
   role      TeamRole
   joinedAt  DateTime @default(now())
+  status    String   @default("PENDING") // PENDING, ACTIVE
 
   studio    User     @relation("StudioTeam", fields: [studioId], references: [id], onDelete: Cascade)
   user      User     @relation("UserTeams", fields: [userId], references: [id], onDelete: Cascade)
@@ -352,6 +357,7 @@ model CvEntry {
   startDate       DateTime?
   endDate         DateTime?
   choreographer   String?     // Manual entry if choreographer is not on platform
+  verificationStatus String   @default("PENDING") // PENDING, VERIFIED, REJECTED
   
   // Optional linking to existing entities
   taggedStudioId  Int?
@@ -371,6 +377,7 @@ model AgencyRoster {
   agencyId  Int
   dancerId  Int
   notes     String?
+  status    String   @default("PENDING") // PENDING, ACTIVE
   createdAt DateTime @default(now())
 
   agency    User     @relation("AgencyRoster", fields: [agencyId], references: [id], onDelete: Cascade)

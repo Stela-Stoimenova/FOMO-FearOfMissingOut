@@ -1,5 +1,6 @@
 import { prisma } from "../db.js";
 import { BUSINESS } from "../config/business.js";
+import * as stripeService from "../services/stripeService.js";
 
 export async function createIntent(req, res, next) {
   try {
@@ -60,15 +61,30 @@ export async function createIntent(req, res, next) {
     }
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-04-10" });
-    const intent = await stripe.paymentIntents.create({
-      amount: Math.max(chargeCents, 50), // Stripe minimum is 50 cents
+    
+    const { paymentMethodId } = req.body;
+    const customerId = await stripeService.getOrCreateCustomer(userId);
+
+    const intentParams = {
+      amount: Math.max(chargeCents, 50),
       currency: "eur",
+      customer: customerId,
       metadata: { eventId: String(eventId), userId: String(userId) },
-    });
+    };
+
+    if (paymentMethodId) {
+      intentParams.payment_method = paymentMethodId;
+      intentParams.confirm = true;
+      intentParams.off_session = false; // user is present
+      intentParams.return_url = `${process.env.CLIENT_URL || "http://localhost:5173"}/events/${eventId}?payment=success`;
+    }
+
+    const intent = await stripe.paymentIntents.create(intentParams);
 
     res.json({
       clientSecret: intent.client_secret,
       paymentIntentId: intent.id,
+      status: intent.status,
       simulatedMode: false,
       amount: chargeCents,
       currency: "eur",
@@ -76,4 +92,39 @@ export async function createIntent(req, res, next) {
   } catch (err) {
     next(err);
   }
+}
+
+export async function getOnboardingLink(req, res, next) {
+  try {
+    const url = await stripeService.createConnectOnboardingLink(req.user.userId);
+    res.json({ url });
+  } catch (err) { next(err); }
+}
+
+export async function checkConnectStatus(req, res, next) {
+  try {
+    const complete = await stripeService.syncConnectStatus(req.user.userId);
+    res.json({ complete });
+  } catch (err) { next(err); }
+}
+
+export async function getWallet(req, res, next) {
+  try {
+    const cards = await stripeService.listSavedCards(req.user.userId);
+    res.json(cards);
+  } catch (err) { next(err); }
+}
+
+export async function removeCard(req, res, next) {
+  try {
+    await stripeService.deleteSavedCard(req.user.userId, req.params.cardId);
+    res.status(204).end();
+  } catch (err) { next(err); }
+}
+
+export async function createSetupIntent(req, res, next) {
+  try {
+    const { clientSecret } = await stripeService.createCardSetupIntent(req.user.userId);
+    res.json({ clientSecret });
+  } catch (err) { next(err); }
 }

@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getEventById, saveEvent, unsaveEvent, isEventSaved, createPaymentIntent, buyTicketWithPayment } from "../api/events.js";
 import { getMe } from "../api/users.js";
+import { getWallet } from "../api/payments.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Toast, { showToast, friendlyError } from "../components/Toast.jsx";
+import RealPaymentModal from "../components/RealPaymentModal.jsx";
+import { useStripe } from "@stripe/react-stripe-js";
 
 function formatPrice(cents) {
     return `€${(cents / 100).toFixed(2)}`;
@@ -20,145 +23,19 @@ function formatDate(isoString) {
     });
 }
 
-// ── Payment Modal ────────────────────────────────────────────────────────────
-function PaymentModal({ amount, simulatedMode, onConfirm, onCancel, loading }) {
-    const [card, setCard] = useState({ number: "", expiry: "", cvv: "", name: "" });
-    const [err, setErr] = useState(null);
-
-    function handleChange(e) {
-        let { name, value } = e.target;
-        if (name === "number") value = value.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
-        if (name === "expiry") value = value.replace(/\D/g, "").slice(0, 4).replace(/^(\d{2})(\d)/, "$1/$2");
-        if (name === "cvv") value = value.replace(/\D/g, "").slice(0, 4);
-        setCard(prev => ({ ...prev, [name]: value }));
-    }
-
-    function handleSubmit(e) {
-        e.preventDefault();
-        setErr(null);
-        if (!simulatedMode) {
-            // Real Stripe: basic front-end checks only — Stripe handles real validation
-            if (card.number.replace(/\s/g, "").length < 16) return setErr("Enter a valid 16-digit card number.");
-            if (!card.expiry.includes("/")) return setErr("Enter expiry as MM/YY.");
-            if (card.cvv.length < 3) return setErr("CVV must be 3-4 digits.");
-        }
-        onConfirm(card);
-    }
-
-    return (
-        <div style={{
-            position: "fixed", inset: 0, zIndex: 1000,
-            background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)",
-            display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem",
-        }}>
-            <div style={{
-                background: "var(--bg-card)", border: "1px solid var(--border-light)",
-                borderRadius: "var(--radius-lg)", padding: "2rem", width: "100%", maxWidth: "440px",
-                boxShadow: "var(--shadow-lg)",
-            }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-                    <h2 style={{ margin: 0 }}>Secure Payment</h2>
-                    <button onClick={onCancel} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "1.5rem", lineHeight: 1 }}>×</button>
-                </div>
-
-                <div style={{ background: "var(--bg-hover)", borderRadius: "var(--radius-md)", padding: "1rem", marginBottom: "1.5rem", display: "flex", justifyContent: "space-between" }}>
-                    <span style={{ color: "var(--text-muted)" }}>Total charge</span>
-                    <strong style={{ fontSize: "1.2rem" }}>{formatPrice(amount)}</strong>
-                </div>
-
-                {simulatedMode && (
-                    <div style={{ background: "rgba(99,102,241,0.1)", border: "1px solid var(--accent-border)", borderRadius: "var(--radius-md)", padding: "0.75rem 1rem", marginBottom: "1.25rem", fontSize: "0.85rem" }}>
-                        <strong style={{ color: "var(--accent)" }}>Demo Mode</strong>
-                        <p style={{ margin: "0.25rem 0 0", color: "var(--text-muted)" }}>
-                            Use test card: <strong style={{ color: "var(--text-main)" }}>4242 4242 4242 4242</strong> · Any future expiry · Any 3-digit CVV
-                        </p>
-                    </div>
-                )}
-
-                {err && <div className="form-error" style={{ marginBottom: "1rem" }}>{err}</div>}
-
-                <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                    <label style={{ display: "flex", flexDirection: "column", gap: "0.4rem", fontSize: "0.9rem", fontWeight: 500 }}>
-                        Cardholder Name
-                        <input
-                            name="name"
-                            value={card.name}
-                            onChange={handleChange}
-                            placeholder="Jane Smith"
-                            required
-                            style={{ background: "var(--bg-input)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", padding: "0.65rem 0.9rem", color: "var(--text-main)", fontSize: "0.95rem" }}
-                        />
-                    </label>
-
-                    <label style={{ display: "flex", flexDirection: "column", gap: "0.4rem", fontSize: "0.9rem", fontWeight: 500 }}>
-                        Card Number
-                        <input
-                            name="number"
-                            value={card.number}
-                            onChange={handleChange}
-                            placeholder="4242 4242 4242 4242"
-                            inputMode="numeric"
-                            required
-                            style={{ background: "var(--bg-input)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", padding: "0.65rem 0.9rem", color: "var(--text-main)", fontSize: "0.95rem", letterSpacing: "0.1em" }}
-                        />
-                    </label>
-
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                        <label style={{ display: "flex", flexDirection: "column", gap: "0.4rem", fontSize: "0.9rem", fontWeight: 500 }}>
-                            Expiry (MM/YY)
-                            <input
-                                name="expiry"
-                                value={card.expiry}
-                                onChange={handleChange}
-                                placeholder="12/27"
-                                inputMode="numeric"
-                                required
-                                style={{ background: "var(--bg-input)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", padding: "0.65rem 0.9rem", color: "var(--text-main)", fontSize: "0.95rem" }}
-                            />
-                        </label>
-                        <label style={{ display: "flex", flexDirection: "column", gap: "0.4rem", fontSize: "0.9rem", fontWeight: 500 }}>
-                            CVV
-                            <input
-                                name="cvv"
-                                value={card.cvv}
-                                onChange={handleChange}
-                                placeholder="123"
-                                inputMode="numeric"
-                                required
-                                style={{ background: "var(--bg-input)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", padding: "0.65rem 0.9rem", color: "var(--text-main)", fontSize: "0.95rem" }}
-                            />
-                        </label>
-                    </div>
-
-                    <button
-                        type="submit"
-                        className="btn-primary"
-                        disabled={loading}
-                        style={{ marginTop: "0.5rem", padding: "0.85rem", fontSize: "1rem" }}
-                    >
-                        {loading ? "Processing payment…" : `Pay ${formatPrice(amount)}`}
-                    </button>
-                </form>
-
-                <p style={{ textAlign: "center", marginTop: "1rem", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                    🔒 Secured by Stripe · 256-bit SSL encryption
-                </p>
-            </div>
-        </div>
-    );
-}
-
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function EventDetailPage() {
     const { id } = useParams();
     const { user, isLoggedIn, setUser } = useAuth();
     const navigate = useNavigate();
+    const stripe = useStripe();
 
     const [event, setEvent] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     const [buying, setBuying] = useState(false);
+    const [savedCards, setSavedCards] = useState([]);
     const [buyError, setBuyError] = useState(null);
     const [purchaseResult, setPurchaseResult] = useState(null);
     const [usePoints, setUsePoints] = useState(true);
@@ -166,8 +43,7 @@ export default function EventDetailPage() {
     const [toast, setToast] = useState(null);
 
     // Payment modal state
-    const [showPayment, setShowPayment] = useState(false);
-    const [paymentIntent, setPaymentIntent] = useState(null); // { clientSecret, simulatedMode, amount, paymentIntentId }
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
 
     useEffect(() => {
         async function fetchEvent() {
@@ -190,6 +66,9 @@ export default function EventDetailPage() {
             isEventSaved(event.id)
                 .then(({ saved }) => setIsSaved(saved))
                 .catch(() => {});
+            getWallet()
+                .then(setSavedCards)
+                .catch(console.error);
         }
     }, [isLoggedIn, user, event]);
 
@@ -203,7 +82,7 @@ export default function EventDetailPage() {
             } else {
                 await saveEvent(id);
                 setIsSaved(true);
-                showToast(setToast, "Saved to wish list ❤️", "success", 2000);
+                showToast(setToast, "Saved to wish list", "success", 2000);
             }
         } catch (err) {
             showToast(setToast, friendlyError(err));
@@ -211,35 +90,53 @@ export default function EventDetailPage() {
     }
 
     async function handleInitiatePurchase() {
-        setBuying(true);
+        if (!isLoggedIn) { navigate("/login"); return; }
         setBuyError(null);
-        try {
-            const intent = await createPaymentIntent(event.id, usePoints);
-            setPaymentIntent(intent);
-            setShowPayment(true);
-        } catch (err) {
-            setBuyError(err.message || "Could not initiate payment");
-        } finally {
-            setBuying(false);
-        }
+        setShowPaymentModal(true);
     }
 
-    async function handlePaymentConfirm(_cardDetails) {
+    async function handleConfirmPurchase(paymentData) {
         setBuying(true);
+        setBuyError("");
         try {
-            // In real mode: confirm with Stripe.js here first, then send paymentIntentId
-            // In simulated mode: send null or a mock id — server skips verification
-            const intentId = paymentIntent?.simulatedMode ? "sim_" + Date.now() : paymentIntent?.paymentIntentId;
-            const result = await buyTicketWithPayment(event.id, usePoints, intentId);
-            setPurchaseResult(result);
-            setShowPayment(false);
-            setPaymentIntent(null);
+            const { clientSecret, simulatedMode, amount, paymentIntentId } = await createPaymentIntent(
+                event.id, usePoints,
+                paymentData.type === "saved" ? paymentData.cardId : null
+            );
 
-            const updatedMe = await getMe();
-            setUser(updatedMe);
+            if (simulatedMode || !clientSecret) {
+                // Stripe not configured — use simulated path
+                const result = await buyTicketWithPayment(event.id, usePoints, { simulated: true, amount });
+                setPurchaseResult(result);
+                setShowPaymentModal(false);
+            } else {
+                let stripeResult;
+                if (paymentData.type === "new") {
+                    // New card entered in the CardElement
+                    stripeResult = await stripe.confirmCardPayment(clientSecret, {
+                        payment_method: { card: paymentData.element }
+                    });
+                } else {
+                    // Saved card — must explicitly pass the payment method ID
+                    stripeResult = await stripe.confirmCardPayment(clientSecret, {
+                        payment_method: paymentData.cardId
+                    });
+                }
+
+                if (stripeResult.error) {
+                    throw new Error(stripeResult.error.message);
+                }
+
+                const finalResult = await buyTicketWithPayment(event.id, usePoints, {
+                    paymentIntentId: stripeResult.paymentIntent.id
+                });
+                setPurchaseResult(finalResult);
+                setShowPaymentModal(false);
+            }
+            showToast(setToast, "Success! Your ticket is ready.", "success");
         } catch (err) {
-            setBuyError(err.message || "Payment failed");
-            setShowPayment(false);
+            setBuyError(err.message);
+            showToast(setToast, friendlyError(err));
         } finally {
             setBuying(false);
         }
@@ -275,19 +172,14 @@ export default function EventDetailPage() {
     const surgeWarning = event.capacity != null && ticketsSold > event.capacity * 0.5;
     const ticketPrice = surgeWarning ? Math.round(event.priceCents * 1.15) : event.priceCents;
 
+    const maxDiscount = Math.floor(ticketPrice * 0.5);
+    const pointsDiscount = (user?.loyaltyAccount?.points || 0) * 10;
+    const actualDiscount = usePoints ? Math.min(pointsDiscount, maxDiscount) : 0;
+    const finalAmount = ticketPrice - actualDiscount;
+
     return (
         <main className="page page-narrow">
             <Toast toast={toast} onClose={() => setToast(null)} />
-
-            {showPayment && paymentIntent && (
-                <PaymentModal
-                    amount={paymentIntent.amount}
-                    simulatedMode={paymentIntent.simulatedMode}
-                    onConfirm={handlePaymentConfirm}
-                    onCancel={() => { setShowPayment(false); setPaymentIntent(null); }}
-                    loading={buying}
-                />
-            )}
 
             <Link to="/" className="back-link" style={{ marginBottom: "1rem" }}>← All events</Link>
 
@@ -307,7 +199,7 @@ export default function EventDetailPage() {
                             <button onClick={handleToggleSave} style={{ background: "rgba(0,0,0,0.4)", border: "none", borderRadius: "50%", width: 50, height: 50, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: isSaved ? "#ff4757" : "#fff", fontSize: "1.5rem", transition: "all 0.3s", backdropFilter: "blur(10px)" }}
                                 onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"}
                                 onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
-                                {isSaved ? "❤️" : "🤍"}
+                                {isSaved ? "♥" : "♡"}
                             </button>
                         </div>
                     </div>
@@ -315,7 +207,7 @@ export default function EventDetailPage() {
                     <div style={{ width: "100%", height: "200px", background: "linear-gradient(135deg, rgba(99,102,241,0.25) 0%, rgba(124,58,237,0.1) 50%, rgba(24,24,27,1) 100%)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 2rem" }}>
                         <h1 style={{ margin: 0, fontSize: "2rem" }}>{event.title}</h1>
                         <button onClick={handleToggleSave} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "1.2rem", transition: "all 0.3s" }}>
-                            {isSaved ? "❤️" : "🤍"}
+                            {isSaved ? "♥" : "♡"}
                         </button>
                     </div>
                 )}
@@ -452,6 +344,15 @@ export default function EventDetailPage() {
                         </p>
                     )}
                 </div>
+
+                <RealPaymentModal 
+                    isOpen={showPaymentModal}
+                    amount={finalAmount}
+                    loading={buying}
+                    savedCards={savedCards}
+                    onCancel={() => setShowPaymentModal(false)}
+                    onConfirm={handleConfirmPurchase}
+                />
             </div>
         </main>
     );

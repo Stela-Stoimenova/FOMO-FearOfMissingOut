@@ -28,6 +28,8 @@ export default function DashboardPage() {
     const [errorMsg, setErrorMsg] = useState("");
     const [toast, setToast] = useState(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+    const [recommendations, setRecommendations] = useState([]);
+    const [loadingRecs, setLoadingRecs] = useState(false);
 
     useEffect(() => {
         if (user && (user.role === "STUDIO" || user.role === "AGENCY")) {
@@ -56,6 +58,15 @@ export default function DashboardPage() {
                     .then(data => setSavedEvents(Array.isArray(data) ? data : []))
                     .catch(err => showToast(setToast, friendlyError(err)))
                     .finally(() => setLoadingSaved(false));
+            });
+        }
+        if (user && (user.role === "AGENCY" || user.role === "STUDIO")) {
+            setLoadingRecs(true);
+            import("../api/users.js").then(api => {
+                api.getRecommendedDancers()
+                    .then(data => setRecommendations(Array.isArray(data) ? data : []))
+                    .catch(err => console.error("Recommendations failed", err))
+                    .finally(() => setLoadingRecs(false));
             });
         }
     }, [user]);
@@ -311,6 +322,39 @@ export default function DashboardPage() {
 
                 return (
                     <div style={{ marginTop: '4rem' }}>
+                        {(user.role === "AGENCY" || user.role === "STUDIO") && (
+                            <section className="detail-card" style={{ marginBottom: "2rem", padding: "2rem", borderRadius: "24px", background: "linear-gradient(145deg, var(--bg-card), var(--bg-hover))", border: "1px solid var(--accent-border)", boxShadow: "0 10px 30px rgba(99,102,241,0.1)" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>
+                                            Top Recommended Dancers
+                                        </h3>
+                                        <p style={{ margin: "0.4rem 0 0 0", fontSize: "0.85rem", color: "var(--text-muted)" }}>Based on your agency's focus and location.</p>
+                                    </div>
+                                    <Link to="/profile" className="btn-secondary" style={{ fontSize: "0.75rem", padding: "0.4rem 0.8rem", borderRadius: "10px", textDecoration: "none" }}>Manage Recommendations</Link>
+                                </div>
+
+                                {loadingRecs ? (
+                                    <p className="hint">Scanning talent pool...</p>
+                                ) : recommendations.length > 0 ? (
+                                    <div style={{ display: "flex", gap: "1rem", overflowX: "auto", paddingBottom: "1rem" }}>
+                                        {recommendations.slice(0, 5).map(dancer => (
+                                            <div key={dancer.id} style={{ flex: "0 0 240px", padding: "1.25rem", background: "var(--bg-card)", borderRadius: "20px", border: "1px solid var(--border-light)", textAlign: "center" }}>
+                                                <div style={{ width: "60px", height: "60px", borderRadius: "50%", background: dancer.avatarUrl ? `url(${dancer.avatarUrl}) center/cover` : "var(--bg-input)", margin: "0 auto 0.75rem" }} />
+                                                <h4 style={{ margin: "0 0 0.25rem 0", fontSize: "0.95rem" }}>{dancer.name}</h4>
+                                                <div style={{ fontSize: "0.75rem", color: "var(--success)", fontWeight: 700, marginBottom: "0.5rem" }}>{dancer.matchScore}% Match</div>
+                                                <Link to={`/users/${dancer.id}`} className="btn-primary" style={{ padding: "0.4rem 1rem", fontSize: "0.75rem", borderRadius: "8px", textDecoration: "none", display: "inline-block" }}>View Profile</Link>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div style={{ padding: "2rem", textAlign: "center", background: "rgba(255,255,255,0.02)", borderRadius: "20px", border: "1px dashed var(--border-light)" }}>
+                                        <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: 0 }}>No matches yet. Add styles to your profile to get AI suggestions!</p>
+                                    </div>
+                                )}
+                            </section>
+                        )}
+
                         <h2 style={{ marginBottom: '0.4rem' }}>{user.role === "AGENCY" ? "Agency Insights" : "Studio Analytics"}</h2>
 
                         <p className="subtitle" style={{ marginBottom: '2rem', fontSize: '0.95rem' }}>

@@ -126,3 +126,24 @@ export async function removeCollaboration(req, res, next) {
     res.status(204).end();
   } catch (err) { next(err); }
 }
+
+export async function getTaggedCvEntries(req, res, next) {
+  try {
+    const entries = await studioService.getTaggedCvEntries(req.user.userId);
+    res.json(entries);
+  } catch (err) { next(err); }
+}
+
+export async function acceptCvTag(req, res, next) {
+  try {
+    const cv = await studioService.acceptCvTag(req.user.userId, req.params.cvId);
+    res.json(cv);
+  } catch (err) { next(err); }
+}
+
+export async function declineCvTag(req, res, next) {
+  try {
+    const cv = await studioService.declineCvTag(req.user.userId, req.params.cvId);
+    res.json(cv);
+  } catch (err) { next(err); }
+}

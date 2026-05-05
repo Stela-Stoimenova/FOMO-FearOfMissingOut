@@ -15,6 +15,11 @@ import {
     tagEvent,
     deleteMe,
     recommendations,
+    getMyInvites,
+    acceptRosterInvite,
+    declineRosterInvite,
+    acceptTeamInvite,
+    declineTeamInvite
 } from "../controllers/userController.js";
 
 const router = Router();
@@ -63,5 +68,12 @@ router.delete("/me/portfolio/:itemId", requireAuth, removePortfolioItem);
 
 // POST /api/users/me/tags/:eventId
 router.post("/me/tags/:eventId", requireAuth, tagEvent);
+
+// --- Invites & Requests ---
+router.get("/me/invites", requireAuth, getMyInvites);
+router.patch("/me/invites/roster/:id/accept", requireAuth, acceptRosterInvite);
+router.delete("/me/invites/roster/:id", requireAuth, declineRosterInvite);
+router.patch("/me/invites/team/:id/accept", requireAuth, acceptTeamInvite);
+router.delete("/me/invites/team/:id", requireAuth, declineTeamInvite);
 
 export default router;
