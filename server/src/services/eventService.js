@@ -1,4 +1,5 @@
 import { prisma } from "../db.js";
+import { BUSINESS } from "../config/business.js";
 
 function validateCoordinates(latitude, longitude) {
     if (latitude != null && (typeof latitude !== "number" || latitude < -90 || latitude > 90)) {
@@ -323,8 +324,8 @@ export async function purchaseTicket(eventId, userId, usePoints = false) {
             throw err;
         }
 
-        if (ticketsSold > event.capacity * 0.5) {
-            finalPrice = Math.round(event.priceCents * 1.15);
+        if (ticketsSold > event.capacity * BUSINESS.SURGE_THRESHOLD) {
+            finalPrice = Math.round(event.priceCents * (1 + BUSINESS.SURGE_RATE));
             surgeApplied = true;
         }
     }
@@ -338,17 +339,16 @@ export async function purchaseTicket(eventId, userId, usePoints = false) {
     });
 
     if (usePoints && loyaltyAccount && loyaltyAccount.points > 0) {
-        // Exchange rate: 10 points = €1.00 (100 cents) -> 1 point = 10 cents
-        const potentialDiscountCents = loyaltyAccount.points * 10;
+        const potentialDiscountCents = loyaltyAccount.points * BUSINESS.POINT_TO_CENT;
 
         // Cannot discount below 0
         discountCents = Math.min(potentialDiscountCents, finalPrice);
-        pointsToDeduct = Math.ceil(discountCents / 10);
+        pointsToDeduct = Math.ceil(discountCents / BUSINESS.POINT_TO_CENT);
     }
 
     // Commission calculation (on the final discounted price)
     const grossCents = finalPrice - discountCents;
-    const commissionCents = Math.round(grossCents * 0.1);
+    const commissionCents = Math.round(grossCents * BUSINESS.COMMISSION_RATE);
     const netCents = grossCents - commissionCents;
 
     try {
@@ -371,8 +371,8 @@ export async function purchaseTicket(eventId, userId, usePoints = false) {
                 },
             });
 
-            // Loyalty: 5% of gross ticket value
-            const pointsEarned = Math.round(grossCents * 0.05);
+            // Loyalty: earn LOYALTY_EARN_RATE % of gross ticket value
+            const pointsEarned = Math.round(grossCents * BUSINESS.LOYALTY_EARN_RATE);
 
             // Update loyalty account: deduct used, add earned
             const updatedLoyaltyAccount = await tx.loyaltyAccount.upsert({
@@ -387,7 +387,8 @@ export async function purchaseTicket(eventId, userId, usePoints = false) {
                     data: {
                         userId,
                         points: -pointsToDeduct,
-                        reason: `Redeemed points for ticket #${eventId}`,
+                        reason: `Redeemed points for ticket #${ticket.id}`,
+                        ticketId: ticket.id,
                     },
                 });
             }
@@ -400,6 +401,7 @@ export async function purchaseTicket(eventId, userId, usePoints = false) {
                         userId,
                         points: pointsEarned,
                         reason: `Ticket purchase for event #${eventId}`,
+                        ticketId: ticket.id,
                     },
                 });
                 loyaltyEarnedTransactionId = loyaltyTransaction.id;
@@ -444,6 +446,14 @@ export async function getUserTickets(userId) {
     });
 
     return tickets;
+}
+
+/** Check if a specific event is in user's wishlist */
+export async function isEventSaved(userId, eventId) {
+    const saved = await prisma.savedEvent.findUnique({
+        where: { userId_eventId: { userId, eventId } },
+    });
+    return { saved: !!saved };
 }
 
 /** Save an event to user's wishlist */
@@ -513,7 +523,7 @@ export async function cancelTicketById(userId, ticketId) {
         throw err;
     }
 
-    const refundAmount = Math.floor(ticket.priceCents * 0.9);
+    const refundAmount = Math.floor(ticket.priceCents * BUSINESS.CANCEL_REFUND_RATE);
 
     const result = await prisma.$transaction(async (tx) => {
         // Update ticket status
@@ -527,6 +537,24 @@ export async function cancelTicketById(userId, ticketId) {
         await tx.transaction.deleteMany({
             where: { ticketId },
         });
+
+        // Reverse loyalty: undo all loyalty transactions tied to this event purchase
+        const loyaltyTxs = await tx.loyaltyTransaction.findMany({
+            where: { userId, ticketId },
+        });
+
+        if (loyaltyTxs.length > 0) {
+            const net = loyaltyTxs.reduce((s, t) => s + t.points, 0);
+            if (net !== 0) {
+                await tx.loyaltyAccount.update({
+                    where: { userId },
+                    data: { points: { decrement: net } },
+                });
+                await tx.loyaltyTransaction.create({
+                    data: { userId, points: -net, reason: `Refund for ticket #${ticketId}`, ticketId },
+                });
+            }
+        }
 
         return { success: true, refundAmount, ticket: updated };
     });

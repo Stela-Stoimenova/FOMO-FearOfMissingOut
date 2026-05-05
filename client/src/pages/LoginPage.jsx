@@ -1,11 +1,11 @@
-// Login page — calls the real API and redirects on success
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function LoginPage() {
     const { login } = useAuth();
-    const navigate = useNavigate(); // used to redirect after login
+    const navigate = useNavigate();
+    const location = useLocation();
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -19,7 +19,8 @@ export default function LoginPage() {
 
         try {
             await login({ email, password });
-            navigate("/dashboard"); // redirect to dashboard after successful login
+            const from = location.state?.from?.pathname || "/dashboard";
+            navigate(from, { replace: true });
         } catch (err) {
             setError(err.message || "Login failed");
         } finally {
@@ -31,7 +32,6 @@ export default function LoginPage() {
         <main className="page page-narrow">
             <h1>Login</h1>
 
-            {/* Error message from the API */}
             {error && <div className="form-error">{error}</div>}
 
             <form className="auth-form" onSubmit={handleSubmit}>
