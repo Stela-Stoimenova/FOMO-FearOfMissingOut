@@ -14,12 +14,16 @@ import {
     removePortfolioItem,
     tagEvent,
     deleteMe,
+    recommendations,
 } from "../controllers/userController.js";
 
 const router = Router();
 
 // GET /api/users/search  – discover users
 router.get("/search", search);
+
+// GET /api/users/recommendations - get AI dancer recommendations
+router.get("/recommendations", requireAuth, recommendations);
 
 // GET /api/users/me  – own profile (auth required)
 router.get("/me", requireAuth, getMe);

@@ -8,8 +8,8 @@ import FollowListModal from "../components/FollowListModal.jsx";
 import CvManager from "../components/CvManager.jsx";
 import StudioManager from "../components/StudioManager.jsx";
 import AgencyManager from "../components/AgencyManager.jsx";
+import { DANCE_STYLE_OPTIONS } from "../utils/constants.js";
 
-const ALL_STYLES = ["Hip Hop", "Contemporary", "Heels", "Ballet", "Breaking", "House", "Popping", "Commercial", "Jazz", "Afro"];
 const EXPERIENCE_LEVELS = ["Beginner", "Intermediate", "Advanced", "Professional"];
 
 export default function ProfilePage() {
@@ -26,6 +26,7 @@ export default function ProfilePage() {
         danceStyles: [], experienceLevel: "", portfolioLinks: [], payoutDetails: "",
     });
     const [newLink, setNewLink] = useState("");
+    const [styleInput, setStyleInput] = useState("");
 
     // Portfolio MVP state
     const [newPortfolio, setNewPortfolio] = useState({ url: "", title: "", description: "", type: "VIDEO" });
@@ -94,6 +95,14 @@ export default function ProfilePage() {
                 ? prev.danceStyles.filter(s => s !== style)
                 : [...prev.danceStyles, style]
         }));
+    }
+
+    function addCustomStyle() {
+        const s = styleInput.trim();
+        if (s && !form.danceStyles.includes(s)) {
+            setForm(prev => ({ ...prev, danceStyles: [...prev.danceStyles, s] }));
+        }
+        setStyleInput("");
     }
 
     function addPortfolioLink() {
@@ -258,9 +267,9 @@ export default function ProfilePage() {
                 )}
 
                 {/* Dance Styles */}
-                {isDancer && user.danceStyles?.length > 0 && (
+                {user.danceStyles?.length > 0 && (
                     <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px', padding: '2rem' }}>
-                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Dance Styles</h3>
+                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Dance Styles & Focus</h3>
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             {user.danceStyles.map(s => (
                                 <span key={s} className="style-chip">{s}</span>
@@ -372,19 +381,35 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Dance Styles */}
-                {isDancer && (
-                    <div className="form-group">
-                        <label className="form-label">Dance Styles</label>
-                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            {ALL_STYLES.map(style => (
-                                <button key={style} type="button" onClick={() => toggleStyle(style)}
-                                    className={`style-chip style-chip--toggle ${form.danceStyles.includes(style) ? 'style-chip--active' : ''}`}>
-                                    {style}
-                                </button>
-                            ))}
-                        </div>
+                <div className="form-group">
+                    <label className="form-label">Dance Styles / Focus <span style={{ fontWeight: 400, color: "var(--text-muted)", marginLeft: "0.5rem", fontSize: "0.8rem" }}>(Select or add your own)</span></label>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+                        {DANCE_STYLE_OPTIONS.map(style => (
+                            <button key={style} type="button" onClick={() => toggleStyle(style)}
+                                className={`style-chip style-chip--toggle ${form.danceStyles.includes(style) ? 'style-chip--active' : ''}`}>
+                                {style}
+                            </button>
+                        ))}
                     </div>
-                )}
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                        <input
+                            value={styleInput}
+                            onChange={e => setStyleInput(e.target.value)}
+                            onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addCustomStyle())}
+                            placeholder="Add custom style…"
+                            className="form-input"
+                            style={{ flex: 1, marginBottom: 0 }}
+                        />
+                        <button type="button" onClick={addCustomStyle} className="btn-secondary" style={{ padding: "0.5rem 1rem", borderRadius: "10px", background: "var(--bg-hover)", border: "1px solid var(--border-light)", color: "var(--text-main)", cursor: "pointer" }}>
+                            Add
+                        </button>
+                    </div>
+                    {form.danceStyles.length > 0 && (
+                        <div style={{ marginTop: "0.75rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>
+                            Selected: {form.danceStyles.join(", ")}
+                        </div>
+                    )}
+                </div>
 
                 {/* Experience Level */}
                 {isDancer && (

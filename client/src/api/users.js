@@ -115,3 +115,11 @@ export async function deleteMe() {
     return apiRequest("/users/me", { method: "DELETE" });
 }
 
+/**
+ * GET /api/users/recommendations
+ * Get AI recommended dancers for Studios/Agencies
+ */
+export async function getRecommendedDancers() {
+    return apiRequest("/users/recommendations");
+}
+
