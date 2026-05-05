@@ -1,7 +1,7 @@
-// Register page — calls the real API and redirects on success
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import SocialAuthButtons from "../components/SocialAuthButtons.jsx";
 
 export default function RegisterPage() {
     const { register } = useAuth();
@@ -27,7 +27,7 @@ export default function RegisterPage() {
 
         try {
             await register(form);
-            navigate("/dashboard"); // redirect after successful registration
+            navigate("/dashboard");
         } catch (err) {
             setError(err.message || "Registration failed");
         } finally {
@@ -39,7 +39,6 @@ export default function RegisterPage() {
         <main className="page page-narrow">
             <h1>Create Account</h1>
 
-            {/* Error message from the API (e.g. email already used) */}
             {error && <div className="form-error">{error}</div>}
 
             <form className="auth-form" onSubmit={handleSubmit}>
@@ -91,6 +90,8 @@ export default function RegisterPage() {
                 <button type="submit" className="btn-primary" disabled={loading}>
                     {loading ? "Creating account…" : "Create Account"}
                 </button>
+
+                <SocialAuthButtons label="sign up" />
             </form>
 
             <p className="hint">

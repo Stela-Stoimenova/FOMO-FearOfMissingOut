@@ -54,6 +54,12 @@ export async function loginUser({ email, password }) {
     throw err;
   }
 
+  if (!user.password) {
+    const err = new Error("This account uses Google Sign-In. Please continue with Google.");
+    err.status = 401;
+    throw err;
+  }
+
   const ok = await bcrypt.compare(password, user.password);
   if (!ok) {
     const err = new Error("Invalid credentials");

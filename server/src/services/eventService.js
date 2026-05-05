@@ -182,7 +182,7 @@ export async function getEventById(id) {
     return event;
 }
 
-export async function createEvent({ title, description, location, startAt, endAt, priceCents, capacity, latitude, longitude, imageUrl }, userId) {
+export async function createEvent({ title, description, location, startAt, endAt, priceCents, capacity, latitude, longitude, imageUrl, danceStyles }, userId) {
     if (!title || !location || !startAt || typeof priceCents !== "number") {
         const err = new Error("title, location, startAt, priceCents are required");
         err.status = 400;
@@ -203,6 +203,7 @@ export async function createEvent({ title, description, location, startAt, endAt
             latitude: typeof latitude === "number" ? latitude : null,
             longitude: typeof longitude === "number" ? longitude : null,
             imageUrl: imageUrl || null,
+            danceStyles: Array.isArray(danceStyles) ? danceStyles : [],
             creatorId: userId,
         },
     });
@@ -230,7 +231,7 @@ export async function updateEvent(id, data, userId) {
         throw err;
     }
 
-    const { title, description, location, startAt, endAt, priceCents, capacity, latitude, longitude, imageUrl } = data;
+    const { title, description, location, startAt, endAt, priceCents, capacity, latitude, longitude, imageUrl, danceStyles } = data;
 
     validateCoordinates(latitude, longitude);
 
@@ -247,6 +248,7 @@ export async function updateEvent(id, data, userId) {
             latitude: typeof latitude === "number" ? latitude : existing.latitude,
             longitude: typeof longitude === "number" ? longitude : existing.longitude,
             imageUrl: imageUrl !== undefined ? (imageUrl || null) : existing.imageUrl,
+            danceStyles: Array.isArray(danceStyles) ? danceStyles : existing.danceStyles,
         },
     });
 
@@ -297,7 +299,7 @@ export async function deleteEvent(id, userId) {
     });
 }
 
-export async function purchaseTicket(eventId, userId, usePoints = false) {
+export async function purchaseTicket(eventId, userId, usePoints = false, stripePaymentIntentId = null) {
     if (!Number.isInteger(eventId)) {
         const err = new Error("Invalid event id");
         err.status = 400;
@@ -340,9 +342,9 @@ export async function purchaseTicket(eventId, userId, usePoints = false) {
 
     if (usePoints && loyaltyAccount && loyaltyAccount.points > 0) {
         const potentialDiscountCents = loyaltyAccount.points * BUSINESS.POINT_TO_CENT;
-
-        // Cannot discount below 0
-        discountCents = Math.min(potentialDiscountCents, finalPrice);
+        // Cap: points can cover at most LOYALTY_MAX_DISCOUNT_RATE (50%) of the ticket price
+        const maxDiscountCents = Math.floor(finalPrice * BUSINESS.LOYALTY_MAX_DISCOUNT_RATE);
+        discountCents = Math.min(potentialDiscountCents, maxDiscountCents);
         pointsToDeduct = Math.ceil(discountCents / BUSINESS.POINT_TO_CENT);
     }
 
@@ -359,6 +361,7 @@ export async function purchaseTicket(eventId, userId, usePoints = false) {
                     userId,
                     eventId,
                     priceCents: grossCents,
+                    stripePaymentIntentId: stripePaymentIntentId ?? null,
                 },
             });
 
@@ -495,6 +498,70 @@ export async function getUserSavedEvents(userId) {
         orderBy: { createdAt: "desc" },
     });
     return saved.map(s => s.event);
+}
+
+/**
+ * Suggest dancers for an event based on overlapping dance styles.
+ * Only the event creator (STUDIO/AGENCY) can call this.
+ */
+export async function getSuggestedDancers(eventId, requestingUserId) {
+    if (!Number.isInteger(eventId)) {
+        const err = new Error("Invalid event id");
+        err.status = 400;
+        throw err;
+    }
+
+    const event = await prisma.event.findUnique({ where: { id: eventId } });
+    if (!event) {
+        const err = new Error("Event not found");
+        err.status = 404;
+        throw err;
+    }
+    if (event.creatorId !== requestingUserId) {
+        const err = new Error("Only the event creator can view suggestions");
+        err.status = 403;
+        throw err;
+    }
+
+    // If event has no dance styles, return popular dancers by follower count
+    if (!event.danceStyles || event.danceStyles.length === 0) {
+        const dancers = await prisma.user.findMany({
+            where: { role: "DANCER" },
+            select: {
+                id: true, name: true, avatarUrl: true, city: true,
+                danceStyles: true, experienceLevel: true, bio: true,
+                _count: { select: { followers: true } },
+            },
+            orderBy: { followers: { _count: "desc" } },
+            take: 10,
+        });
+        return dancers.map(d => ({ ...d, matchScore: 0 }));
+    }
+
+    // Find dancers with at least one overlapping style
+    const dancers = await prisma.user.findMany({
+        where: {
+            role: "DANCER",
+            danceStyles: { hasSome: event.danceStyles },
+        },
+        select: {
+            id: true, name: true, avatarUrl: true, city: true,
+            danceStyles: true, experienceLevel: true, bio: true,
+            _count: { select: { followers: true } },
+        },
+        take: 50,
+    });
+
+    // Score by overlap count, break ties by follower count
+    const scored = dancers
+        .map(d => {
+            const overlap = d.danceStyles.filter(s => event.danceStyles.includes(s)).length;
+            return { ...d, matchScore: overlap };
+        })
+        .sort((a, b) => b.matchScore - a.matchScore || b._count.followers - a._count.followers)
+        .slice(0, 15);
+
+    return scored;
 }
 
 /** Cancel a ticket with 90% refund logic */

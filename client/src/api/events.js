@@ -172,3 +172,33 @@ export async function getEventsByCreator(creatorId) {
     return apiRequest(`/events?creatorId=${creatorId}&limit=100`);
 }
 
+/**
+ * POST /api/payments/intent
+ * Create a Stripe PaymentIntent (or simulated mode) before buying a ticket.
+ */
+export async function createPaymentIntent(eventId, usePoints) {
+    return apiRequest("/payments/intent", {
+        method: "POST",
+        body: JSON.stringify({ eventId, usePoints }),
+    });
+}
+
+/**
+ * POST /api/events/:id/tickets  (with stripePaymentIntentId)
+ * Confirm ticket purchase after Stripe payment.
+ */
+export async function buyTicketWithPayment(eventId, usePoints, stripePaymentIntentId) {
+    return apiRequest(`/events/${eventId}/tickets`, {
+        method: "POST",
+        body: JSON.stringify({ usePoints, stripePaymentIntentId }),
+    });
+}
+
+/**
+ * GET /api/events/:id/suggested-dancers
+ * Suggest dancers matching the event's dance styles (STUDIO/AGENCY only).
+ */
+export async function getSuggestedDancers(eventId) {
+    return apiRequest(`/events/${eventId}/suggested-dancers`);
+}
+

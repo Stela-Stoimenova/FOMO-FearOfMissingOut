@@ -13,6 +13,7 @@ import {
     unsaveEventById,
     getUserSavedEvents,
     cancelTicketById,
+    getSuggestedDancers,
 } from "../services/eventService.js";
 
 export async function list(req, res, next) {
@@ -84,8 +85,8 @@ export async function remove(req, res, next) {
 export async function buyTicket(req, res, next) {
     try {
         const eventId = Number(req.params.id);
-        const { usePoints } = req.body || {};
-        const result = await purchaseTicket(eventId, req.user.userId, !!usePoints);
+        const { usePoints, stripePaymentIntentId } = req.body || {};
+        const result = await purchaseTicket(eventId, req.user.userId, !!usePoints, stripePaymentIntentId ?? null);
         return res.status(201).json(result);
     } catch (err) {
         return next(err);
@@ -145,6 +146,17 @@ export async function cancelTicket(req, res, next) {
         const ticketId = Number(req.params.id);
         const result = await cancelTicketById(req.user.userId, ticketId);
         return res.json(result);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+/** GET /api/events/:id/suggested-dancers — STUDIO/AGENCY only */
+export async function suggestDancers(req, res, next) {
+    try {
+        const eventId = Number(req.params.id);
+        const dancers = await getSuggestedDancers(eventId, req.user.userId);
+        return res.json(dancers);
     } catch (err) {
         return next(err);
     }
