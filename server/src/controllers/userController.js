@@ -11,7 +11,8 @@ import {
     addPortfolioItem,
     deletePortfolioItem,
     toggleEventTag,
-    deleteUserAccount
+    deleteUserAccount,
+    getRecommendedDancers
 } from "../services/userService.js";
 
 export async function getMe(req, res, next) {
@@ -134,6 +135,15 @@ export async function tagEvent(req, res, next) {
         const eventId = Number(req.params.eventId);
         const result = await toggleEventTag(req.user.userId, eventId);
         return res.json(result);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+export async function recommendations(req, res, next) {
+    try {
+        const recommended = await getRecommendedDancers(req.user.userId);
+        return res.json(recommended);
     } catch (err) {
         return next(err);
     }

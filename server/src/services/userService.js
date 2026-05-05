@@ -319,3 +319,64 @@ export async function deleteUserAccount(userId) {
     });
 }
 
+/** Get AI recommended dancers for Studios/Agencies based on their profile */
+export async function getRecommendedDancers(userId) {
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true, city: true, danceStyles: true }
+    });
+
+    if (!user) {
+        const err = new Error("User not found");
+        err.status = 404;
+        throw err;
+    }
+    
+    if (user.role !== "STUDIO" && user.role !== "AGENCY") {
+        const err = new Error("Only studios and agencies can get recommendations");
+        err.status = 403;
+        throw err;
+    }
+
+    const { city, danceStyles } = user;
+
+    // Fetch potential dancers
+    const dancers = await prisma.user.findMany({
+        where: { role: "DANCER" },
+        select: {
+            id: true, name: true, avatarUrl: true, city: true,
+            danceStyles: true, experienceLevel: true, bio: true,
+            _count: { select: { followers: true } }
+        },
+        take: 100 // Fetch a pool of recent/active dancers
+    });
+
+    const scored = dancers.map(dancer => {
+        let score = 0;
+        
+        // Match styles (high weight)
+        if (danceStyles && danceStyles.length > 0 && dancer.danceStyles) {
+            const overlap = dancer.danceStyles.filter(s => danceStyles.includes(s)).length;
+            score += overlap * 20; // 20 points per matching style
+        }
+
+        // Match city (medium weight)
+        if (city && dancer.city && city.toLowerCase() === dancer.city.toLowerCase()) {
+            score += 10; // 10 points for matching city
+        }
+
+        // Base score on followers to break ties
+        score += (dancer._count.followers * 0.1);
+
+        // Cap at 100 for display purposes (optional, but good for UI "Match %")
+        const normalizedScore = Math.min(Math.round(score), 100);
+
+        return { ...dancer, matchScore: normalizedScore };
+    })
+    // Only return those with some meaningful match (e.g. at least matched city or a style, or has high followers)
+    .sort((a, b) => b.matchScore - a.matchScore)
+    .slice(0, 10);
+
+    return scored;
+}
+

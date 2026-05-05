@@ -2,15 +2,9 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { createEvent, getSuggestedDancers } from "../api/events.js";
 import { apiRequest } from "../api/client.js";
+import { DANCE_STYLE_OPTIONS } from "../utils/constants.js";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-
-const DANCE_STYLE_OPTIONS = [
-    "Ballet", "Contemporary", "Hip-Hop", "Salsa", "Bachata", "Tango", "Ballroom",
-    "Jazz", "Tap", "Breakdance", "Popping", "Locking", "Krump", "House", "Waacking",
-    "Voguing", "Afrobeats", "Soca", "Zouk", "Kizomba", "Flamenco", "Folk",
-    "Belly Dance", "Latin", "Freestyle",
-];
 
 async function geocodeLocation(locationText) {
     const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(locationText)}.json?access_token=${MAPBOX_TOKEN}&limit=1`;

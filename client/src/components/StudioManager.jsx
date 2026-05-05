@@ -5,6 +5,7 @@ import {
   getStudioTeam, addStudioTeamMember, deleteStudioTeamMember,
   getStudioCollaborations, createCollaboration, deleteCollaboration,
 } from "../api/studios.js";
+import { getRecommendedDancers } from "../api/users.js";
 import UserSelect from "./UserSelect.jsx";
 
 const DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
@@ -25,6 +26,7 @@ export default function StudioManager({ studioId }) {
   const [memberships, setMemberships] = useState([]);
   const [team, setTeam] = useState([]);
   const [collabs, setCollabs] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -44,13 +46,14 @@ export default function StudioManager({ studioId }) {
     if (!studioId) return;
     setLoading(true);
     try {
-      const [cls, mem, tm, col] = await Promise.all([
+      const [cls, mem, tm, col, recs] = await Promise.all([
         getStudioClasses(studioId),
         getOwnMembershipsManage(),      // uses /studios/me/memberships-manage → all tiers
         getStudioTeam(studioId),
         getStudioCollaborations(studioId),
+        getRecommendedDancers(),
       ]);
-      setClasses(cls); setMemberships(mem); setTeam(tm); setCollabs(col);
+      setClasses(cls); setMemberships(mem); setTeam(tm); setCollabs(col); setRecommendations(recs);
     } catch (err) {
       console.error("Load failed:", err);
     } finally {
@@ -202,6 +205,56 @@ export default function StudioManager({ studioId }) {
       )}
 
 
+
+      {/* ── AI Dancer Recommendations ── */}
+      {recommendations.length > 0 && (
+        <section className="detail-card" style={{ ...cardStyle, border: "2px solid var(--accent)", background: "linear-gradient(145deg, var(--bg-card), var(--bg-hover))" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+            <div>
+              <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700, display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                ✨ AI Dancer Recommendations
+              </h3>
+              <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>Talent matching your studio's location and styles.</p>
+            </div>
+            <span style={{ fontSize: "0.8rem", color: "var(--accent)", background: "var(--accent-soft)", padding: "0.3rem 0.8rem", borderRadius: "20px" }}>{recommendations.length} Matches</span>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1.25rem" }}>
+            {recommendations.map(dancer => (
+              <div key={dancer.id} style={{ display: "flex", flexDirection: "column", padding: "1.25rem", background: "var(--bg-card)", borderRadius: "20px", border: "1px solid var(--border-light)", transition: "transform 0.2s, border-color 0.2s", cursor: "pointer" }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'var(--accent-hover)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border-light)'; }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
+                  <div style={{ width: "50px", height: "50px", borderRadius: "14px", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
+                    <img src={dancer.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: "1rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{dancer.name || "Unnamed"}</div>
+                    {dancer.city && <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{dancer.city}</div>}
+                  </div>
+                  <div style={{ background: "var(--accent-soft)", color: "var(--accent)", fontWeight: 800, fontSize: "0.85rem", padding: "0.3rem 0.6rem", borderRadius: "10px" }}>
+                    {dancer.matchScore}%
+                  </div>
+                </div>
+                
+                {dancer.danceStyles?.length > 0 && (
+                  <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+                    {dancer.danceStyles.slice(0, 3).map(s => (
+                      <span key={s} style={{ fontSize: "0.65rem", padding: "0.2rem 0.5rem", borderRadius: "8px", background: "var(--bg-hover)", color: "var(--text-main)", border: "1px solid var(--border-light)" }}>{s}</span>
+                    ))}
+                    {dancer.danceStyles.length > 3 && <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", padding: "0.2rem" }}>+{dancer.danceStyles.length - 3}</span>}
+                  </div>
+                )}
+                
+                <div style={{ marginTop: "auto", display: "flex", gap: "0.5rem" }}>
+                  <a href={`/users/${dancer.id}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ flex: 1, textAlign: "center", padding: "0.5rem", fontSize: "0.8rem", borderRadius: "12px", textDecoration: "none" }}>View Profile</a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Classes ── */}
       <section className="detail-card" style={cardStyle}>
