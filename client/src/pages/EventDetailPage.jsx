@@ -1,7 +1,7 @@
 // Event detail page — fetches a single event from GET /api/events/:id
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { getEventById, buyTicket, saveEvent, unsaveEvent, getSavedEvents } from "../api/events.js";
+import { getEventById, buyTicket, saveEvent, unsaveEvent, isEventSaved } from "../api/events.js";
 import { getMe } from "../api/users.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Toast, { showToast, friendlyError } from "../components/Toast.jsx";
@@ -12,7 +12,7 @@ function formatPrice(cents) {
 }
 
 function formatDate(isoString) {
-    return new Date(isoString).toLocaleString("bg-BG", {
+    return new Date(isoString).toLocaleString(navigator.language, {
         weekday: "long",
         day: "numeric",
         month: "long",
@@ -56,13 +56,9 @@ export default function EventDetailPage() {
 
     useEffect(() => {
         if (isLoggedIn && user?.role === "DANCER" && event) {
-            getSavedEvents()
-                .then(saved => {
-                    setIsSaved(saved.some(e => e.id === event.id));
-                })
-                .catch(err => {
-                    console.warn("Wishlist check failed (backend might be outdated):", err);
-                });
+            isEventSaved(event.id)
+                .then(({ saved }) => setIsSaved(saved))
+                .catch(() => {});
         }
     }, [isLoggedIn, user, event]);
 
@@ -252,6 +248,11 @@ export default function EventDetailPage() {
                                 <span>{formatPrice(event.priceCents)}</span>
                             )}
                         </div>
+                        {isLoggedIn && user.role === "DANCER" && !purchaseResult && !isSoldOut && !(user.loyaltyAccount?.points > 0) && (
+                            <div className="detail-item" style={{ gridColumn: '1 / -1', fontSize: '0.85rem', color: 'var(--text-muted)', padding: '0.75rem 1rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-sm)' }}>
+                                Earn <strong>5%</strong> of this ticket price as loyalty points on your purchase.
+                            </div>
+                        )}
                         {isLoggedIn && user.role === "DANCER" && user.loyaltyAccount && user.loyaltyAccount.points > 0 && !purchaseResult && !isSoldOut && (
                             <div className="detail-item" style={{ gridColumn: '1 / -1', background: 'var(--bg-hover)', padding: '1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--accent-border)' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -347,6 +348,8 @@ export default function EventDetailPage() {
                         >
                             Edit Event
                         </button>
+                    ) : (isLoggedIn && (user.role === "STUDIO" || user.role === "AGENCY") && user.id !== event.creatorId) ? (
+                        <p className="hint">Studios and agencies cannot purchase tickets. Sign up as a dancer to attend events.</p>
                     ) : null}
 
                     {!isLoggedIn && (

@@ -30,12 +30,27 @@ npm install
 
 ### 3. Configure environment
 
-Copy `.env` and fill in your values:
+Copy the example files and fill in your values:
+
+```bash
+cp server/.env.example server/.env
+cp client/.env.example client/.env
+```
+
+**server/.env** (required):
 
 ```env
 DATABASE_URL="postgresql://postgres:<password>@localhost:5432/fomo?schema=public"
-JWT_SECRET="your_secret_key"
+JWT_SECRET="your_secret_key_min_32_chars"
 PORT=5000
+CORS_ORIGIN=http://localhost:5174
+```
+
+**client/.env** (optional — only needed for deployed frontend):
+
+```env
+VITE_API_BASE_URL=http://localhost:5000
+VITE_MAPBOX_TOKEN=your_mapbox_token_here
 ```
 
 ### 4. Run database migrations
@@ -69,7 +84,7 @@ npm start          # production
 
 Server runs at **`http://localhost:5000`**
 
-Health check: `GET http://localhost:5000/api/dance`
+Health check: `GET http://localhost:5000/api/health`
 
 ### 7. Run tests
 
@@ -87,7 +102,7 @@ All 12 tests should pass (auth, protected routes, full ticket purchase flow).
 
 ## Demo Flow with Postman
 
-Import `server/docs/postman/FOMO_API.postman_collection.json` into Postman.
+Import `docs/FOMO_API.postman_collection.json` into Postman.
 
 The collection uses these **variables** (set automatically by test scripts):
 
@@ -182,7 +197,7 @@ npm start
 # Terminal 2 — React frontend
 cd client
 npm run dev
-# → Opens at http://localhost:5173
+# → Opens at http://localhost:5174
 ```
 
 Make sure the database has seed data loaded first:
@@ -207,7 +222,7 @@ npm run seed
 ### Full Ticket Purchase Flow (step-by-step)
 
 **1. Browse Events**
-- Open `http://localhost:5173`
+- Open `http://localhost:5174`
 - The homepage shows the upcoming event grid loaded from `GET /api/events`
 - Click any event card to open the detail page
 

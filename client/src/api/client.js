@@ -1,21 +1,9 @@
-// src/api/client.js
-// Base API helper — all requests go through here.
-// Change BASE_URL once and it applies everywhere.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ? `${import.meta.env.VITE_API_BASE_URL}/api` : "/api";
 
-const BASE_URL = "/api";
-
-/**
- * Makes a fetch request and returns parsed JSON.
- * Throws an error (with message from the server) if the response is not OK.
- *
- * @param {string} path      - e.g. "/events" or "/auth/login"
- * @param {RequestInit} options - standard fetch options (method, body, headers…)
- */
 export async function apiRequest(path, options = {}) {
     const response = await fetch(`${BASE_URL}${path}`, {
         headers: {
             "Content-Type": "application/json",
-            // If a JWT token is stored, attach it automatically
             ...(localStorage.getItem("token")
                 ? { Authorization: `Bearer ${localStorage.getItem("token")}` }
                 : {}),
@@ -24,19 +12,28 @@ export async function apiRequest(path, options = {}) {
         ...options,
     });
 
+    // Expired or invalid token — clear session and redirect to login
+    if (response.status === 401) {
+        localStorage.removeItem("token");
+        if (!path.startsWith("/auth/")) {
+            window.location.href = "/login";
+        }
+        const err = new Error("Session expired. Please log in again.");
+        err.status = 401;
+        throw err;
+    }
+
     const text = await response.text();
     let data = null;
     try {
         data = text ? JSON.parse(text) : null;
-    } catch (err) {
-        // If not JSON, we'll handle it below as a generic error
+    } catch {
+        // non-JSON body handled below
     }
 
-    // If the server returned an error, throw it so callers can catch it
     if (!response.ok) {
-        const fullUrl = `${BASE_URL}${path}`;
         if (response.status === 404) {
-            console.error(`[404] API route not found: ${fullUrl}`);
+            console.error(`[404] API route not found: ${BASE_URL}${path}`);
         }
         const message = data?.error?.message || (response.status === 404 ? "API route not found" : "Something went wrong");
         const err = new Error(message);

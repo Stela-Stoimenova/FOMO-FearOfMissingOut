@@ -8,6 +8,7 @@ import {
     deleteEvent,
     purchaseTicket,
     getUserTickets,
+    isEventSaved,
     saveEventById,
     unsaveEventById,
     getUserSavedEvents,
@@ -95,6 +96,16 @@ export async function myTickets(req, res, next) {
     try {
         const tickets = await getUserTickets(req.user.userId);
         return res.json(tickets);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+export async function checkSaved(req, res, next) {
+    try {
+        const eventId = Number(req.params.id);
+        const result = await isEventSaved(req.user.userId, eventId);
+        return res.json(result);
     } catch (err) {
         return next(err);
     }

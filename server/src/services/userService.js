@@ -60,7 +60,11 @@ export async function getMyProfile(userId) {
             payoutDetails: true,
             createdAt: true,
             portfolioItems: { orderBy: { createdAt: 'desc' } },
-            taggedEvents: { select: { id: true, title: true } },
+            taggedEvents: {
+                select: { id: true, title: true, imageUrl: true, startAt: true, location: true },
+                orderBy: { startAt: 'desc' },
+                take: 10,
+            },
             _count: {
                 select: { followers: true, following: true },
             },

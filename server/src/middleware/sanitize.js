@@ -1,14 +1,21 @@
-/**
- * Sanitizes string fields in req.body by trimming whitespace.
- * Does not mutate non-string values.
- */
+function sanitizeValue(value) {
+    if (typeof value === "string") return value.trim();
+    if (Array.isArray(value)) return value.map(sanitizeValue);
+    if (value !== null && typeof value === "object") return sanitizeObject(value);
+    return value;
+}
+
+function sanitizeObject(obj) {
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+        result[key] = sanitizeValue(value);
+    }
+    return result;
+}
+
 export function sanitizeBody(req, res, next) {
     if (req.body && typeof req.body === "object") {
-        for (const [key, value] of Object.entries(req.body)) {
-            if (typeof value === "string") {
-                req.body[key] = value.trim();
-            }
-        }
+        req.body = sanitizeObject(req.body);
     }
     next();
 }

@@ -3,8 +3,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useEffect, useState } from "react";
-import { apiRequest } from "../api/client.js";
-import { getMyTickets, deleteEvent } from "../api/events.js";
+import { getMyTickets, deleteEvent, getEventsByCreator } from "../api/events.js";
 import { getLoyaltyBalance } from "../api/users.js";
 import { getMyPurchasedMemberships } from "../api/studios.js";
 import FollowListModal from "../components/FollowListModal.jsx";
@@ -28,6 +27,7 @@ export default function DashboardPage() {
     const [loadingSaved, setLoadingSaved] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
     const [toast, setToast] = useState(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
     useEffect(() => {
         if (user && (user.role === "STUDIO" || user.role === "AGENCY")) {
@@ -63,28 +63,44 @@ export default function DashboardPage() {
 
     function loadStudioEvents() {
         setLoadingEvents(true);
-        // Pass creatorId so the backend filters — avoids client-side filtering on a paged list
-        apiRequest(`/events?creatorId=${user.id}&limit=100`)
+        getEventsByCreator(user.id)
             .then(data => setStudioEvents(data.items ?? []))
             .catch(err => console.error("Failed to load studio events", err))
             .finally(() => setLoadingEvents(false));
     }
 
     async function handleDelete(id) {
-        if (!window.confirm("Are you sure you want to delete this event? This action cannot be undone.")) return;
+        setConfirmDeleteId(id);
+    }
+
+    async function handleConfirmDelete() {
+        const id = confirmDeleteId;
+        setConfirmDeleteId(null);
         try {
             await deleteEvent(id);
             loadStudioEvents();
+            showToast(setToast, "Event deleted.", "success");
         } catch (err) {
             showToast(setToast, friendlyError(err));
         }
     }
 
-    if (!user) return null; // handled by ProtectedRoute, but safety first
+    if (!user) return null;
 
     return (
         <main className="page">
             <Toast toast={toast} onClose={() => setToast(null)} />
+            {confirmDeleteId && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-lg)', padding: '2rem', maxWidth: '400px', width: '90%', boxShadow: 'var(--shadow-lg)' }}>
+                        <p style={{ marginBottom: '1.5rem', lineHeight: 1.6 }}>Delete this event? This action cannot be undone and all tickets will be removed.</p>
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+                            <button onClick={() => setConfirmDeleteId(null)} style={{ padding: '0.6rem 1.2rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)', background: 'var(--bg-input)', color: 'var(--text-main)', cursor: 'pointer' }}>Cancel</button>
+                            <button onClick={handleConfirmDelete} style={{ padding: '0.6rem 1.2rem', borderRadius: 'var(--radius-sm)', border: 'none', background: 'rgba(239,68,68,0.15)', color: '#ef4444', fontWeight: 700, cursor: 'pointer' }}>Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
                 {user.avatarUrl ? (
                     <img src={user.avatarUrl} alt="Avatar" style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }} />

@@ -12,6 +12,7 @@ import {
   remove,
   buyTicket,
   myTickets,
+  checkSaved,
   saveEvent,
   unsaveEvent,
   getSavedEvents,
@@ -50,6 +51,9 @@ router.delete("/:id", requireAuth, requireRole(["STUDIO", "AGENCY"]), remove);
 
 // POST /api/events/:id/tickets (DANCER buys ticket)
 router.post("/:id/tickets", requireAuth, requireRole(["DANCER"]), buyTicket);
+
+// GET /api/events/:id/saved (DANCER checks if event is in wishlist)
+router.get("/:id/saved", requireAuth, requireRole(["DANCER"]), checkSaved);
 
 // POST /api/events/:id/save (DANCER saves event)
 router.post("/:id/save", requireAuth, requireRole(["DANCER"]), saveEvent);

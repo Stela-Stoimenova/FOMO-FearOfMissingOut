@@ -156,3 +156,19 @@ export async function getSavedEvents() {
     return apiRequest("/events/me/saved");
 }
 
+/**
+ * GET /api/events/:id/saved
+ * Check if a single event is in the dancer's wishlist.
+ */
+export async function isEventSaved(eventId) {
+    return apiRequest(`/events/${eventId}/saved`);
+}
+
+/**
+ * GET /api/events?creatorId=X&limit=100
+ * Fetch all events created by a specific user (studio/agency dashboard).
+ */
+export async function getEventsByCreator(creatorId) {
+    return apiRequest(`/events?creatorId=${creatorId}&limit=100`);
+}
+
