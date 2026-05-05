@@ -1,4 +1,6 @@
 import { z } from "zod";
+const danceStylesField = z.array(z.string()).optional().default([]);
+
 export const createEventSchema = z.object({
     title: z.string().min(1, "title is required"),
     description: z.string().optional(),
@@ -10,6 +12,7 @@ export const createEventSchema = z.object({
     latitude: z.number().min(-90).max(90).optional(),
     longitude: z.number().min(-180).max(180).optional(),
     imageUrl: z.string().url("Invalid URL").optional().or(z.literal('')),
+    danceStyles: danceStylesField,
 });
 
 export const updateEventSchema = z.object({
@@ -23,6 +26,7 @@ export const updateEventSchema = z.object({
     latitude: z.number().min(-90).max(90).optional(),
     longitude: z.number().min(-180).max(180).optional(),
     imageUrl: z.string().url("Invalid URL").optional().or(z.literal('')),
+    danceStyles: danceStylesField,
 });
 
 export const nearbyQuerySchema = z.object({

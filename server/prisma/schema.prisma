@@ -61,7 +61,8 @@ model User {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
   email     String   @unique
-  password  String
+  password  String?
+  googleId  String?  @unique
   name      String?
   avatarUrl String?
   role      Role
@@ -132,7 +133,8 @@ model Event {
   capacity    Int?
   latitude    Float?
   longitude   Float?
-  imageUrl String?
+  imageUrl    String?
+  danceStyles String[] @default([])
 
   creatorId Int
   creator   User @relation("EventCreator", fields: [creatorId], references: [id], onDelete: Cascade)
@@ -158,11 +160,12 @@ model Ticket {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
 
-  userId     Int
-  eventId    Int
-  priceCents Int
-  status     TicketStatus @default(VALID)
-  refundAmount Int?
+  userId                 Int
+  eventId                Int
+  priceCents             Int
+  status                 TicketStatus @default(VALID)
+  refundAmount           Int?
+  stripePaymentIntentId  String?
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)

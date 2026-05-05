@@ -17,6 +17,7 @@ import {
   unsaveEvent,
   getSavedEvents,
   cancelTicket,
+  suggestDancers,
 } from "../controllers/eventController.js";
 
 const router = Router();
@@ -64,5 +65,7 @@ router.delete("/:id/save", requireAuth, requireRole(["DANCER"]), unsaveEvent);
 // POST /api/events/tickets/:id/cancel (DANCER cancels ticket)
 router.post("/tickets/:id/cancel", requireAuth, requireRole(["DANCER"]), cancelTicket);
 
+// GET /api/events/:id/suggested-dancers (STUDIO/AGENCY only — their own event)
+router.get("/:id/suggested-dancers", requireAuth, requireRole(["STUDIO", "AGENCY"]), suggestDancers);
 
 export default router;

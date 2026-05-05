@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import SocialAuthButtons from "../components/SocialAuthButtons.jsx";
 
 export default function LoginPage() {
     const { login } = useAuth();
@@ -11,6 +12,9 @@ export default function LoginPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+
+    // Show error from OAuth redirect if present
+    const oauthError = new URLSearchParams(location.search).get("error");
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -32,6 +36,13 @@ export default function LoginPage() {
         <main className="page page-narrow">
             <h1>Login</h1>
 
+            {oauthError && (
+                <div className="form-error">
+                    {oauthError === "oauth_failed"
+                        ? "Google sign-in failed. Please try again or use email."
+                        : "Sign-in was cancelled."}
+                </div>
+            )}
             {error && <div className="form-error">{error}</div>}
 
             <form className="auth-form" onSubmit={handleSubmit}>
@@ -61,6 +72,8 @@ export default function LoginPage() {
                 <button type="submit" className="btn-primary" disabled={loading}>
                     {loading ? "Logging in…" : "Login"}
                 </button>
+
+                <SocialAuthButtons label="sign in" />
             </form>
 
             <p className="hint">

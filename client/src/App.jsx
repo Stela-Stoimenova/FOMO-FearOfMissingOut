@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 
+
 import Navbar from "./components/Navbar.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import HomePage from "./pages/HomePage.jsx";
@@ -16,6 +17,7 @@ import MyTicketsPage from "./pages/MyTicketsPage.jsx";
 import ProfilePage from "./pages/ProfilePage.jsx";
 import PublicProfilePage from "./pages/PublicProfilePage.jsx";
 import DiscoveryPage from "./pages/DiscoveryPage.jsx";
+import AuthCallbackPage from "./pages/AuthCallbackPage.jsx";
 import Footer from "./components/Footer.jsx";
 
 function AppRoutes() {
@@ -41,6 +43,7 @@ function AppRoutes() {
 
       <Route path="/discover" element={<DiscoveryPage />} />
       <Route path="/users/:id" element={<PublicProfilePage />} />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
       <Route path="*" element={
         <main className="page page-narrow">
