@@ -1,4 +1,6 @@
 import * as studioService from "../services/studioService.js";
+import { prisma } from "../db.js";
+import * as stripeService from "../services/stripeService.js";
 
 // --- Weekly Classes ---
 export async function listClasses(req, res, next) {
@@ -65,6 +67,50 @@ export async function removeMembership(req, res, next) {
   try {
     await studioService.removeMembership(req.params.tierId, req.user.userId);
     res.status(204).end();
+  } catch (err) { next(err); }
+}
+
+export async function createMembershipPaymentIntent(req, res, next) {
+  try {
+    const { tierId } = req.params;
+    const userId = req.user.userId;
+
+    const tier = await prisma.membershipTier.findUnique({ where: { id: Number(tierId) } });
+    if (!tier || !tier.isActive) {
+      return res.status(404).json({ error: { message: "Membership tier not found or inactive", status: 404 } });
+    }
+
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return res.json({ clientSecret: null, simulatedMode: true, amount: tier.priceCents, currency: "eur" });
+    }
+
+    let Stripe;
+    try {
+      ({ default: Stripe } = await import("stripe"));
+    } catch {
+      return res.json({ clientSecret: null, simulatedMode: true, amount: tier.priceCents, currency: "eur" });
+    }
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-04-10" });
+    const customerId = await stripeService.getOrCreateCustomer(userId);
+
+    const intentParams = {
+      amount: Math.max(tier.priceCents, 50),
+      currency: "eur",
+      customer: customerId,
+      metadata: { tierId: String(tierId), userId: String(userId) },
+    };
+
+    const { paymentMethodId } = req.body;
+    if (paymentMethodId) {
+      intentParams.payment_method = paymentMethodId;
+      intentParams.confirm = true;
+      intentParams.off_session = false;
+      intentParams.return_url = `${process.env.CLIENT_URL || "http://localhost:5173"}/dashboard?payment=success`;
+    }
+
+    const intent = await stripe.paymentIntents.create(intentParams);
+    res.json({ clientSecret: intent.client_secret, paymentIntentId: intent.id, status: intent.status, simulatedMode: false, amount: tier.priceCents, currency: "eur" });
   } catch (err) { next(err); }
 }
 

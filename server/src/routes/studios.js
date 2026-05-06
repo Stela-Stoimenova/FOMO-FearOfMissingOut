@@ -75,7 +75,15 @@ router.delete(
   studioController.removeMembership
 );
 
-// Protected (DANCER only): Purchase a membership
+// Protected (DANCER only): Create payment intent for membership
+router.post(
+  "/memberships/:tierId/payment-intent",
+  requireAuth,
+  requireRole(["DANCER"]),
+  studioController.createMembershipPaymentIntent
+);
+
+// Protected (DANCER only): Purchase a membership (after payment confirmed)
 router.post(
   "/memberships/:tierId/purchase",
   requireAuth,
@@ -111,13 +119,7 @@ router.delete(
 );
 
 // --- Collaborations ---
-// Public: List collaborations
-router.get("/:id/collaborations", studioController.listCollaborations);
-
-// Public: List verified CV mentions for this studio
-router.get("/:id/cv-tags", studioController.listPublicCvTags);
-
-// Protected (STUDIO only):
+// Protected (STUDIO only): /me/* must come before /:id/* to avoid "me" being captured as :id
 router.post(
   "/me/collaborations",
   requireAuth,
@@ -157,5 +159,9 @@ router.delete(
   requireRole(["STUDIO"]),
   studioController.declineCvTag
 );
+
+// Public: List collaborations and CV mentions — must come AFTER /me/* routes
+router.get("/:id/collaborations", studioController.listCollaborations);
+router.get("/:id/cv-tags", studioController.listPublicCvTags);
 
 export default router;

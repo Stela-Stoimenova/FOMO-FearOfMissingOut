@@ -3,16 +3,20 @@ import { useParams, Link } from "react-router-dom";
 import { getUserProfile, followUser, unfollowUser, getMe, getFollowers } from "../api/users.js";
 import { sendMessage } from "../api/messages.js";
 import { getEvents } from "../api/events.js";
-import { getStudioClasses, getStudioMemberships, getStudioTeam, getStudioCollaborations, purchaseMembership, getPublicStudioCvTags } from "../api/studios.js";
+import { getStudioClasses, getStudioMemberships, getStudioTeam, getStudioCollaborations, purchaseMembership, getPublicStudioCvTags, createMembershipPaymentIntent } from "../api/studios.js";
 import { getPublicAgencyRoster, getPublicAgencyCollaborations, getPublicAgencyCvTags } from "../api/agency.js";
+import { getWallet } from "../api/payments.js";
 import { getUserCv } from "../api/cv.js";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useStripe } from "@stripe/react-stripe-js";
 import FollowListModal from "../components/FollowListModal.jsx";
+import RealPaymentModal from "../components/RealPaymentModal.jsx";
 import Toast, { showToast, friendlyError } from "../components/Toast.jsx";
 
 export default function PublicProfilePage() {
     const { id } = useParams();
     const { user: me, setUser } = useAuth();
+    const stripe = useStripe();
 
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -20,12 +24,18 @@ export default function PublicProfilePage() {
     const [isFollowing, setIsFollowing] = useState(false);
     const [followLoading, setFollowLoading] = useState(false);
     const [msgSent, setMsgSent] = useState(false);
-    const [purchaseSuccess, setPurchaseSuccess] = useState(false); // separate from msgSent
+    const [purchaseSuccess, setPurchaseSuccess] = useState(false);
     const [isWritingMessage, setIsWritingMessage] = useState(false);
     const [messageContent, setMessageContent] = useState("");
     const [messageLoading, setMessageLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
     const [toast, setToast] = useState(null);
+
+    // Membership payment modal state
+    const [showMembershipModal, setShowMembershipModal] = useState(false);
+    const [selectedMembership, setSelectedMembership] = useState(null);
+    const [membershipBuying, setMembershipBuying] = useState(false);
+    const [membershipSavedCards, setMembershipSavedCards] = useState([]);
     const [createdEvents, setCreatedEvents] = useState([]);
     const [attendedEvents, setAttendedEvents] = useState([]);
 
@@ -80,8 +90,10 @@ export default function PublicProfilePage() {
                         ]);
                         setClasses(cls); setMemberships(mem); setTeam(tm); setCollabs(col);
                     } catch (err) {
-                        // Individual section still renders as empty; inform via toast
                         showToast(setToast, `Could not load studio details: ${friendlyError(err)}`);
+                    }
+                    if (me?.role === "DANCER") {
+                        getWallet().then(setMembershipSavedCards).catch(() => {});
                     }
                 }
 
@@ -168,7 +180,7 @@ export default function PublicProfilePage() {
         }
     }
 
-    async function handlePurchaseMembership(tierId) {
+    function handlePurchaseMembership(membership) {
         if (!me) {
             setErrorMsg("Please log in to purchase a membership.");
             setTimeout(() => setErrorMsg(""), 4000);
@@ -179,16 +191,47 @@ export default function PublicProfilePage() {
             setTimeout(() => setErrorMsg(""), 4000);
             return;
         }
+        setSelectedMembership(membership);
+        setShowMembershipModal(true);
+    }
 
-        if (!window.confirm("Do you want to purchase this membership?")) return;
-
+    async function handleConfirmMembershipPurchase(paymentData) {
+        if (!selectedMembership) return;
+        setMembershipBuying(true);
         try {
-            await purchaseMembership(tierId);
+            const { clientSecret, simulatedMode, paymentIntentId, status } = await createMembershipPaymentIntent(
+                selectedMembership.id,
+                paymentData.type === "saved" ? paymentData.cardId : null
+            );
+
+            if (simulatedMode || !clientSecret) {
+                await purchaseMembership(selectedMembership.id);
+            } else {
+                let stripeResult;
+                if (paymentData.type === "new") {
+                    stripeResult = await stripe.confirmCardPayment(clientSecret, {
+                        payment_method: { card: paymentData.element }
+                    });
+                } else if (status === "succeeded") {
+                    stripeResult = { paymentIntent: { id: paymentIntentId, status: "succeeded" } };
+                } else {
+                    stripeResult = await stripe.confirmCardPayment(clientSecret, {
+                        payment_method: paymentData.cardId
+                    });
+                }
+                if (stripeResult.error) throw new Error(stripeResult.error.message);
+                await purchaseMembership(selectedMembership.id);
+            }
+
+            setShowMembershipModal(false);
+            setSelectedMembership(null);
             setPurchaseSuccess(true);
             showToast(setToast, "Membership purchased successfully!", "success");
             setTimeout(() => setPurchaseSuccess(false), 4000);
         } catch (err) {
             showToast(setToast, friendlyError(err));
+        } finally {
+            setMembershipBuying(false);
         }
     }
 
@@ -207,6 +250,15 @@ export default function PublicProfilePage() {
     return (
         <main className="page" style={{ maxWidth: '800px' }}>
             <Toast toast={toast} onClose={() => setToast(null)} />
+            <RealPaymentModal
+                isOpen={showMembershipModal}
+                amount={selectedMembership?.priceCents || 0}
+                onConfirm={handleConfirmMembershipPurchase}
+                onCancel={() => { setShowMembershipModal(false); setSelectedMembership(null); }}
+                loading={membershipBuying}
+                savedCards={membershipSavedCards}
+                description={selectedMembership ? `${selectedMembership.name} membership — ${selectedMembership.durationDays} days validity, ${selectedMembership.classLimit ? `${selectedMembership.classLimit} classes` : 'unlimited classes'}.` : undefined}
+            />
             <Link to="/" className="back-link">← Back to events</Link>
 
             {errorMsg && (
@@ -359,7 +411,7 @@ export default function PublicProfilePage() {
                                 </div>
                                 {me?.role === "DANCER" && !isOwnProfile && (
                                     <button
-                                        onClick={() => handlePurchaseMembership(m.id)}
+                                        onClick={() => handlePurchaseMembership(m)}
                                         style={{ width: '100%', padding: '0.6rem', fontSize: '0.85rem', borderRadius: '999px', background: 'var(--accent)', color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.2s' }}
                                     >
                                         Purchase

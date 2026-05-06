@@ -96,7 +96,6 @@ export default function StudioManager({ studioId }) {
   }
 
   async function handleDeleteClass(id) {
-    if (!window.confirm("Delete this class? This cannot be undone.")) return;
     try {
       await deleteStudioClass(id);
       await loadAll();
@@ -139,7 +138,6 @@ export default function StudioManager({ studioId }) {
   }
 
   async function handleDeleteMembership(id) {
-    if (!window.confirm("Delete this membership plan? If there are active memberships, it will be deactivated instead.")) return;
     try {
       await deleteMembershipTier(id);
       await loadAll();
@@ -159,7 +157,6 @@ export default function StudioManager({ studioId }) {
   }
 
   async function handleDeleteTeam(id) {
-    if (!window.confirm("Remove this team member?")) return;
     try {
       await deleteStudioTeamMember(id);
       await loadAll();
@@ -187,7 +184,6 @@ export default function StudioManager({ studioId }) {
   }
 
   async function handleDeleteCollab(id) {
-    if (!window.confirm("Remove this collaboration?")) return;
     try {
       await deleteCollaboration(id);
       await loadAll();
@@ -203,7 +199,6 @@ export default function StudioManager({ studioId }) {
   }
 
   async function handleDeclineCv(cvId) {
-    if (!window.confirm("Reject this CV mention?")) return;
     try {
       await declineCvTag(cvId);
       await loadAll();

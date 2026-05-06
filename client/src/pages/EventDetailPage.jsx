@@ -348,11 +348,12 @@ export default function EventDetailPage() {
                     )}
                 </div>
 
-                <RealPaymentModal 
+                <RealPaymentModal
                     isOpen={showPaymentModal}
                     amount={finalAmount}
                     loading={buying}
                     savedCards={savedCards}
+                    description="Your ticket will be issued immediately after payment."
                     onCancel={() => setShowPaymentModal(false)}
                     onConfirm={handleConfirmPurchase}
                 />

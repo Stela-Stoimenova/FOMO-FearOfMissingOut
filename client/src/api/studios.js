@@ -50,6 +50,13 @@ export async function deleteMembershipTier(tierId) {
   });
 }
 
+export async function createMembershipPaymentIntent(tierId, paymentMethodId) {
+  return apiRequest(`/studios/memberships/${tierId}/payment-intent`, {
+    method: "POST",
+    body: JSON.stringify(paymentMethodId ? { paymentMethodId } : {}),
+  });
+}
+
 export async function purchaseMembership(tierId) {
   return apiRequest(`/studios/memberships/${tierId}/purchase`, {
     method: "POST",
