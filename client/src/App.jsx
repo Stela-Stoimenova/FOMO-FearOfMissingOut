@@ -22,6 +22,7 @@ import ProfilePage from "./pages/ProfilePage.jsx";
 import PublicProfilePage from "./pages/PublicProfilePage.jsx";
 import DiscoveryPage from "./pages/DiscoveryPage.jsx";
 import AuthCallbackPage from "./pages/AuthCallbackPage.jsx";
+import NotificationsPage from "./pages/NotificationsPage.jsx";
 import Footer from "./components/Footer.jsx";
 
 function AppRoutes() {
@@ -47,6 +48,7 @@ function AppRoutes() {
 
       <Route path="/discover" element={<DiscoveryPage />} />
       <Route path="/users/:id" element={<PublicProfilePage />} />
+      <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
       <Route path="*" element={

@@ -102,6 +102,14 @@ export async function deleteCollaboration(agencyId) {
   });
 }
 
+export async function acceptAgencyCollaboration(agencyId) {
+  return apiRequest(`/studios/me/collaborations/${agencyId}/accept`, { method: "PATCH" });
+}
+
+export async function getPublicStudioCvTags(studioId) {
+  return apiRequest(`/studios/${studioId}/cv-tags`);
+}
+
 export async function getTaggedCvEntries() {
   return apiRequest("/studios/me/cv-tags");
 }

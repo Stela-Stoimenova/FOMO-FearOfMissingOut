@@ -1,6 +1,7 @@
 // Navbar — reads auth state from context to show the right links
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import NotificationBell from "./NotificationBell.jsx";
 
 export default function Navbar() {
     const { isLoggedIn, user, logout } = useAuth();
@@ -34,6 +35,8 @@ export default function Navbar() {
                         {(user.role === "STUDIO" || user.role === "AGENCY") && (
                             <NavLink to="/create-event">+ Event</NavLink>
                         )}
+
+                        <NotificationBell />
 
                         {/* User info + logout */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>

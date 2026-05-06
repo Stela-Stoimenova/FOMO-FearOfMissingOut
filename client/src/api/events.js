@@ -126,7 +126,7 @@ export async function deleteEvent(id) {
 
 /**
  * POST /api/events/tickets/:id/cancel
- * Cancel a ticket and get a 90% refund.
+ * Cancel a ticket. Refund tier depends on how far before the event the cancellation is made.
  */
 export async function cancelTicket(ticketId) {
     return apiRequest(`/events/tickets/${ticketId}/cancel`, { method: "POST" });

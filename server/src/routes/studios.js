@@ -114,6 +114,9 @@ router.delete(
 // Public: List collaborations
 router.get("/:id/collaborations", studioController.listCollaborations);
 
+// Public: List verified CV mentions for this studio
+router.get("/:id/cv-tags", studioController.listPublicCvTags);
+
 // Protected (STUDIO only):
 router.post(
   "/me/collaborations",
@@ -121,6 +124,12 @@ router.post(
   requireRole(["STUDIO"]),
   validate(createCollaborationSchema),
   studioController.addCollaboration
+);
+router.patch(
+  "/me/collaborations/:agencyId/accept",
+  requireAuth,
+  requireRole(["STUDIO"]),
+  studioController.acceptAgencyCollaboration
 );
 router.delete(
   "/me/collaborations/:agencyId",

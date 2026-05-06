@@ -48,12 +48,19 @@ function ConfirmModal({ message, onConfirm, onCancel }) {
     );
 }
 
+function getRefundTier(eventStartAt) {
+    const hours = (new Date(eventStartAt) - new Date()) / (1000 * 60 * 60);
+    if (hours >= 168) return { rate: 80, label: "80% refund — cancelled 7+ days before the event" };
+    if (hours >= 48)  return { rate: 50, label: "50% refund — cancelled 2–7 days before the event" };
+    return { rate: 0, label: "No refund — cancelled under 48 hours before the event" };
+}
+
 export default function MyTicketsPage() {
     const [tickets, setTickets] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [toast, setToast] = useState(null);
-    const [confirmTicketId, setConfirmTicketId] = useState(null);
+    const [confirmTicket, setConfirmTicket] = useState(null);
 
     useEffect(() => {
         fetchTickets();
@@ -72,18 +79,24 @@ export default function MyTicketsPage() {
         }
     }
 
-    function handleCancelClick(e, ticketId) {
+    function handleCancelClick(e, ticket) {
         e.preventDefault();
         e.stopPropagation();
-        setConfirmTicketId(ticketId);
+        setConfirmTicket(ticket);
     }
 
     async function handleConfirmCancel() {
-        const ticketId = confirmTicketId;
-        setConfirmTicketId(null);
+        const ticketId = confirmTicket.id;
+        setConfirmTicket(null);
         try {
-            await cancelTicket(ticketId);
-            showToast(setToast, "Ticket cancelled. You will receive a 90% refund.", "success");
+            const result = await cancelTicket(ticketId);
+            const refundEuros = (result.refundAmount / 100).toFixed(2);
+            const tierMessages = {
+                early: `Ticket cancelled. You will receive a €${refundEuros} refund (80% — cancelled 7+ days before the event).`,
+                mid:   `Ticket cancelled. You will receive a €${refundEuros} refund (50% — cancelled 2–7 days before the event).`,
+                late:  "Ticket cancelled. No refund applies — cancellation was under 48 hours before the event.",
+            };
+            showToast(setToast, tierMessages[result.refundTier] ?? "Ticket cancelled.", "success");
             fetchTickets();
         } catch (err) {
             showToast(setToast, friendlyError(err));
@@ -120,11 +133,11 @@ export default function MyTicketsPage() {
     return (
         <main className="page">
             <Toast toast={toast} onClose={() => setToast(null)} />
-            {confirmTicketId && (
+            {confirmTicket && (
                 <ConfirmModal
-                    message="Are you sure you want to cancel this ticket? You will receive a 90% refund."
+                    message={`Are you sure you want to cancel this ticket? ${getRefundTier(confirmTicket.event.startAt).label}.`}
                     onConfirm={handleConfirmCancel}
-                    onCancel={() => setConfirmTicketId(null)}
+                    onCancel={() => setConfirmTicket(null)}
                 />
             )}
 
@@ -194,7 +207,7 @@ export default function MyTicketsPage() {
                                             <span style={{ color: "var(--success)", fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Confirmed</span>
                                         </div>
                                         <button
-                                            onClick={(e) => handleCancelClick(e, ticket.id)}
+                                            onClick={(e) => handleCancelClick(e, ticket)}
                                             style={{
                                                 background: 'rgba(239, 68, 68, 0.1)',
                                                 border: '1px solid rgba(239, 68, 68, 0.2)',

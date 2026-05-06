@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useEffect, useState } from "react";
 import { getMyTickets, deleteEvent, getEventsByCreator } from "../api/events.js";
 import { getLoyaltyBalance } from "../api/users.js";
+import { getUserCv } from "../api/cv.js";
 import { getMyPurchasedMemberships } from "../api/studios.js";
 import FollowListModal from "../components/FollowListModal.jsx";
 import Toast, { showToast, friendlyError } from "../components/Toast.jsx";
@@ -19,6 +20,7 @@ export default function DashboardPage() {
     const [loadingEvents, setLoadingEvents] = useState(false);
     const [myTickets, setMyTickets] = useState([]);
     const [loadingTickets, setLoadingTickets] = useState(false);
+    const [myCvEntries, setMyCvEntries] = useState([]);
     const [loyalty, setLoyalty] = useState(null);
     const [showList, setShowList] = useState(null); // 'followers' | 'following' | null
     const [myMemberships, setMyMemberships] = useState([]);
@@ -37,10 +39,13 @@ export default function DashboardPage() {
         }
         if (user && user.role === "DANCER") {
             setLoadingTickets(true);
-            getMyTickets()
-                .then(data => setMyTickets(Array.isArray(data) ? data : []))
-                .catch(err => showToast(setToast, friendlyError(err)))
-                .finally(() => setLoadingTickets(false));
+            Promise.all([
+                getMyTickets().catch(() => []),
+                getUserCv(user.id).catch(() => []),
+            ]).then(([tickets, cv]) => {
+                setMyTickets(Array.isArray(tickets) ? tickets : []);
+                setMyCvEntries(Array.isArray(cv) ? cv : []);
+            }).finally(() => setLoadingTickets(false));
 
             getLoyaltyBalance()
                 .then(data => setLoyalty(data))
@@ -196,36 +201,78 @@ export default function DashboardPage() {
                 </Link>
             </div>
 
-            {/* DANCER — Recent Tickets */}
-            {user.role === "DANCER" && (
-                <section style={{ marginTop: '2rem' }}>
-                    <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>My Recent Tickets</h2>
-                    {loadingTickets ? (
-                        <p className="hint">Loading tickets…</p>
-                    ) : myTickets.length === 0 ? (
-                        <div className="detail-item" style={{ textAlign: 'center', padding: '2rem' }}>
-                            <p style={{ color: 'var(--text-muted)' }}>No tickets yet. <Link to="/" style={{ color: 'var(--primary)' }}>Browse events</Link> to get started!</p>
-                        </div>
-                    ) : (
-                        <div style={{ display: 'grid', gap: '0.75rem' }}>
-                            {myTickets.slice(0, 5).map(ticket => (
-                                <Link key={ticket.id} to={`/events/${ticket.eventId}`} className="detail-item" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', textDecoration: 'none', color: 'inherit', transition: 'background 0.2s' }}>
-                                    <div>
-                                        <strong>{ticket.event?.title || `Event #${ticket.eventId}`}</strong>
-                                        <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                                            {new Date(ticket.createdAt).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    <span style={{ color: 'var(--success)', fontWeight: 600 }}>{formatPrice(ticket.priceCents)}</span>
-                                </Link>
-                            ))}
-                            {myTickets.length > 5 && (
-                                <Link to="/my-tickets" style={{ color: 'var(--primary)', fontSize: '0.9rem', textAlign: 'center' }}>View all {myTickets.length} tickets →</Link>
-                            )}
-                        </div>
-                    )}
-                </section>
-            )}
+            {/* DANCER — Recent Activity */}
+            {user.role === "DANCER" && (() => {
+                const ticketActivities = myTickets.map(t => ({
+                    id: `ticket-${t.id}`,
+                    type: t.status === 'CANCELLED' ? 'cancel' : 'buy',
+                    label: t.status === 'CANCELLED' ? 'Cancelled ticket' : 'Purchased ticket',
+                    title: t.event?.title || `Event #${t.eventId}`,
+                    detail: formatPrice(t.priceCents),
+                    date: t.updatedAt || t.createdAt,
+                    linkTo: `/events/${t.eventId}`,
+                }));
+                const cvActivities = myCvEntries.map(cv => ({
+                    id: `cv-${cv.id}`,
+                    type: 'cv',
+                    label: cv.taggedAgencyId || cv.taggedStudioId ? 'Tagged in CV' : 'Added to CV',
+                    title: cv.title,
+                    detail: cv.type ? cv.type.charAt(0) + cv.type.slice(1).toLowerCase() : '',
+                    date: cv.createdAt,
+                    linkTo: null,
+                }));
+                const activities = [...ticketActivities, ...cvActivities]
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))
+                    .slice(0, 8);
+
+                const iconStyle = (type) => ({
+                    buy:    { bg: 'rgba(16,185,129,0.15)', color: 'var(--success)',  symbol: '+' },
+                    cancel: { bg: 'rgba(239,68,68,0.12)',  color: 'var(--danger)',   symbol: '−' },
+                    cv:     { bg: 'rgba(99,102,241,0.15)', color: 'var(--accent)',   symbol: 'CV' },
+                })[type] || { bg: 'var(--bg-hover)', color: 'var(--text-muted)', symbol: '·' };
+
+                return (
+                    <section style={{ marginTop: '2rem' }}>
+                        <h2 style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Recent Activity</h2>
+                        {loadingTickets ? (
+                            <p className="hint">Loading activity…</p>
+                        ) : activities.length === 0 ? (
+                            <div className="detail-item" style={{ textAlign: 'center', padding: '2rem' }}>
+                                <p style={{ color: 'var(--text-muted)' }}>No activity yet. <Link to="/" style={{ color: 'var(--primary)' }}>Browse events</Link> to get started!</p>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'grid', gap: '0.5rem' }}>
+                                {activities.map(item => {
+                                    const ic = iconStyle(item.type);
+                                    const inner = (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', padding: '0.875rem 1rem', background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: '14px', transition: 'background 0.2s', textDecoration: 'none', color: 'inherit' }}>
+                                            <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: ic.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '0.7rem', fontWeight: 800, color: ic.color }}>
+                                                {ic.symbol}
+                                            </div>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.1rem' }}>{item.label}</div>
+                                                <strong style={{ fontSize: '0.9rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title}</strong>
+                                            </div>
+                                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                {item.detail && <span style={{ fontSize: '0.85rem', fontWeight: 600, color: item.type === 'cancel' ? 'var(--danger)' : item.type === 'buy' ? 'var(--success)' : 'var(--accent)', display: 'block' }}>{item.detail}</span>}
+                                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{new Date(item.date).toLocaleDateString()}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                    return item.linkTo ? (
+                                        <Link key={item.id} to={item.linkTo} style={{ textDecoration: 'none', color: 'inherit' }}>{inner}</Link>
+                                    ) : (
+                                        <div key={item.id}>{inner}</div>
+                                    );
+                                })}
+                                {myTickets.length > 5 && (
+                                    <Link to="/my-tickets" style={{ color: 'var(--primary)', fontSize: '0.9rem', textAlign: 'center', display: 'block', marginTop: '0.25rem' }}>View all {myTickets.length} tickets →</Link>
+                                )}
+                            </div>
+                        )}
+                    </section>
+                );
+            })()}
 
             {/* DANCER — Wish List */}
             {user.role === "DANCER" && (
@@ -329,7 +376,7 @@ export default function DashboardPage() {
                                         <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>
                                             Top Recommended Dancers
                                         </h3>
-                                        <p style={{ margin: "0.4rem 0 0 0", fontSize: "0.85rem", color: "var(--text-muted)" }}>Based on your agency's focus and location.</p>
+                                        <p style={{ margin: "0.4rem 0 0 0", fontSize: "0.85rem", color: "var(--text-muted)" }}>Based on your {user.role === "STUDIO" ? "studio's" : "agency's"} focus and location.</p>
                                     </div>
                                     <Link to="/profile" className="btn-secondary" style={{ fontSize: "0.75rem", padding: "0.4rem 0.8rem", borderRadius: "10px", textDecoration: "none" }}>Manage Recommendations</Link>
                                 </div>
@@ -349,7 +396,7 @@ export default function DashboardPage() {
                                     </div>
                                 ) : (
                                     <div style={{ padding: "2rem", textAlign: "center", background: "rgba(255,255,255,0.02)", borderRadius: "20px", border: "1px dashed var(--border-light)" }}>
-                                        <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: 0 }}>No matches yet. Add styles to your profile to get AI suggestions!</p>
+                                        <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: 0 }}>No matches yet. Add styles to your profile to get suggestions!</p>
                                     </div>
                                 )}
                             </section>

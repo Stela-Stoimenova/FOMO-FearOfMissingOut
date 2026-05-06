@@ -30,9 +30,8 @@ export function googleRedirect(req, res) {
         client_id: process.env.GOOGLE_CLIENT_ID,
         redirect_uri: process.env.GOOGLE_CALLBACK_URL,
         response_type: "code",
-        scope: "email profile",
-        access_type: "offline",
-        prompt: "select_account",
+        scope: "openid email profile",
+        prompt: "consent",
     });
     res.redirect(url);
 }
@@ -43,12 +42,12 @@ export async function googleCallback(req, res, next) {
         const { code, error } = req.query;
 
         if (error || !code) {
-            const frontendBase = process.env.CORS_ORIGIN || "http://localhost:5174";
+            const frontendBase = (process.env.CLIENT_URL || process.env.CORS_ORIGIN || "http://localhost:5174").split(",")[0].trim();
             return res.redirect(`${frontendBase}/auth/callback?error=access_denied`);
         }
 
         const { token, isNew } = await exchangeGoogleCode(code);
-        const frontendBase = process.env.CORS_ORIGIN || "http://localhost:5174";
+        const frontendBase = (process.env.CLIENT_URL || process.env.CORS_ORIGIN || "http://localhost:5174").split(",")[0].trim();
         res.redirect(`${frontendBase}/auth/callback?token=${token}${isNew ? "&new=1" : ""}`);
     } catch (err) {
         return next(err);

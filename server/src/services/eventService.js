@@ -1,5 +1,6 @@
 import { prisma } from "../db.js";
 import { BUSINESS } from "../config/business.js";
+import { createNotification } from "./notificationService.js";
 
 function validateCoordinates(latitude, longitude) {
     if (latitude != null && (typeof latitude !== "number" || latitude < -90 || latitude > 90)) {
@@ -26,7 +27,7 @@ function haversineKm(lat1, lon1, lat2, lon2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export async function listEvents({ q, city, from, to, minPrice, maxPrice, creatorId, page = "1", limit = "10" }) {
+export async function listEvents({ q, city, from, to, minPrice, maxPrice, creatorId, attendeeId, page = "1", limit = "10" }) {
     const where = {
         AND: [
             q
@@ -40,6 +41,7 @@ export async function listEvents({ q, city, from, to, minPrice, maxPrice, creato
                 : {},
             city ? { location: { contains: String(city), mode: "insensitive" } } : {},
             creatorId ? { creatorId: Number(creatorId) } : {},
+            attendeeId ? { tickets: { some: { userId: Number(attendeeId), status: "VALID" } } } : {},
             from ? { startAt: { gte: new Date(String(from)) } } : {},
             to ? { startAt: { lte: new Date(String(to)) } } : {},
             minPrice ? { priceCents: { gte: Number(minPrice) } } : {},
@@ -428,6 +430,22 @@ export async function purchaseTicket(eventId, userId, usePoints = false, stripeP
             };
         });
 
+        // Notify event creator (studio/agency) about the ticket purchase
+        const eventWithCreator = await prisma.event.findUnique({
+            where: { id: eventId },
+            select: { creatorId: true, title: true },
+        });
+        if (eventWithCreator && eventWithCreator.creatorId !== userId) {
+            const buyer = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+            createNotification({
+                userId: eventWithCreator.creatorId,
+                actorId: userId,
+                type: 'TICKET_PURCHASE',
+                message: `${buyer?.name || 'A dancer'} purchased a ticket for "${eventWithCreator.title}".`,
+                linkPath: `/events/${eventId}`,
+            }).catch(() => {});
+        }
+
         return result;
     } catch (err) {
         if (String(err).includes("Unique constraint")) {
@@ -564,7 +582,7 @@ export async function getSuggestedDancers(eventId, requestingUserId) {
     return scored;
 }
 
-/** Cancel a ticket with 90% refund logic */
+/** Cancel a ticket with time-based refund tiers. Platform keeps its commission. Loyalty points are not restored. */
 export async function cancelTicketById(userId, ticketId) {
     const ticket = await prisma.ticket.findUnique({
         where: { id: ticketId },
@@ -583,47 +601,70 @@ export async function cancelTicketById(userId, ticketId) {
         throw err;
     }
 
-    // Check if event has already started
     if (new Date() > new Date(ticket.event.startAt)) {
         const err = new Error("Cannot cancel an event that has already started");
         err.status = 400;
         throw err;
     }
 
-    const refundAmount = Math.floor(ticket.priceCents * BUSINESS.CANCEL_REFUND_RATE);
+    // Time-based refund tier
+    const now = new Date();
+    const eventStart = new Date(ticket.event.startAt);
+    const hoursUntilEvent = (eventStart - now) / (1000 * 60 * 60);
+
+    let refundRate;
+    let refundTier;
+    if (hoursUntilEvent >= 168) {          // 7+ days
+        refundRate = BUSINESS.CANCEL_REFUND_RATE_EARLY;
+        refundTier = "early";
+    } else if (hoursUntilEvent >= 48) {    // 2–7 days
+        refundRate = BUSINESS.CANCEL_REFUND_RATE_MID;
+        refundTier = "mid";
+    } else {                               // under 48h
+        refundRate = BUSINESS.CANCEL_REFUND_RATE_LATE;
+        refundTier = "late";
+    }
+
+    // Refund is calculated on what the user actually paid (priceCents already reflects the discounted amount)
+    const refundAmount = Math.floor(ticket.priceCents * refundRate);
 
     const result = await prisma.$transaction(async (tx) => {
-        // Update ticket status
         const updated = await tx.ticket.update({
             where: { id: ticketId },
             data: { status: "CANCELLED", refundAmount },
         });
 
-        // Reverse the commission transaction so the platform does not keep
-        // commission on a sale that was refunded
-        await tx.transaction.deleteMany({
-            where: { ticketId },
-        });
+        // Platform keeps its commission — do not delete the transaction record.
+        // The studio simply loses this sale; funds were held by the platform pending the event.
 
-        // Reverse loyalty: undo all loyalty transactions tied to this event purchase
+        // Loyalty: only reverse points the user EARNED on this purchase.
+        // Points that were SPENT (negative transactions) are NOT restored — they are forfeited on cancellation.
         const loyaltyTxs = await tx.loyaltyTransaction.findMany({
             where: { userId, ticketId },
         });
 
         if (loyaltyTxs.length > 0) {
-            const net = loyaltyTxs.reduce((s, t) => s + t.points, 0);
-            if (net !== 0) {
+            const pointsEarned = loyaltyTxs
+                .filter(t => t.points > 0)
+                .reduce((s, t) => s + t.points, 0);
+
+            if (pointsEarned > 0) {
                 await tx.loyaltyAccount.update({
                     where: { userId },
-                    data: { points: { decrement: net } },
+                    data: { points: { decrement: pointsEarned } },
                 });
                 await tx.loyaltyTransaction.create({
-                    data: { userId, points: -net, reason: `Refund for ticket #${ticketId}`, ticketId },
+                    data: {
+                        userId,
+                        points: -pointsEarned,
+                        reason: `Cancelled ticket #${ticketId} — earned points forfeited`,
+                        ticketId,
+                    },
                 });
             }
         }
 
-        return { success: true, refundAmount, ticket: updated };
+        return { success: true, refundAmount, refundTier, ticket: updated };
     });
 
     return result;

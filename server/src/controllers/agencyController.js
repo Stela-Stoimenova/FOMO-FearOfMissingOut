@@ -1,5 +1,12 @@
 import * as agencyService from "../services/agencyService.js";
 
+export async function sendCollaborationInvite(req, res, next) {
+  try {
+    const collab = await agencyService.sendCollaborationInvite(req.user.userId, req.body);
+    res.status(201).json(collab);
+  } catch (err) { next(err); }
+}
+
 export async function getCollaborations(req, res, next) {
   try {
     const collabs = await agencyService.getAgencyCollaborations(req.user.userId);
@@ -39,6 +46,27 @@ export async function removeFromRoster(req, res, next) {
   try {
     await agencyService.removeFromRoster(req.user.userId, req.params.dancerId);
     res.status(204).end();
+  } catch (err) { next(err); }
+}
+
+export async function getPublicRoster(req, res, next) {
+  try {
+    const roster = await agencyService.getPublicRoster(req.params.id);
+    res.json(roster);
+  } catch (err) { next(err); }
+}
+
+export async function getPublicCollaborations(req, res, next) {
+  try {
+    const collabs = await agencyService.getPublicCollaborations(req.params.id);
+    res.json(collabs);
+  } catch (err) { next(err); }
+}
+
+export async function getPublicCvTags(req, res, next) {
+  try {
+    const tags = await agencyService.getPublicCvTags(req.params.id);
+    res.json(tags);
   } catch (err) { next(err); }
 }
 

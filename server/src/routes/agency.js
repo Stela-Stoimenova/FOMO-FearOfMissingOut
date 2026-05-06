@@ -4,12 +4,17 @@ import * as agencyController from "../controllers/agencyController.js";
 
 const router = Router();
 
+// Public agency profile endpoints (no auth)
+router.get("/:id/roster", agencyController.getPublicRoster);
+router.get("/:id/collaborations", agencyController.getPublicCollaborations);
+router.get("/:id/cv-tags", agencyController.getPublicCvTags);
+
 // All agency routes are protected and require AGENCY role
 const agencyOnly = [requireAuth, requireRole(["AGENCY"])];
 
 // --- Collaborations (from agency's perspective) ---
-// GET /api/agency/me/collaborations — list studios that sent collaboration requests
 router.get("/me/collaborations", ...agencyOnly, agencyController.getCollaborations);
+router.post("/me/collaborations", ...agencyOnly, agencyController.sendCollaborationInvite);
 
 // PATCH /api/agency/me/collaborations/:studioId/accept — accept a pending request
 router.patch("/me/collaborations/:studioId/accept", ...agencyOnly, agencyController.acceptCollaboration);

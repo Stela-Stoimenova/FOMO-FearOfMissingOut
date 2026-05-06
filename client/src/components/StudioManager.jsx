@@ -3,7 +3,7 @@ import {
   getStudioClasses, createStudioClass, updateStudioClass, deleteStudioClass,
   getOwnMembershipsManage, createMembershipTier, updateMembershipTier, deleteMembershipTier,
   getStudioTeam, addStudioTeamMember, deleteStudioTeamMember,
-  getStudioCollaborations, createCollaboration, deleteCollaboration,
+  getStudioCollaborations, createCollaboration, deleteCollaboration, acceptAgencyCollaboration,
   getTaggedCvEntries, acceptCvTag, declineCvTag,
 } from "../api/studios.js";
 import { getRecommendedDancers } from "../api/users.js";
@@ -178,6 +178,14 @@ export default function StudioManager({ studioId }) {
     } catch (err) { setError(err.message); }
   }
 
+  async function handleAcceptAgencyInvite(agencyId) {
+    setError(null);
+    try {
+      await acceptAgencyCollaboration(agencyId);
+      await loadAll();
+    } catch (err) { setError(err.message); }
+  }
+
   async function handleDeleteCollab(id) {
     if (!window.confirm("Remove this collaboration?")) return;
     try {
@@ -226,13 +234,13 @@ export default function StudioManager({ studioId }) {
 
 
 
-      {/* ── AI Dancer Recommendations ── */}
+      {/* ── Dancer Recommendations ── */}
       {recommendations.length > 0 && (
         <section className="detail-card" style={{ ...cardStyle, border: "2px solid var(--accent)", background: "linear-gradient(145deg, var(--bg-card), var(--bg-hover))" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
             <div>
               <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700 }}>
-                AI Dancer Recommendations
+                Dancer Recommendations
               </h3>
               <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>Talent matching your studio's location and styles.</p>
             </div>
@@ -245,8 +253,8 @@ export default function StudioManager({ studioId }) {
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'var(--accent-hover)'; }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border-light)'; }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
-                  <div style={{ width: "50px", height: "50px", borderRadius: "14px", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.75rem" }}>
+                  <div style={{ width: "50px", height: "50px", borderRadius: "50%", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
                     <img src={dancer.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -257,7 +265,17 @@ export default function StudioManager({ studioId }) {
                     {dancer.matchScore}%
                   </div>
                 </div>
-                
+
+                {dancer.matchReasons?.length > 0 && (
+                  <div style={{ marginBottom: "0.75rem", display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                    {dancer.matchReasons.map((reason, i) => (
+                      <div key={i} style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                        <span style={{ color: "var(--accent)", fontSize: "0.65rem" }}>✓</span> {reason}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {dancer.danceStyles?.length > 0 && (
                   <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap", marginBottom: "1rem" }}>
                     {dancer.danceStyles.slice(0, 3).map(s => (
@@ -266,9 +284,9 @@ export default function StudioManager({ studioId }) {
                     {dancer.danceStyles.length > 3 && <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", padding: "0.2rem" }}>+{dancer.danceStyles.length - 3}</span>}
                   </div>
                 )}
-                
+
                 <div style={{ marginTop: "auto", display: "flex", gap: "0.5rem" }}>
-                  <a href={`/users/${dancer.id}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ flex: 1, textAlign: "center", padding: "0.5rem", fontSize: "0.8rem", borderRadius: "12px", textDecoration: "none" }}>View Profile</a>
+                  <a href={`/users/${dancer.id}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ flex: 1, textAlign: "center", padding: "0.5rem", fontSize: "0.8rem", borderRadius: "999px", textDecoration: "none" }}>View Profile</a>
                 </div>
               </div>
             ))}
@@ -466,8 +484,35 @@ export default function StudioManager({ studioId }) {
       {/* ── Collaborations ── */}
       <section className="detail-card" style={cardStyle}>
         <h3 style={{ marginBottom: "1.5rem", fontSize: "1.25rem", fontWeight: 700 }}>Agency Collaborations</h3>
+
+        {/* Incoming agency invites — need studio action */}
+        {collabs.filter(c => c.initiatedBy === "AGENCY" && c.status === "PENDING").length > 0 && (
+          <div style={{ marginBottom: "1.5rem", padding: "1.25rem", background: "rgba(245,158,11,0.05)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "20px" }}>
+            <h4 style={{ margin: "0 0 1rem 0", fontSize: "0.95rem", color: "var(--warning)" }}>
+              Incoming Invites ({collabs.filter(c => c.initiatedBy === "AGENCY" && c.status === "PENDING").length})
+            </h4>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              {collabs.filter(c => c.initiatedBy === "AGENCY" && c.status === "PENDING").map(c => (
+                <div key={c.agencyId} style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1rem 1.25rem", background: "var(--bg-hover)", borderRadius: "16px", border: "1px solid var(--border-light)" }}>
+                  <div style={{ width: "44px", height: "44px", borderRadius: "12px", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
+                    <img src={c.agency.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700 }}>{c.agency.name || "Unnamed Agency"}</div>
+                    {c.description && <div style={{ fontSize: "0.85rem", color: "var(--text-main)", marginTop: "0.25rem" }}>{c.description}</div>}
+                  </div>
+                  <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
+                    <button onClick={() => handleAcceptAgencyInvite(c.agencyId)} className="btn-primary" style={{ padding: "0.5rem 1.25rem", fontSize: "0.85rem", borderRadius: "10px" }}>Accept</button>
+                    <button onClick={() => handleDeleteCollab(c.agencyId)} className="btn-secondary" style={{ padding: "0.5rem 1rem", fontSize: "0.85rem", borderRadius: "10px", border: "1px solid rgba(239,68,68,0.3)", color: "var(--warning)" }}>Decline</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginBottom: "2rem" }}>
-          {collabs.length > 0 ? collabs.map(c => (
+          {collabs.filter(c => !(c.initiatedBy === "AGENCY" && c.status === "PENDING")).length > 0 ? collabs.filter(c => !(c.initiatedBy === "AGENCY" && c.status === "PENDING")).map(c => (
             <div key={c.agencyId} style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "0.75rem 1.25rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px solid var(--border-light)" }}>
               <div style={{ width: "40px", height: "40px", borderRadius: "12px", overflow: "hidden", background: "var(--bg-input)" }}>
                 <img src={c.agency.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />

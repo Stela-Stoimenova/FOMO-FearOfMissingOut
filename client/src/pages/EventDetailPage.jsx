@@ -99,7 +99,7 @@ export default function EventDetailPage() {
         setBuying(true);
         setBuyError("");
         try {
-            const { clientSecret, simulatedMode, amount, paymentIntentId } = await createPaymentIntent(
+            const { clientSecret, simulatedMode, amount, paymentIntentId, status } = await createPaymentIntent(
                 event.id, usePoints,
                 paymentData.type === "saved" ? paymentData.cardId : null
             );
@@ -116,8 +116,11 @@ export default function EventDetailPage() {
                     stripeResult = await stripe.confirmCardPayment(clientSecret, {
                         payment_method: { card: paymentData.element }
                     });
+                } else if (status === "succeeded") {
+                    // Saved card was already confirmed server-side — skip client confirmation
+                    stripeResult = { paymentIntent: { id: paymentIntentId, status: "succeeded" } };
                 } else {
-                    // Saved card — must explicitly pass the payment method ID
+                    // Saved card needs client-side confirmation (e.g., 3D Secure)
                     stripeResult = await stripe.confirmCardPayment(clientSecret, {
                         payment_method: paymentData.cardId
                     });

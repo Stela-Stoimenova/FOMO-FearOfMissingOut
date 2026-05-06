@@ -102,10 +102,10 @@ export default function DiscoveryPage() {
                 ) : results.length === 0 ? (
                     <p style={{ textAlign: "center", color: "var(--text-muted)" }}>No profiles found matching your criteria.</p>
                 ) : (
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "2rem" }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "2rem", alignItems: "stretch" }}>
                         {results.map((user) => (
-                            <Link to={`/users/${user.id}`} key={user.id} style={{ textDecoration: 'none', color: 'inherit' }}>
-                                <div className="detail-card" style={{ height: "100%", display: "flex", flexDirection: "column", transition: "transform 0.2s ease, border-color 0.2s ease", cursor: "pointer" }}
+                            <Link to={`/users/${user.id}`} key={user.id} style={{ textDecoration: 'none', color: 'inherit', display: 'flex' }}>
+                                <div className="detail-card" style={{ width: "100%", minHeight: "180px", display: "flex", flexDirection: "column", transition: "transform 0.2s ease, border-color 0.2s ease", cursor: "pointer" }}
                                     onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'var(--accent-hover)'; }}
                                     onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border-light)'; }}
                                 >

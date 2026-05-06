@@ -1,4 +1,5 @@
 import { prisma } from "../db.js";
+import { createNotification } from "./notificationService.js";
 
 /** Public profile of any user */
 export async function getUserProfile(id) {
@@ -165,6 +166,15 @@ export async function followUser(followerId, followingId) {
         }
         throw err;
     }
+
+    const follower = await prisma.user.findUnique({ where: { id: followerId }, select: { name: true } });
+    createNotification({
+        userId: followingId,
+        actorId: followerId,
+        type: "FOLLOW",
+        message: `${follower?.name || "Someone"} started following you.`,
+        linkPath: `/users/${followerId}`,
+    }).catch(() => {});
 
     return { followerId, followingId, followed: true };
 }
@@ -439,10 +449,24 @@ export async function getRecommendedDancers(userId) {
         // Normalize to 0-100
         const normalizedScore = Math.min(Math.round(score), 100);
 
-        return { ...dancer, matchScore: normalizedScore };
+        // Build human-readable match reasons
+        const matchReasons = [];
+        if (danceStyles && danceStyles.length > 0 && dancer.danceStyles?.length > 0) {
+            const overlap = dancer.danceStyles.filter(s => danceStyles.includes(s));
+            if (overlap.length > 0) {
+                matchReasons.push(`${overlap.length} shared style${overlap.length > 1 ? 's' : ''}: ${overlap.join(', ')}`);
+            }
+        }
+        if (city && dancer.city && city.toLowerCase() === dancer.city.toLowerCase()) {
+            matchReasons.push(`Same city: ${dancer.city}`);
+        }
+        if (dancer.experienceLevel && dancer.experienceLevel !== 'BEGINNER') {
+            const levelLabel = dancer.experienceLevel.charAt(0) + dancer.experienceLevel.slice(1).toLowerCase().replace('_', ' ');
+            matchReasons.push(`${levelLabel} level`);
+        }
+
+        return { ...dancer, matchScore: normalizedScore, matchReasons };
     })
-    // Only return dancers with a meaningful match score (at least one signal matches)
-    .filter(d => d.matchScore > 0)
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, 10);
 
