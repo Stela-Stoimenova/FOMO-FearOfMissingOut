@@ -105,6 +105,13 @@ export async function removeTeamMember(req, res, next) {
   } catch (err) { next(err); }
 }
 
+export async function listPublicCvTags(req, res, next) {
+  try {
+    const tags = await studioService.getPublicCvTags(req.params.id);
+    res.json(tags);
+  } catch (err) { next(err); }
+}
+
 // --- Collaborations ---
 export async function listCollaborations(req, res, next) {
   try {
@@ -124,6 +131,13 @@ export async function removeCollaboration(req, res, next) {
   try {
     await studioService.removeCollaboration(req.params.agencyId, req.user.userId);
     res.status(204).end();
+  } catch (err) { next(err); }
+}
+
+export async function acceptAgencyCollaboration(req, res, next) {
+  try {
+    const collab = await studioService.acceptAgencyInvite(req.user.userId, req.params.agencyId);
+    res.json(collab);
   } catch (err) { next(err); }
 }
 

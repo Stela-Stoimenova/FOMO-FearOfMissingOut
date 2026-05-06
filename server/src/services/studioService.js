@@ -1,4 +1,5 @@
 import { prisma } from "../db.js";
+import { createNotification } from "./notificationService.js";
 
 // --- Weekly Classes ---
 export async function listClasses(studioId) {
@@ -217,6 +218,13 @@ export async function addTeamMember(studioId, data) {
       data: { senderId: Number(studioId), receiverId: Number(data.userId), content },
     });
   }
+  createNotification({
+    userId: Number(data.userId),
+    actorId: Number(studioId),
+    type: "ROSTER_INVITE",
+    message: content,
+    linkPath: `/users/${studioId}`,
+  }).catch(() => {});
 
   return member;
 }
@@ -275,8 +283,52 @@ export async function addCollaboration(studioId, data) {
       data: { senderId: Number(studioId), receiverId: Number(data.agencyId), content },
     });
   }
+  createNotification({
+    userId: Number(data.agencyId),
+    actorId: Number(studioId),
+    type: "COLLAB_REQUEST",
+    message: content,
+    linkPath: `/dashboard`,
+  }).catch(() => {});
 
   return collab;
+}
+
+export async function acceptAgencyInvite(studioId, agencyId) {
+  const collab = await prisma.collaboration.findUnique({
+    where: { studioId_agencyId: { studioId: Number(studioId), agencyId: Number(agencyId) } },
+  });
+  if (!collab) {
+    const err = new Error("Collaboration invite not found"); err.status = 404; throw err;
+  }
+  if (collab.initiatedBy !== "AGENCY" || collab.status !== "PENDING") {
+    const err = new Error("No pending agency invite found"); err.status = 400; throw err;
+  }
+
+  const updated = await prisma.collaboration.update({
+    where: { studioId_agencyId: { studioId: Number(studioId), agencyId: Number(agencyId) } },
+    data: { status: "ACTIVE" },
+    include: { agency: { select: { id: true, name: true, avatarUrl: true } } },
+  });
+
+  const studio = await prisma.user.findUnique({ where: { id: Number(studioId) }, select: { name: true } });
+  const acceptMsg = `${studio?.name || "A studio"} accepted your collaboration invite.`;
+  await prisma.message.create({
+    data: {
+      senderId: Number(studioId),
+      receiverId: Number(agencyId),
+      content: acceptMsg,
+    },
+  });
+  createNotification({
+    userId: Number(agencyId),
+    actorId: Number(studioId),
+    type: "COLLAB_ACCEPTED",
+    message: acceptMsg,
+    linkPath: `/users/${studioId}`,
+  }).catch(() => {});
+
+  return updated;
 }
 
 export async function removeCollaboration(agencyId, studioId) {
@@ -288,6 +340,16 @@ export async function removeCollaboration(agencyId, studioId) {
   }
   return prisma.collaboration.delete({
     where: { studioId_agencyId: { studioId: Number(studioId), agencyId: Number(agencyId) } },
+  });
+}
+
+export async function getPublicCvTags(studioId) {
+  return prisma.cvEntry.findMany({
+    where: { taggedStudioId: Number(studioId), verificationStatus: "VERIFIED" },
+    orderBy: { createdAt: "desc" },
+    include: {
+      user: { select: { id: true, name: true, avatarUrl: true } },
+    },
   });
 }
 
@@ -308,10 +370,19 @@ export async function acceptCvTag(studioId, cvId) {
   if (!cv || cv.taggedStudioId !== Number(studioId)) {
     const err = new Error("Not found"); err.status = 404; throw err;
   }
-  return prisma.cvEntry.update({
+  const updated = await prisma.cvEntry.update({
     where: { id: Number(cvId) },
     data: { verificationStatus: "VERIFIED" }
   });
+  const studio = await prisma.user.findUnique({ where: { id: Number(studioId) }, select: { name: true } });
+  createNotification({
+    userId: cv.userId,
+    actorId: Number(studioId),
+    type: "CV_TAG_ACCEPTED",
+    message: `${studio?.name || "A studio"} verified your CV entry "${cv.title}".`,
+    linkPath: `/users/${cv.userId}`,
+  }).catch(() => {});
+  return updated;
 }
 
 export async function declineCvTag(studioId, cvId) {
@@ -319,8 +390,17 @@ export async function declineCvTag(studioId, cvId) {
   if (!cv || cv.taggedStudioId !== Number(studioId)) {
     const err = new Error("Not found"); err.status = 404; throw err;
   }
-  return prisma.cvEntry.update({
+  const updated = await prisma.cvEntry.update({
     where: { id: Number(cvId) },
     data: { verificationStatus: "REJECTED" }
   });
+  const studio = await prisma.user.findUnique({ where: { id: Number(studioId) }, select: { name: true } });
+  createNotification({
+    userId: cv.userId,
+    actorId: Number(studioId),
+    type: "CV_TAG_DECLINED",
+    message: `${studio?.name || "A studio"} declined your CV entry "${cv.title}".`,
+    linkPath: `/users/${cv.userId}`,
+  }).catch(() => {});
+  return updated;
 }

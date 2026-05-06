@@ -3,7 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import { getUserProfile, followUser, unfollowUser, getMe, getFollowers } from "../api/users.js";
 import { sendMessage } from "../api/messages.js";
 import { getEvents } from "../api/events.js";
-import { getStudioClasses, getStudioMemberships, getStudioTeam, getStudioCollaborations, purchaseMembership } from "../api/studios.js";
+import { getStudioClasses, getStudioMemberships, getStudioTeam, getStudioCollaborations, purchaseMembership, getPublicStudioCvTags } from "../api/studios.js";
+import { getPublicAgencyRoster, getPublicAgencyCollaborations, getPublicAgencyCvTags } from "../api/agency.js";
 import { getUserCv } from "../api/cv.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import FollowListModal from "../components/FollowListModal.jsx";
@@ -26,6 +27,7 @@ export default function PublicProfilePage() {
     const [errorMsg, setErrorMsg] = useState("");
     const [toast, setToast] = useState(null);
     const [createdEvents, setCreatedEvents] = useState([]);
+    const [attendedEvents, setAttendedEvents] = useState([]);
 
     // New Data States
     const [classes, setClasses] = useState([]);
@@ -33,6 +35,14 @@ export default function PublicProfilePage() {
     const [team, setTeam] = useState([]);
     const [collabs, setCollabs] = useState([]);
     const [cvEntries, setCvEntries] = useState([]);
+
+    // Agency-specific state
+    const [agencyRoster, setAgencyRoster] = useState([]);
+    const [agencyPartnerStudios, setAgencyPartnerStudios] = useState([]);
+    const [agencyCvMentions, setAgencyCvMentions] = useState([]);
+
+    // Studio CV mentions
+    const [studioCvMentions, setStudioCvMentions] = useState([]);
 
     // Followers/Following list state
     const [showList, setShowList] = useState(null); // 'followers' | 'following' | null
@@ -77,8 +87,32 @@ export default function PublicProfilePage() {
 
                 if (data.role === "DANCER") {
                     try {
-                        const cv = await getUserCv(id);
+                        const [cv, evts] = await Promise.all([
+                            getUserCv(id),
+                            getEvents({ attendeeId: id, limit: 100 }),
+                        ]);
                         setCvEntries(cv);
+                        setAttendedEvents(evts.items ?? []);
+                    } catch { /* non-critical, renders empty */ }
+                }
+
+                if (data.role === "AGENCY") {
+                    try {
+                        const [roster, partnerStudios, cvMentions] = await Promise.all([
+                            getPublicAgencyRoster(id),
+                            getPublicAgencyCollaborations(id),
+                            getPublicAgencyCvTags(id),
+                        ]);
+                        setAgencyRoster(roster);
+                        setAgencyPartnerStudios(partnerStudios);
+                        setAgencyCvMentions(cvMentions);
+                    } catch { /* non-critical, renders empty */ }
+                }
+
+                if (data.role === "STUDIO") {
+                    try {
+                        const cvMentions = await getPublicStudioCvTags(id);
+                        setStudioCvMentions(cvMentions);
                     } catch { /* non-critical, renders empty */ }
                 }
             } catch (err) {
@@ -324,10 +358,9 @@ export default function PublicProfilePage() {
                                     </div>
                                 </div>
                                 {me?.role === "DANCER" && !isOwnProfile && (
-                                    <button 
-                                        className="btn-primary" 
+                                    <button
                                         onClick={() => handlePurchaseMembership(m.id)}
-                                        style={{ width: '100%', padding: '0.6rem', fontSize: '0.85rem', borderRadius: '12px' }}
+                                        style={{ width: '100%', padding: '0.6rem', fontSize: '0.85rem', borderRadius: '999px', background: 'var(--accent)', color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer', transition: 'opacity 0.2s' }}
                                     >
                                         Purchase
                                     </button>
@@ -407,6 +440,89 @@ export default function PublicProfilePage() {
                 </section>
             )}
 
+            {/* Studio: CV Mentions (dancers who tagged this studio) */}
+            {profile.role === "STUDIO" && studioCvMentions.length > 0 && (
+                <section className="detail-card" style={{ marginBottom: '1.5rem', padding: '2rem', borderRadius: '24px' }}>
+                    <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem', fontWeight: 700 }}>Featured In</h3>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                        {studioCvMentions.map(m => (
+                            m.user?.id ? (
+                                <Link key={m.id} to={`/users/${m.user.id}`} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1.25rem', background: 'var(--bg-hover)', borderRadius: '20px', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', background: 'var(--bg-input)', flexShrink: 0 }}>
+                                        {m.user.avatarUrl ? <img src={m.user.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem' }}>{(m.user.name || "?").charAt(0)}</div>}
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{m.user.name}</div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--accent)' }}>{m.title}</div>
+                                    </div>
+                                </Link>
+                            ) : null
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* Agency: Talent Roster */}
+            {profile.role === "AGENCY" && agencyRoster.length > 0 && (
+                <section className="detail-card" style={{ marginBottom: '1.5rem', padding: '2rem', borderRadius: '24px' }}>
+                    <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem', fontWeight: 700 }}>Talent Roster</h3>
+                    <div style={{ display: 'flex', gap: '1.25rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                        {agencyRoster.map(r => (
+                            r.dancer?.id ? (
+                                <Link key={r.id} to={`/users/${r.dancer.id}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', color: 'inherit', minWidth: '100px' }}>
+                                    <div style={{ width: '80px', height: '80px', borderRadius: '20px', overflow: 'hidden', border: '2px solid var(--border-light)', background: 'var(--bg-input)' }}>
+                                        {r.dancer.avatarUrl ? <img src={r.dancer.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.5rem' }}>{(r.dancer.name || "?").charAt(0)}</div>}
+                                    </div>
+                                    <div style={{ textAlign: 'center' }}>
+                                        <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{r.dancer.name || "Unnamed"}</div>
+                                        {r.dancer.experienceLevel && <div style={{ fontSize: '0.7rem', color: 'var(--accent)', textTransform: 'uppercase', fontWeight: 600, marginTop: '2px' }}>{r.dancer.experienceLevel}</div>}
+                                    </div>
+                                </Link>
+                            ) : null
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* Agency: Partner Studios */}
+            {profile.role === "AGENCY" && agencyPartnerStudios.length > 0 && (
+                <section className="detail-card" style={{ marginBottom: '1.5rem', padding: '2rem', borderRadius: '24px' }}>
+                    <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem', fontWeight: 700 }}>Partner Studios</h3>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                        {agencyPartnerStudios.map(c => (
+                            c.studio?.id ? (
+                                <Link key={c.studioId} to={`/users/${c.studio.id}`} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 1.25rem', background: 'var(--bg-hover)', borderRadius: '20px', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
+                                    {c.studio.avatarUrl && <img src={c.studio.avatarUrl} alt="" style={{ width: '32px', height: '32px', borderRadius: '10px', objectFit: 'cover' }} />}
+                                    <span style={{ fontSize: '0.95rem', fontWeight: 700 }}>{c.studio.name || "Unnamed Studio"}</span>
+                                </Link>
+                            ) : null
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* Agency: CV Mentions (dancers who tagged this agency) */}
+            {profile.role === "AGENCY" && agencyCvMentions.length > 0 && (
+                <section className="detail-card" style={{ marginBottom: '1.5rem', padding: '2rem', borderRadius: '24px' }}>
+                    <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem', fontWeight: 700 }}>Featured In</h3>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+                        {agencyCvMentions.map(m => (
+                            m.user?.id ? (
+                                <Link key={m.id} to={`/users/${m.user.id}`} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1.25rem', background: 'var(--bg-hover)', borderRadius: '20px', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
+                                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', background: 'var(--bg-input)', flexShrink: 0 }}>
+                                        {m.user.avatarUrl ? <img src={m.user.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem' }}>{(m.user.name || "?").charAt(0)}</div>}
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{m.user.name}</div>
+                                        <div style={{ fontSize: '0.75rem', color: 'var(--accent)' }}>{m.title}</div>
+                                    </div>
+                                </Link>
+                            ) : null
+                        ))}
+                    </div>
+                </section>
+            )}
+
             {/* Dancer: Professional CV */}
             {profile.role === "DANCER" && cvEntries.length > 0 && (
                 <section className="detail-card" style={{ marginBottom: '1.5rem', padding: '2rem', borderRadius: '24px' }}>
@@ -457,6 +573,57 @@ export default function PublicProfilePage() {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                </section>
+            )}
+
+            {/* Dancer: Events */}
+            {profile.role === "DANCER" && attendedEvents.length > 0 && (
+                <section className="detail-card" style={{ marginBottom: '1.5rem', padding: '2rem', borderRadius: '24px' }}>
+                    <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem', fontWeight: 700 }}>Event Plans</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {attendedEvents.map(evt => {
+                            const isPast = new Date(evt.startAt) < new Date();
+                            return (
+                                <Link
+                                    to={`/events/${evt.id}`}
+                                    key={evt.id}
+                                    style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: '64px 1fr auto',
+                                        gap: '1rem',
+                                        alignItems: 'center',
+                                        padding: '1rem',
+                                        background: 'var(--bg-hover)',
+                                        borderRadius: '20px',
+                                        border: '1px solid var(--border-light)',
+                                        textDecoration: 'none',
+                                        color: 'inherit',
+                                        transition: 'all 0.2s ease',
+                                    }}
+                                >
+                                    <div style={{
+                                        width: '64px', height: '64px', borderRadius: '12px',
+                                        backgroundImage: evt.imageUrl ? `url(${evt.imageUrl})` : 'linear-gradient(135deg, rgba(99,102,241,0.4), rgba(124,58,237,0.2))',
+                                        backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0,
+                                    }} />
+                                    <div style={{ minWidth: 0 }}>
+                                        <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 700 }}>
+                                            {evt.title}
+                                        </h4>
+                                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                            {evt.location} &bull; {new Date(evt.startAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        </span>
+                                    </div>
+                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                        <span style={{ fontSize: '0.7rem', padding: '0.2rem 0.6rem', borderRadius: '999px', fontWeight: 600, background: isPast ? 'var(--bg-input)' : 'rgba(99,102,241,0.12)', color: isPast ? 'var(--text-muted)' : 'var(--accent)', display: 'block', marginBottom: '0.25rem' }}>
+                                            {isPast ? 'Past' : 'Upcoming'}
+                                        </span>
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>View →</span>
+                                    </div>
+                                </Link>
+                            );
+                        })}
                     </div>
                 </section>
             )}

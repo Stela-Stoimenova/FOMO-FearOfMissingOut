@@ -198,8 +198,8 @@ export default function RealPaymentModal({ isOpen, amount, onConfirm, onCancel, 
                             type="submit"
                             disabled={!stripe || isBusy}
                             style={{
-                                flex: 2, padding: "0.85rem", borderRadius: "14px", border: "none",
-                                background: isBusy ? "var(--bg-hover)" : "var(--primary)",
+                                flex: 2, padding: "0.85rem", border: "none",
+                                background: isBusy ? "var(--bg-hover)" : "var(--accent)",
                                 color: "#fff", fontWeight: 700,
                                 cursor: (!stripe || isBusy) ? "not-allowed" : "pointer",
                                 fontSize: "0.95rem", transition: "all 0.2s",

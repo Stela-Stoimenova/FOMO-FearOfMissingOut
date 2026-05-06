@@ -198,7 +198,7 @@ export default function CreateEventPage() {
                                             style={{
                                                 marginTop: "auto",
                                                 padding: "0.55rem 1rem",
-                                                borderRadius: "var(--radius-md)",
+                                                borderRadius: "999px",
                                                 border: "none",
                                                 cursor: invitedIds.has(dancer.id) ? "default" : "pointer",
                                                 fontWeight: 600,
@@ -305,7 +305,7 @@ export default function CreateEventPage() {
                                     placeholder="Add custom style…"
                                     style={{ flex: 1, background: "var(--bg-input)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", padding: "0.5rem 0.85rem", color: "var(--text-main)", fontSize: "0.9rem" }}
                                 />
-                                <button type="button" onClick={addCustomStyle} style={{ padding: "0.5rem 1rem", background: "var(--bg-hover)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", cursor: "pointer", color: "var(--text-main)", fontSize: "0.85rem" }}>
+                                <button type="button" onClick={addCustomStyle} style={{ padding: "0.5rem 1rem", background: "var(--bg-hover)", border: "1px solid var(--border-light)", borderRadius: "999px", cursor: "pointer", color: "var(--text-main)", fontSize: "0.85rem" }}>
                                     Add
                                 </button>
                             </div>

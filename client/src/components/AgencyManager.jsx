@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   getAgencyCollaborations, acceptCollaboration, declineCollaboration,
+  sendCollabInviteToStudio,
   getAgencyRoster, addToRoster, removeFromRoster,
   getTaggedCvEntries, acceptCvTag, declineCvTag,
 } from "../api/agency.js";
@@ -29,6 +30,7 @@ export default function AgencyManager() {
   const [error, setError] = useState(null);
 
   const [rosterForm, setRosterForm] = useState({ dancerId: null, notes: "" });
+  const [inviteForm, setInviteForm] = useState({ studioId: null, description: "" });
   const [activeTab, setActiveTab] = useState("collabs");
 
   const loadAll = useCallback(async () => {
@@ -105,13 +107,27 @@ export default function AgencyManager() {
     } catch (err) { setError(err.message); }
   }
 
+  async function handleSendInvite(e) {
+    e.preventDefault();
+    setError(null);
+    if (!inviteForm.studioId) { setError("Please select a studio first."); return; }
+    try {
+      await sendCollabInviteToStudio(inviteForm);
+      setInviteForm({ studioId: null, description: "" });
+      await loadAll();
+    } catch (err) { setError(err.message); }
+  }
+
+  // Split pending by who initiated
+  const pendingFromStudios = collabs.filter(c => c.status === "PENDING" && c.initiatedBy !== "AGENCY");
+  const pendingFromAgency = collabs.filter(c => c.status === "PENDING" && c.initiatedBy === "AGENCY");
   const pendingCollabs = collabs.filter(c => c.status === "PENDING");
   const activeCollabs = collabs.filter(c => c.status === "ACTIVE");
 
   const pendingCvTags = cvTags.filter(cv => cv.verificationStatus === "PENDING");
 
   const tabs = [
-    { id: "collabs", label: `Collaborations`, badge: pendingCollabs.length > 0 ? pendingCollabs.length : null },
+    { id: "collabs", label: `Collaborations`, badge: pendingFromStudios.length > 0 ? pendingFromStudios.length : null },
     { id: "roster", label: `Talent Roster`, badge: roster.length || null },
     { id: "tags", label: `CV Mentions`, badge: pendingCvTags.length > 0 ? pendingCvTags.length : null },
   ];
@@ -161,12 +177,12 @@ export default function AgencyManager() {
         ))}
       </div>
 
-      {/* ── AI Dancer Recommendations ── */}
+      {/* ── Dancer Recommendations ── */}
       <section className="detail-card" style={{ padding: "2rem", borderRadius: "24px", border: "2px solid var(--accent)", background: "linear-gradient(145deg, var(--bg-card), var(--bg-hover))", boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
           <div>
             <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700 }}>
-              AI Dancer Recommendations
+              Dancer Recommendations
             </h3>
             <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>Talent matching your agency's location and styles.</p>
           </div>
@@ -180,8 +196,8 @@ export default function AgencyManager() {
                 onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'var(--accent-hover)'; }}
                 onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border-light)'; }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
-                  <div style={{ width: "50px", height: "50px", borderRadius: "14px", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.75rem" }}>
+                  <div style={{ width: "50px", height: "50px", borderRadius: "50%", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
                     <img src={dancer.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -192,7 +208,17 @@ export default function AgencyManager() {
                     {dancer.matchScore}%
                   </div>
                 </div>
-                
+
+                {dancer.matchReasons?.length > 0 && (
+                  <div style={{ marginBottom: "0.75rem", display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                    {dancer.matchReasons.map((reason, i) => (
+                      <div key={i} style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                        <span style={{ color: "var(--accent)", fontSize: "0.65rem" }}>✓</span> {reason}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {dancer.danceStyles?.length > 0 && (
                   <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap", marginBottom: "1rem" }}>
                     {dancer.danceStyles.slice(0, 3).map(s => (
@@ -201,9 +227,9 @@ export default function AgencyManager() {
                     {dancer.danceStyles.length > 3 && <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", padding: "0.2rem" }}>+{dancer.danceStyles.length - 3}</span>}
                   </div>
                 )}
-                
+
                 <div style={{ marginTop: "auto", display: "flex", gap: "0.5rem" }}>
-                  <a href={`/users/${dancer.id}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ flex: 1, textAlign: "center", padding: "0.5rem", fontSize: "0.8rem", borderRadius: "12px", textDecoration: "none" }}>View Profile</a>
+                  <a href={`/users/${dancer.id}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ flex: 1, textAlign: "center", padding: "0.5rem", fontSize: "0.8rem", borderRadius: "999px", textDecoration: "none" }}>View Profile</a>
                 </div>
               </div>
             ))}
@@ -221,14 +247,14 @@ export default function AgencyManager() {
       {activeTab === "collabs" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
-          {/* Pending requests */}
-          {pendingCollabs.length > 0 && (
+          {/* Pending requests FROM studios (need agency action) */}
+          {pendingFromStudios.length > 0 && (
             <section className="detail-card" style={{ padding: "2rem", borderRadius: "24px", background: "var(--bg-card)", border: "1px solid rgba(245,158,11,0.3)" }}>
               <h3 style={{ margin: "0 0 1.5rem 0", fontSize: "1.1rem", color: "var(--warning)" }}>
-                Pending Requests ({pendingCollabs.length})
+                Incoming Requests ({pendingFromStudios.length})
               </h3>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                {pendingCollabs.map(c => (
+                {pendingFromStudios.map(c => (
                   <div key={c.studioId} style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1rem 1.25rem", background: "rgba(245,158,11,0.05)", borderRadius: "16px", border: "1px solid rgba(245,158,11,0.2)" }}>
                     <div style={{ width: "44px", height: "44px", borderRadius: "12px", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
                       <img src={c.studio.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -242,6 +268,31 @@ export default function AgencyManager() {
                       <button onClick={() => handleAccept(c.studioId)} className="btn-primary" style={{ padding: "0.5rem 1.25rem", fontSize: "0.85rem", borderRadius: "10px" }}>Accept</button>
                       <button onClick={() => handleDecline(c.studioId)} className="btn-secondary" style={{ padding: "0.5rem 1rem", fontSize: "0.85rem", borderRadius: "10px", border: "1px solid rgba(239,68,68,0.3)", color: "var(--warning)" }}>Decline</button>
                     </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Sent invites awaiting studio response */}
+          {pendingFromAgency.length > 0 && (
+            <section className="detail-card" style={{ padding: "2rem", borderRadius: "24px", background: "var(--bg-card)", border: "1px solid var(--border-light)" }}>
+              <h3 style={{ margin: "0 0 1.5rem 0", fontSize: "1.1rem", color: "var(--text-muted)" }}>
+                Sent Invites ({pendingFromAgency.length})
+              </h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                {pendingFromAgency.map(c => (
+                  <div key={c.studioId} style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1rem 1.25rem", background: "var(--bg-hover)", borderRadius: "16px", border: "1px solid var(--border-light)" }}>
+                    <div style={{ width: "44px", height: "44px", borderRadius: "12px", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
+                      <img src={c.studio.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700 }}>{c.studio.name || "Unnamed Studio"}</div>
+                      {c.studio.city && <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{c.studio.city}</div>}
+                      {c.description && <div style={{ fontSize: "0.85rem", color: "var(--text-main)", marginTop: "0.25rem" }}>{c.description}</div>}
+                    </div>
+                    <span style={{ fontSize: "0.7rem", padding: "0.2rem 0.5rem", borderRadius: "999px", background: "rgba(245,158,11,0.1)", color: "var(--warning)", fontWeight: 600, flexShrink: 0 }}>Awaiting</span>
+                    <button onClick={() => handleDecline(c.studioId)} style={{ background: "rgba(239,68,68,0.1)", border: "none", color: "var(--warning)", cursor: "pointer", width: "24px", height: "24px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem" }}>&times;</button>
                   </div>
                 ))}
               </div>
@@ -272,9 +323,32 @@ export default function AgencyManager() {
               </div>
             ) : (
               <div style={{ textAlign: "center", padding: "3rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px dashed var(--border-light)" }}>
-                <p style={{ color: "var(--text-muted)", margin: 0 }}>No active collaborations yet. Studios will send requests that appear above.</p>
+                <p style={{ color: "var(--text-muted)", margin: 0 }}>No active collaborations yet.</p>
               </div>
             )}
+          </section>
+
+          {/* Invite a Studio */}
+          <section className="detail-card" style={{ padding: "2rem", borderRadius: "24px", background: "var(--bg-card)", border: "1px solid var(--border-light)" }}>
+            <h3 style={{ margin: "0 0 1.5rem 0", fontSize: "1.1rem" }}>Invite a Studio</h3>
+            <form onSubmit={handleSendInvite} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              <UserSelect
+                role="STUDIO"
+                value={inviteForm.studioId}
+                onChange={id => setInviteForm(f => ({ ...f, studioId: id }))}
+                placeholder="Search studios..."
+              />
+              <textarea
+                value={inviteForm.description}
+                onChange={e => setInviteForm(f => ({ ...f, description: e.target.value }))}
+                placeholder="Message (optional)"
+                rows={2}
+                style={{ padding: "0.75rem 1rem", background: "var(--bg-input)", border: "1px solid var(--border-light)", borderRadius: "12px", color: "var(--text-main)", fontFamily: "inherit", resize: "vertical", fontSize: "0.9rem" }}
+              />
+              <button type="submit" className="btn-primary" style={{ padding: "0.65rem 1.5rem", borderRadius: "12px", alignSelf: "flex-start" }}>
+                Send Invite
+              </button>
+            </form>
           </section>
         </div>
       )}

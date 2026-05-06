@@ -13,6 +13,7 @@ import studioRoutes from "./routes/studios.js";
 import cvRoutes from "./routes/cv.js";
 import agencyRoutes from "./routes/agency.js";
 import paymentRoutes from "./routes/payments.js";
+import notificationRoutes from "./routes/notifications.js";
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/studios", studioRoutes);
 app.use("/api/cv", cvRoutes);
 app.use("/api/agency", agencyRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // 404 Handler (Helpful for debugging)
 app.use((req, res, next) => {

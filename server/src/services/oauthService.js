@@ -25,7 +25,9 @@ export async function googleCallback(code) {
   });
 
   if (!tokenRes.ok) {
-    const err = new Error("Google token exchange failed");
+    const body = await tokenRes.json().catch(() => ({}));
+    console.error("[OAuth] Google token exchange failed:", body);
+    const err = new Error(`Google token exchange failed: ${body.error} – ${body.error_description}`);
     err.status = 502;
     throw err;
   }
