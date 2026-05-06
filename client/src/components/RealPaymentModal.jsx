@@ -16,7 +16,7 @@ const CARD_ELEMENT_OPTIONS = {
 };
 
 
-export default function RealPaymentModal({ isOpen, amount, onConfirm, onCancel, loading, savedCards = [] }) {
+export default function RealPaymentModal({ isOpen, amount, onConfirm, onCancel, loading, savedCards = [], description }) {
     const stripe = useStripe();
     const elements = useElements();
     const [selectedCardId, setSelectedCardId] = useState(savedCards.length > 0 ? savedCards[0].id : "new");
@@ -70,7 +70,7 @@ export default function RealPaymentModal({ isOpen, amount, onConfirm, onCancel, 
                 <div style={{ marginBottom: "2rem" }}>
                     <h2 style={{ margin: "0 0 0.25rem", fontSize: "1.5rem", fontWeight: 800 }}>Complete Purchase</h2>
                     <p style={{ margin: 0, fontSize: "0.88rem", color: "var(--text-muted)" }}>
-                        Your ticket will be issued immediately after payment.
+                        {description || "Your purchase will be confirmed immediately after payment."}
                     </p>
                 </div>
 

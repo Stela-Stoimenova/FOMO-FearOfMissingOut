@@ -218,9 +218,18 @@ export async function removeFromRoster(agencyId, dancerId) {
 
 // --- Public agency views (no auth required) ---
 
+function parseId(raw) {
+  const id = parseInt(raw, 10);
+  if (!Number.isFinite(id)) {
+    const err = new Error("Invalid ID"); err.status = 400; throw err;
+  }
+  return id;
+}
+
 export async function getPublicRoster(agencyId) {
+  const id = parseId(agencyId);
   return prisma.agencyRoster.findMany({
-    where: { agencyId: Number(agencyId), status: "ACTIVE" },
+    where: { agencyId: id, status: "ACTIVE" },
     orderBy: { createdAt: "asc" },
     include: {
       dancer: {
@@ -234,16 +243,18 @@ export async function getPublicRoster(agencyId) {
 }
 
 export async function getPublicCollaborations(agencyId) {
+  const id = parseId(agencyId);
   return prisma.collaboration.findMany({
-    where: { agencyId: Number(agencyId), status: "ACTIVE" },
+    where: { agencyId: id, status: "ACTIVE" },
     orderBy: { createdAt: "desc" },
     include: { studio: { select: { id: true, name: true, avatarUrl: true, city: true } } },
   });
 }
 
 export async function getPublicCvTags(agencyId) {
+  const id = parseId(agencyId);
   return prisma.cvEntry.findMany({
-    where: { taggedAgencyId: Number(agencyId), verificationStatus: "VERIFIED" },
+    where: { taggedAgencyId: id, verificationStatus: "VERIFIED" },
     orderBy: { createdAt: "desc" },
     include: {
       user: { select: { id: true, name: true, avatarUrl: true } },

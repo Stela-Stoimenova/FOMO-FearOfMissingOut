@@ -35,6 +35,7 @@ export default function AgencyManager() {
 
   const loadAll = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const [c, r, cv, recs] = await Promise.all([
         getAgencyCollaborations(),
@@ -48,6 +49,7 @@ export default function AgencyManager() {
       setRecommendations(recs);
     } catch (err) {
       console.error("Agency load failed:", err);
+      setError(err.message || "Failed to load agency data. Please refresh.");
     } finally {
       setLoading(false);
     }
@@ -64,7 +66,6 @@ export default function AgencyManager() {
   }
 
   async function handleDecline(studioId) {
-    if (!window.confirm("Decline this collaboration request?")) return;
     setError(null);
     try {
       await declineCollaboration(studioId);
@@ -84,7 +85,6 @@ export default function AgencyManager() {
   }
 
   async function handleRemoveRoster(dancerId) {
-    if (!window.confirm("Remove this dancer from your roster?")) return;
     setError(null);
     try {
       await removeFromRoster(dancerId);
@@ -100,7 +100,6 @@ export default function AgencyManager() {
   }
 
   async function handleDeclineCv(cvId) {
-    if (!window.confirm("Reject this CV mention?")) return;
     try {
       await declineCvTag(cvId);
       await loadAll();
@@ -133,7 +132,13 @@ export default function AgencyManager() {
   ];
 
   if (loading && !collabs.length && !roster.length) {
-    return <div style={{ padding: "4rem", textAlign: "center", color: "var(--text-muted)" }}>Loading Agency Data...</div>;
+    return (
+      <div style={{ padding: "4rem", textAlign: "center", color: "var(--text-muted)" }}>
+        <div style={{ width: "32px", height: "32px", border: "3px solid var(--border-light)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 1rem auto" }} />
+        <p style={{ margin: 0, fontSize: "0.9rem" }}>Loading Agency Data…</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
   }
 
   return (
@@ -142,6 +147,25 @@ export default function AgencyManager() {
       {error && (
         <div style={{ padding: "1rem 1.25rem", background: "rgba(239, 68, 68, 0.1)", border: "1px solid var(--warning)", borderRadius: "16px", color: "var(--warning)", fontSize: "0.95rem" }}>
           {error}
+        </div>
+      )}
+
+      {/* Global pending requests banner — visible regardless of active tab */}
+      {!loading && pendingFromStudios.length > 0 && activeTab !== "collabs" && (
+        <div
+          onClick={() => setActiveTab("collabs")}
+          style={{ padding: "0.875rem 1.25rem", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.35)", borderRadius: "16px", display: "flex", alignItems: "center", gap: "0.875rem", cursor: "pointer", transition: "background 0.2s" }}
+        >
+          <span style={{ fontSize: "1.1rem" }}>🔔</span>
+          <div style={{ flex: 1 }}>
+            <strong style={{ color: "var(--warning)", fontSize: "0.95rem" }}>
+              {pendingFromStudios.length} incoming collaboration request{pendingFromStudios.length > 1 ? "s" : ""}
+            </strong>
+            <p style={{ margin: "0.1rem 0 0 0", fontSize: "0.8rem", color: "var(--text-muted)" }}>
+              Studio{pendingFromStudios.length > 1 ? "s" : ""} waiting for your response — click to review
+            </p>
+          </div>
+          <span style={{ fontSize: "0.8rem", color: "var(--warning)", fontWeight: 600 }}>View →</span>
         </div>
       )}
 

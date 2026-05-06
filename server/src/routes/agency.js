@@ -4,13 +4,10 @@ import * as agencyController from "../controllers/agencyController.js";
 
 const router = Router();
 
-// Public agency profile endpoints (no auth)
-router.get("/:id/roster", agencyController.getPublicRoster);
-router.get("/:id/collaborations", agencyController.getPublicCollaborations);
-router.get("/:id/cv-tags", agencyController.getPublicCvTags);
-
 // All agency routes are protected and require AGENCY role
 const agencyOnly = [requireAuth, requireRole(["AGENCY"])];
+
+// IMPORTANT: /me/* routes must be defined BEFORE /:id/* to avoid "me" being captured as :id
 
 // --- Collaborations (from agency's perspective) ---
 router.get("/me/collaborations", ...agencyOnly, agencyController.getCollaborations);
@@ -41,5 +38,10 @@ router.patch("/me/cv-tags/:cvId/accept", ...agencyOnly, agencyController.acceptC
 
 // DELETE /api/agency/me/cv-tags/:cvId
 router.delete("/me/cv-tags/:cvId", ...agencyOnly, agencyController.declineCvTag);
+
+// Public agency profile endpoints (no auth) — must come AFTER /me/* routes
+router.get("/:id/roster", agencyController.getPublicRoster);
+router.get("/:id/collaborations", agencyController.getPublicCollaborations);
+router.get("/:id/cv-tags", agencyController.getPublicCvTags);
 
 export default router;
