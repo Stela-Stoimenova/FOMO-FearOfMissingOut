@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 const CARD_ELEMENT_OPTIONS = {
@@ -16,32 +16,41 @@ const CARD_ELEMENT_OPTIONS = {
 };
 
 
-export default function RealPaymentModal({ isOpen, amount, onConfirm, onCancel, loading, savedCards = [], description }) {
+export default function RealPaymentModal({ isOpen, amount, onConfirm, onCancel, loading, savedCards = [], description, paymentError }) {
     const stripe = useStripe();
     const elements = useElements();
     const [selectedCardId, setSelectedCardId] = useState(savedCards.length > 0 ? savedCards[0].id : "new");
     const [isProcessing, setIsProcessing] = useState(false);
-    const [error, setError] = useState(null);
+    const [localError, setLocalError] = useState(null);
+
+    useEffect(() => {
+        if (isOpen) {
+            setIsProcessing(false);
+            setLocalError(null);
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
+
+    // Show parent-level payment error (e.g. Stripe declined) or local form error
+    const displayError = paymentError || localError;
 
     async function handleSubmit(e) {
         e.preventDefault();
         if (!stripe || !elements) return;
 
         setIsProcessing(true);
-        setError(null);
+        setLocalError(null);
 
         try {
             if (selectedCardId === "new") {
-                // Pass the CardElement to the parent to confirm with Stripe
-                onConfirm({ type: "new", element: elements.getElement(CardElement) });
+                await onConfirm({ type: "new", element: elements.getElement(CardElement) });
             } else {
-                // Use a saved card — pass the Stripe PaymentMethod ID
-                onConfirm({ type: "saved", cardId: selectedCardId });
+                await onConfirm({ type: "saved", cardId: selectedCardId });
             }
         } catch (err) {
-            setError(err.message);
+            setLocalError(err.message);
+        } finally {
             setIsProcessing(false);
         }
     }
@@ -173,15 +182,18 @@ export default function RealPaymentModal({ isOpen, amount, onConfirm, onCancel, 
                             }}>
                                 <CardElement options={CARD_ELEMENT_OPTIONS} />
                             </div>
-                            <p style={{ margin: "0.6rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)" }}>
-                                Test: <code style={{ background: "var(--bg-hover)", padding: "0.1rem 0.3rem", borderRadius: "4px" }}>4242 4242 4242 4242</code> · any future date · any CVC
-                            </p>
+                            <div style={{ margin: "0.6rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)", lineHeight: 1.6 }}>
+                                <div><strong style={{ color: "var(--text-main)" }}>Test cards:</strong></div>
+                                <div>Success: <code style={{ background: "var(--bg-hover)", padding: "0.1rem 0.3rem", borderRadius: "4px" }}>4242 4242 4242 4242</code></div>
+                                <div>Insufficient funds: <code style={{ background: "var(--bg-hover)", padding: "0.1rem 0.3rem", borderRadius: "4px" }}>4000 0000 0000 9995</code></div>
+                                <div style={{ marginTop: "0.2rem" }}>Any future date · any 3-digit CVC</div>
+                            </div>
                         </div>
                     )}
 
-                    {error && (
-                        <div style={{ padding: "0.75rem 1rem", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "12px", color: "#ef4444", fontSize: "0.85rem", marginBottom: "1.5rem", display: "flex", gap: "0.5rem" }}>
-                            {error}
+                    {displayError && (
+                        <div style={{ padding: "0.75rem 1rem", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "12px", color: "#ef4444", fontSize: "0.85rem", marginBottom: "1.5rem" }}>
+                            <strong>Payment failed:</strong> {displayError}
                         </div>
                     )}
 

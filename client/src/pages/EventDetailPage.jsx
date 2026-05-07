@@ -175,8 +175,9 @@ export default function EventDetailPage() {
     const surgeWarning = event.capacity != null && ticketsSold > event.capacity * 0.5;
     const ticketPrice = surgeWarning ? Math.round(event.priceCents * 1.15) : event.priceCents;
 
-    const maxDiscount = Math.floor(ticketPrice * 0.5);
-    const pointsDiscount = (user?.loyaltyAccount?.points || 0) * 10;
+    // 1 point = 1 cent (POINT_TO_CENT=1), max 15% of ticket price (LOYALTY_MAX_DISCOUNT_RATE=0.15)
+    const maxDiscount = Math.floor(ticketPrice * 0.15);
+    const pointsDiscount = (user?.loyaltyAccount?.points || 0) * 1;
     const actualDiscount = usePoints ? Math.min(pointsDiscount, maxDiscount) : 0;
     const finalAmount = ticketPrice - actualDiscount;
 
@@ -249,7 +250,7 @@ export default function EventDetailPage() {
                         {/* Loyalty hint for dancers with 0 points */}
                         {isLoggedIn && user.role === "DANCER" && !purchaseResult && !isSoldOut && !(user.loyaltyAccount?.points > 0) && (
                             <div className="detail-item" style={{ gridColumn: "1 / -1", fontSize: "0.85rem", color: "var(--text-muted)", padding: "0.75rem 1rem", background: "var(--bg-hover)", borderRadius: "var(--radius-sm)" }}>
-                                Earn <strong>5%</strong> of this ticket price as loyalty points on your purchase.
+                                Earn <strong>1%</strong> of this ticket price as loyalty points on your purchase.
                             </div>
                         )}
 
@@ -260,12 +261,11 @@ export default function EventDetailPage() {
                                     <div>
                                         <strong style={{ color: "var(--accent)" }}>Loyalty Discount Available</strong>
                                         <p style={{ margin: "0.25rem 0 0", fontSize: "0.85rem", color: "var(--text-muted)" }}>
-                                            You have <strong>{user.loyaltyAccount.points}</strong> points.
+                                            You have <strong>{user.loyaltyAccount.points}</strong> points worth <strong>€{(user.loyaltyAccount.points / 100).toFixed(2)}</strong>.
                                             {(() => {
-                                                const maxDiscount = Math.floor(ticketPrice * 0.5);
-                                                const pointsDiscount = user.loyaltyAccount.points * 10;
-                                                const actual = Math.min(pointsDiscount, maxDiscount);
-                                                return ` Apply up to €${(actual / 100).toFixed(2)} (max 50% of ticket price).`;
+                                                const maxD = Math.floor(ticketPrice * 0.15);
+                                                const actual = Math.min(user.loyaltyAccount.points, maxD);
+                                                return ` Save up to €${(actual / 100).toFixed(2)} (max 15% of ticket).`;
                                             })()}
                                         </p>
                                     </div>
@@ -353,8 +353,9 @@ export default function EventDetailPage() {
                     amount={finalAmount}
                     loading={buying}
                     savedCards={savedCards}
+                    paymentError={buyError}
                     description="Your ticket will be issued immediately after payment."
-                    onCancel={() => setShowPaymentModal(false)}
+                    onCancel={() => { setShowPaymentModal(false); setBuyError(null); }}
                     onConfirm={handleConfirmPurchase}
                 />
             </div>
