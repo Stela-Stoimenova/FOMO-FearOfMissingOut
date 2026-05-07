@@ -154,9 +154,9 @@ describe("Ticket purchase flow", () => {
         expect(res.body.transaction.commissionCents).toBe(100);
         expect(res.body.transaction.netCents).toBe(900);
 
-        // Loyalty (5%)
-        expect(res.body.loyalty.pointsEarned).toBe(50);
-        expect(res.body.loyalty.totalPoints).toBe(50);
+        // Loyalty (1% of final price)
+        expect(res.body.loyalty.pointsEarned).toBe(10);
+        expect(res.body.loyalty.totalPoints).toBe(10);
     });
 
     it("prevents duplicate ticket purchase with 409", async () => {

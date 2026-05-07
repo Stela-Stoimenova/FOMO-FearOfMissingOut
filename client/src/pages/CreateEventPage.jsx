@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { createEvent, getSuggestedDancers } from "../api/events.js";
+import { createEvent, getSuggestedDancers, searchOrganisers } from "../api/events.js";
 import { apiRequest } from "../api/client.js";
 import { DANCE_STYLE_OPTIONS } from "../utils/constants.js";
 
@@ -43,6 +43,13 @@ export default function CreateEventPage() {
     const [invitedIds, setInvitedIds] = useState(new Set());
     const [sendingId, setSendingId] = useState(null);
 
+    // Co-organizer invite state
+    const [coOrgQuery, setCoOrgQuery] = useState("");
+    const [coOrgResults, setCoOrgResults] = useState([]);
+    const [coOrgLoading, setCoOrgLoading] = useState(false);
+    const [coOrgInvitedIds, setCoOrgInvitedIds] = useState(new Set());
+    const [coOrgSendingId, setCoOrgSendingId] = useState(null);
+
     function handleChange(e) {
         setForm({ ...form, [e.target.name]: e.target.value });
     }
@@ -59,6 +66,37 @@ export default function CreateEventPage() {
             setSelectedStyles(prev => [...prev, s]);
         }
         setStyleInput("");
+    }
+
+    async function handleCoOrgSearch(e) {
+        e.preventDefault();
+        setCoOrgLoading(true);
+        try {
+            const results = await searchOrganisers(coOrgQuery);
+            setCoOrgResults(results);
+        } catch {
+            setCoOrgResults([]);
+        } finally {
+            setCoOrgLoading(false);
+        }
+    }
+
+    async function handleInviteCoOrg(org) {
+        setCoOrgSendingId(org.id);
+        try {
+            await apiRequest("/messages", {
+                method: "POST",
+                body: JSON.stringify({
+                    receiverId: org.id,
+                    content: `Hi ${org.name || "there"}! We'd like to invite you to collaborate on our event "${createdEvent.title}". Take a look and let us know if you're interested in being a co-organiser!`,
+                }),
+            });
+            setCoOrgInvitedIds(prev => new Set([...prev, org.id]));
+        } catch {
+            // silent fail
+        } finally {
+            setCoOrgSendingId(null);
+        }
     }
 
     async function handleSubmit(e) {
@@ -144,6 +182,51 @@ export default function CreateEventPage() {
                         <Link to={`/events/${createdEvent.id}`} className="btn-primary">View Event →</Link>
                         <Link to="/dashboard" style={{ padding: "0.65rem 1.5rem", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", color: "var(--text-muted)", textDecoration: "none" }}>Go to Dashboard</Link>
                     </div>
+                </div>
+
+                {/* Co-organizer invite section */}
+                <div style={{ background: "var(--bg-card)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-lg)", padding: "2rem", marginBottom: "2rem" }}>
+                    <h2 style={{ marginBottom: "0.5rem" }}>Invite Co-organizers</h2>
+                    <p className="subtitle" style={{ marginBottom: "1.25rem" }}>
+                        Search for studios or agencies to collaborate on this event.
+                    </p>
+                    <form onSubmit={handleCoOrgSearch} style={{ display: "flex", gap: "0.75rem", marginBottom: "1.25rem" }}>
+                        <input
+                            value={coOrgQuery}
+                            onChange={e => setCoOrgQuery(e.target.value)}
+                            placeholder="Search by name…"
+                            style={{ flex: 1, background: "var(--bg-input)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", padding: "0.6rem 0.9rem", color: "var(--text-main)", fontSize: "0.9rem" }}
+                        />
+                        <button type="submit" disabled={coOrgLoading} style={{ padding: "0.6rem 1.25rem", background: "var(--accent)", border: "none", borderRadius: "999px", color: "#fff", fontWeight: 600, cursor: coOrgLoading ? "not-allowed" : "pointer", fontSize: "0.88rem" }}>
+                            {coOrgLoading ? "Searching…" : "Search"}
+                        </button>
+                    </form>
+
+                    {coOrgResults.length > 0 && (
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "0.75rem" }}>
+                            {coOrgResults.map(org => (
+                                <div key={org.id} style={{ background: "var(--bg-hover)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", padding: "0.9rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                                    <div style={{ width: 40, height: 40, borderRadius: "50%", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", color: "var(--text-muted)" }}>
+                                        {org.avatarUrl ? <img src={org.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (org.name || "?").charAt(0).toUpperCase()}
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontWeight: 600, fontSize: "0.92rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{org.name}</div>
+                                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{org.role}{org.city ? ` · ${org.city}` : ""}</div>
+                                    </div>
+                                    <button
+                                        onClick={() => handleInviteCoOrg(org)}
+                                        disabled={coOrgInvitedIds.has(org.id) || coOrgSendingId === org.id}
+                                        style={{ padding: "0.4rem 0.8rem", borderRadius: "999px", border: "none", cursor: coOrgInvitedIds.has(org.id) ? "default" : "pointer", fontWeight: 600, fontSize: "0.78rem", background: coOrgInvitedIds.has(org.id) ? "var(--bg-input)" : "var(--accent)", color: coOrgInvitedIds.has(org.id) ? "var(--text-muted)" : "#fff", flexShrink: 0 }}
+                                    >
+                                        {coOrgSendingId === org.id ? "…" : coOrgInvitedIds.has(org.id) ? "✓ Invited" : "Invite"}
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    {coOrgResults.length === 0 && coOrgQuery && !coOrgLoading && (
+                        <p style={{ color: "var(--text-muted)", fontSize: "0.88rem" }}>No studios or agencies found for "{coOrgQuery}".</p>
+                    )}
                 </div>
 
                 {selectedStyles.length > 0 && (

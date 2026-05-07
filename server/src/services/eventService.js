@@ -254,6 +254,22 @@ export async function updateEvent(id, data, userId) {
         },
     });
 
+    // Notify all current ticket holders about the change
+    const attendees = await prisma.ticket.findMany({
+        where: { eventId: id, status: "VALID" },
+        select: { userId: true },
+    });
+    const uniqueAttendeeIds = [...new Set(attendees.map(t => t.userId))].filter(uid => uid !== userId);
+    for (const attendeeId of uniqueAttendeeIds) {
+        createNotification({
+            userId: attendeeId,
+            actorId: userId,
+            type: "EVENT_UPDATED",
+            message: `"${updated.title}" has been updated by the organiser. Check the latest details.`,
+            linkPath: `/events/${id}`,
+        }).catch(() => {});
+    }
+
     return updated;
 }
 
@@ -277,28 +293,50 @@ export async function deleteEvent(id, userId) {
         throw err;
     }
 
+    // Collect valid ticket holders BEFORE deleting so we can notify + refund them
+    const validTickets = await prisma.ticket.findMany({
+        where: { eventId: id, status: "VALID" },
+        select: { id: true, userId: true, priceCents: true, stripePaymentIntentId: true },
+    });
+
     await prisma.$transaction(async (tx) => {
-        // Find tickets for this event
-        const tickets = await tx.ticket.findMany({
+        const allTickets = await tx.ticket.findMany({
             where: { eventId: id },
-            select: { id: true }
+            select: { id: true },
         });
-        const ticketIds = tickets.map(t => t.id);
+        const ticketIds = allTickets.map(t => t.id);
 
         if (ticketIds.length > 0) {
-            // Delete transactions linked to those tickets
-            await tx.transaction.deleteMany({
-                where: { ticketId: { in: ticketIds } }
-            });
-            // Delete tickets
-            await tx.ticket.deleteMany({
-                where: { eventId: id }
-            });
+            await tx.transaction.deleteMany({ where: { ticketId: { in: ticketIds } } });
+            await tx.ticket.deleteMany({ where: { eventId: id } });
         }
 
-        // Delete the event
         await tx.event.delete({ where: { id } });
     });
+
+    // After deletion: notify each ticket holder and attempt Stripe refunds
+    for (const ticket of validTickets) {
+        // Best-effort Stripe refund
+        if (ticket.stripePaymentIntentId && process.env.STRIPE_SECRET_KEY) {
+            try {
+                const { default: Stripe } = await import("stripe");
+                const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-04-10" });
+                await stripe.refunds.create({
+                    payment_intent: ticket.stripePaymentIntentId,
+                    reason: "requested_by_customer",
+                });
+            } catch {
+                // Non-blocking — don't fail the whole delete
+            }
+        }
+
+        createNotification({
+            userId: ticket.userId,
+            type: "EVENT_CANCELLED",
+            message: `"${existing.title}" was cancelled by the organiser. You will receive a full refund.`,
+            linkPath: "/my-tickets",
+        }).catch(() => {});
+    }
 }
 
 export async function purchaseTicket(eventId, userId, usePoints = false, stripePaymentIntentId = null) {

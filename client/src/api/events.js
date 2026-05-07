@@ -206,3 +206,16 @@ export async function getSuggestedDancers(eventId) {
     return apiRequest(`/events/${eventId}/suggested-dancers`);
 }
 
+/**
+ * GET /api/users/search?query=&role=STUDIO + AGENCY combined
+ * Search for studios/agencies to invite as co-organizers.
+ */
+export async function searchOrganisers(q) {
+    const [studios, agencies] = await Promise.all([
+        apiRequest(`/users/search?role=STUDIO${q ? `&query=${encodeURIComponent(q)}` : ""}`),
+        apiRequest(`/users/search?role=AGENCY${q ? `&query=${encodeURIComponent(q)}` : ""}`),
+    ]);
+    const combined = [...(Array.isArray(studios) ? studios : []), ...(Array.isArray(agencies) ? agencies : [])];
+    return combined.filter((u, i, arr) => arr.findIndex(x => x.id === u.id) === i);
+}
+
