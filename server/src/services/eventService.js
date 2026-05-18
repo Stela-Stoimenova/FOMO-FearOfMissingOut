@@ -541,6 +541,57 @@ export async function unsaveEventById(userId, eventId) {
     }
 }
 
+/** Wishlist analytics for a STUDIO/AGENCY — per-event save/conversion funnel */
+export async function getWishlistAnalytics(creatorId) {
+    const events = await prisma.event.findMany({
+        where: { creatorId },
+        select: {
+            id: true,
+            title: true,
+            startAt: true,
+            priceCents: true,
+            imageUrl: true,
+            savedByUsers: { select: { userId: true } },
+            tickets: {
+                where: { status: { in: ["VALID", "REFUNDED"] } },
+                select: { userId: true },
+            },
+        },
+        orderBy: { startAt: "desc" },
+    });
+
+    const perEvent = events.map(ev => {
+        const savedUserIds = new Set(ev.savedByUsers.map(s => s.userId));
+        const purchasedUserIds = new Set(ev.tickets.map(t => t.userId));
+        const savedCount = savedUserIds.size;
+        const savedAndPurchased = [...savedUserIds].filter(id => purchasedUserIds.has(id)).length;
+        const savedNotPurchased = savedCount - savedAndPurchased;
+        const conversionRate = savedCount > 0 ? Math.round((savedAndPurchased / savedCount) * 100) : null;
+        return {
+            id: ev.id,
+            title: ev.title,
+            startAt: ev.startAt,
+            priceCents: ev.priceCents,
+            imageUrl: ev.imageUrl,
+            savedCount,
+            purchasedCount: ev.tickets.length,
+            savedAndPurchased,
+            savedNotPurchased,
+            conversionRate,
+        };
+    });
+
+    const totalSaved = perEvent.reduce((s, e) => s + e.savedCount, 0);
+    const totalConversions = perEvent.reduce((s, e) => s + e.savedAndPurchased, 0);
+    const totalSavedNotPurchased = perEvent.reduce((s, e) => s + e.savedNotPurchased, 0);
+    const overallConversionRate = totalSaved > 0 ? Math.round((totalConversions / totalSaved) * 100) : null;
+
+    return {
+        summary: { totalSaved, totalConversions, totalSavedNotPurchased, overallConversionRate },
+        perEvent,
+    };
+}
+
 /** List user's wishlist */
 export async function getUserSavedEvents(userId) {
     const saved = await prisma.savedEvent.findMany({
