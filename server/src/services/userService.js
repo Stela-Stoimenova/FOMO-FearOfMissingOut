@@ -81,6 +81,14 @@ export async function getMyProfile(userId) {
         throw err;
     }
 
+    if (user.loyaltyAccount && user.loyaltyAccount.points < 0) {
+        await prisma.loyaltyAccount.update({
+            where: { userId },
+            data: { points: 0 },
+        });
+        user.loyaltyAccount.points = 0;
+    }
+
     return user;
 }
 

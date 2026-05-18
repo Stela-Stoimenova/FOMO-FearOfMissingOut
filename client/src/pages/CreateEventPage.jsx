@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { createEvent, getSuggestedDancers, searchAllForInvite, inviteEventParticipant } from "../api/events.js";
 import { apiRequest } from "../api/client.js";
 import { DANCE_STYLE_OPTIONS } from "../utils/constants.js";
+import ImageUploadInput from "../components/ImageUploadInput.jsx";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -409,10 +410,12 @@ export default function CreateEventPage() {
                         <div style={{ width: "100%", aspectRatio: "16/9", background: form.imageUrl ? `url(${form.imageUrl}) center/cover no-repeat` : "var(--bg-input)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-light)", marginBottom: "1rem", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                             {!form.imageUrl && <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>Image Preview</span>}
                         </div>
-                        <label>
-                            Image URL
-                            <input name="imageUrl" value={form.imageUrl} onChange={handleChange} placeholder="https://..." style={{ width: "100%", marginTop: "0.5rem", background: "var(--bg-input)", border: "1px solid var(--border-light)", padding: "0.65rem 0.9rem", borderRadius: "var(--radius-md)", color: "var(--text-main)", fontFamily: "var(--font-sans)" }} />
-                        </label>
+                        <label style={{ display: "block", marginBottom: "0.4rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>Image URL or Upload</label>
+                        <ImageUploadInput
+                            value={form.imageUrl}
+                            onChange={url => setForm(prev => ({ ...prev, imageUrl: url }))}
+                            placeholder="https://... or click Upload"
+                        />
                         <p style={{ margin: "0.5rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)", lineHeight: 1.5 }}>
                             Paste a direct image link. 16:9 ratio recommended.
                         </p>

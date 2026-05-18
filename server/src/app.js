@@ -3,6 +3,8 @@ import rateLimit from "express-rate-limit";
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
+import { fileURLToPath } from "url";
+import path from "path";
 
 import { sanitizeBody } from "./middleware/sanitize.js";
 import authRoutes from "./routes/auth.js";
@@ -14,10 +16,19 @@ import cvRoutes from "./routes/cv.js";
 import agencyRoutes from "./routes/agency.js";
 import paymentRoutes from "./routes/payments.js";
 import notificationRoutes from "./routes/notifications.js";
+import uploadRoutes from "./routes/uploads.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
-app.use(helmet());
+app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
+
+// Serve uploaded files
+app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
 // Per-route rate limits: strict on auth, generous on read endpoints
 const authLimiter = rateLimit({
@@ -58,6 +69,7 @@ app.use("/api/studios", studioRoutes);
 app.use("/api/cv", cvRoutes);
 app.use("/api/agency", agencyRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 // 404 Handler (Helpful for debugging)
 app.use((req, res, next) => {

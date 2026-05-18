@@ -800,18 +800,22 @@ export async function cancelTicketById(userId, ticketId) {
                 .reduce((s, t) => s + t.points, 0);
 
             if (pointsEarned > 0) {
-                await tx.loyaltyAccount.update({
-                    where: { userId },
-                    data: { points: { decrement: pointsEarned } },
-                });
-                await tx.loyaltyTransaction.create({
-                    data: {
-                        userId,
-                        points: -pointsEarned,
-                        reason: `Cancelled ticket #${ticketId} — earned points forfeited`,
-                        ticketId,
-                    },
-                });
+                const currentAccount = await tx.loyaltyAccount.findUnique({ where: { userId } });
+                const actualDecrement = Math.min(pointsEarned, Math.max(0, currentAccount?.points ?? 0));
+                if (actualDecrement > 0) {
+                    await tx.loyaltyAccount.update({
+                        where: { userId },
+                        data: { points: { decrement: actualDecrement } },
+                    });
+                    await tx.loyaltyTransaction.create({
+                        data: {
+                            userId,
+                            points: -actualDecrement,
+                            reason: `Cancelled ticket #${ticketId} — earned points forfeited`,
+                            ticketId,
+                        },
+                    });
+                }
             }
         }
 

@@ -26,14 +26,11 @@ export default function HomePage() {
     const [searchInput, setSearchInput] = useState("");
     const [query, setQuery] = useState("");
 
-    // Filter input values (not applied until Search is clicked)
+    // Filter input values — applied live with debounce
     const [filterCity, setFilterCity] = useState("");
     const [filterStyle, setFilterStyle] = useState("");
     const [filterMaxPrice, setFilterMaxPrice] = useState("");
     const [filterMaxCapacity, setFilterMaxCapacity] = useState("");
-
-    // Applied filter values — only change when the Search button is clicked
-    const [appliedFilters, setAppliedFilters] = useState({ city: "", style: "", maxPrice: "", maxCapacity: "" });
 
     // Toggle advanced filters
     const [showFilters, setShowFilters] = useState(false);
@@ -74,50 +71,42 @@ export default function HomePage() {
         fetchPopular();
     }, []);
 
-    // Debounce text search only (not filters)
+    // Debounce text search input → query
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setQuery(searchInput.trim());
-        }, 400);
+        const timer = setTimeout(() => setQuery(searchInput.trim()), 400);
         return () => clearTimeout(timer);
     }, [searchInput]);
 
-    // Fetch events when text query or applied filters change
+    // Fetch events when any filter or query changes (all live with debounce)
     useEffect(() => {
-        async function fetchEvents() {
+        const timer = setTimeout(async () => {
             setLoading(true);
             setError(null);
             try {
-                const { city, style, maxPrice, maxCapacity } = appliedFilters;
-                const finalQuery = style ? `${query} ${style}`.trim() : query;
-
+                const finalQuery = filterStyle ? `${query} ${filterStyle}`.trim() : query;
                 const params = { q: finalQuery, limit: 12 };
-                if (city) params.city = city;
-                if (maxPrice) params.maxPrice = Number(maxPrice) * 100;
-                if (maxCapacity) params.maxCapacity = Number(maxCapacity);
+                if (filterCity) params.city = filterCity;
+                if (filterMaxPrice) params.maxPrice = Number(filterMaxPrice) * 100;
+                if (filterMaxCapacity) params.maxCapacity = Number(filterMaxCapacity);
 
                 const data = await getEvents(params);
                 setEvents(data.items);
                 setTotal(data.total);
 
-                const mapParams = { ...params, limit: 500 };
-                const mapData = await getEvents(mapParams);
+                const mapData = await getEvents({ ...params, limit: 500 });
                 setMapEvents(mapData.items);
-
             } catch (err) {
                 setError(err.message || "Failed to load events");
             } finally {
                 setLoading(false);
             }
-        }
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [query, filterCity, filterStyle, filterMaxPrice, filterMaxCapacity]);
 
-        fetchEvents();
-    }, [query, appliedFilters]);
-
-    // Apply filter inputs + current search text immediately
+    // Trigger search immediately on button click
     function handleSearch() {
         setQuery(searchInput.trim());
-        setAppliedFilters({ city: filterCity, style: filterStyle, maxPrice: filterMaxPrice, maxCapacity: filterMaxCapacity });
     }
 
     // Request location and fetch nearby events
@@ -205,7 +194,7 @@ export default function HomePage() {
     return (
         <main className="page">
             {/* Hero Section */}
-            {!query && !Object.values(appliedFilters).some(Boolean) && (
+            {!query && !filterCity && !filterStyle && !filterMaxPrice && !filterMaxCapacity && (
                 <section className="hero">
                     <h1>The Premier Platform for Dance Professionals</h1>
                     <p>Discover exclusive events, manage your tickets, and never miss out on the industry's best opportunities.</p>
@@ -321,7 +310,7 @@ export default function HomePage() {
             </section>
 
             {/* Premium Interactive Map */}
-            {!query && !Object.values(appliedFilters).some(Boolean) && (
+            {!query && !filterCity && !filterStyle && !filterMaxPrice && !filterMaxCapacity && (
                 <section style={{ marginBottom: "3rem", height: "450px", borderRadius: "10px", border: "1px solid var(--border-light)", overflow: "hidden", background: "var(--bg-card)", position: "relative" }}>
                     {/* Render Event Map, pass all unpaginated map events, user coord intent, and nearby highlight array */}
                     <EventMap
@@ -333,7 +322,7 @@ export default function HomePage() {
             )}
 
             {/* Popular Events Section (hide when searching) */}
-            {!query && !Object.values(appliedFilters).some(Boolean) && (
+            {!query && !filterCity && !filterStyle && !filterMaxPrice && !filterMaxCapacity && (
                 <section className="popular-section" style={{ marginBottom: "3rem" }}>
                     <h2 style={{ fontSize: "1.5rem", margin: "0 0 1rem 0", color: "var(--text-main)" }}>Popular Events</h2>
 
@@ -354,7 +343,7 @@ export default function HomePage() {
 
             {/* All Events Section */}
             <h2 style={{ fontSize: "1.5rem", margin: "0 0 1rem 0", color: "#f1f5f9" }}>
-                {query || Object.values(appliedFilters).some(Boolean) ? "Search Results" : "All Upcoming Events"}
+                {query || filterCity || filterStyle || filterMaxPrice || filterMaxCapacity ? "Search Results" : "All Upcoming Events"}
             </h2>
 
             {/* Main Events Loading state */}
@@ -375,7 +364,7 @@ export default function HomePage() {
                         ? "No events found"
                         : `Showing ${events.length} of ${total} event${total !== 1 ? "s" : ""}`}
                     {query && <span> for "<strong>{query}</strong>"</span>}
-                    {!query && appliedFilters.city && <span> in <strong>{appliedFilters.city}</strong></span>}
+                    {!query && filterCity && <span> in <strong>{filterCity}</strong></span>}
                 </p>
             )}
 

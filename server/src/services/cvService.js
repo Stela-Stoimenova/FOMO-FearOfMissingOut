@@ -5,6 +5,7 @@ const DEFAULT_INCLUDE = {
   taggedAgency: { select: { id: true, name: true, avatarUrl: true } },
 };
 
+
 export async function listByUser(userId) {
   return prisma.cvEntry.findMany({
     where: { userId: Number(userId) },

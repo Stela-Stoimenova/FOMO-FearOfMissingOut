@@ -1,6 +1,7 @@
 import { useAuth } from "../context/AuthContext.jsx";
 import { Link } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import ImageUploadInput from "../components/ImageUploadInput.jsx";
 import { updateMe, getMe, addPortfolioItem, deletePortfolioItem, tagEvent, deleteMe, getMyInvites, acceptRosterInvite, declineRosterInvite, acceptTeamInvite, declineTeamInvite } from "../api/users.js";
 import { getStripeOnboardingLink, checkStripeStatus, getWallet, deleteCard } from "../api/payments.js";
 import AddCardModal from "../components/AddCardModal.jsx";
@@ -34,6 +35,9 @@ export default function ProfilePage() {
 
     // Portfolio MVP state
     const [newPortfolio, setNewPortfolio] = useState({ url: "", title: "", description: "", type: "VIDEO" });
+    const [portfolioOrder, setPortfolioOrder] = useState([]);
+    const dragItemRef = useRef(null);
+    const dragOverItemRef = useRef(null);
     const [myTickets, setMyTickets] = useState([]);
     const [selectedEventToTag, setSelectedEventToTag] = useState("");
     const [invites, setInvites] = useState({ rosterInvites: [], teamInvites: [] });
@@ -204,6 +208,35 @@ export default function ProfilePage() {
         } finally {
             setSaving(false);
         }
+    }
+
+    useEffect(() => {
+        if (user?.portfolioItems) {
+            setPortfolioOrder(user.portfolioItems.map(i => i.id));
+        }
+    }, [user?.portfolioItems]);
+
+    const sortedPortfolioItems = portfolioOrder.length > 0 && user?.portfolioItems
+        ? portfolioOrder.map(id => user.portfolioItems.find(i => i.id === id)).filter(Boolean)
+        : (user?.portfolioItems || []);
+
+    function handleDragStart(idx) {
+        dragItemRef.current = idx;
+    }
+
+    function handleDragEnter(idx) {
+        dragOverItemRef.current = idx;
+    }
+
+    function handleDragEnd() {
+        const from = dragItemRef.current;
+        const to = dragOverItemRef.current;
+        if (from === null || to === null || from === to) return;
+        const newOrder = [...portfolioOrder];
+        newOrder.splice(to, 0, newOrder.splice(from, 1)[0]);
+        setPortfolioOrder(newOrder);
+        dragItemRef.current = null;
+        dragOverItemRef.current = null;
     }
 
     async function handleAddPortfolio() {
@@ -654,8 +687,12 @@ export default function ProfilePage() {
                    </div>
                    {/* Avatar */}
                    <div className="form-group">
-                       <label className="form-label">Avatar URL</label>
-                       <input type="url" className="form-input" placeholder="Paste an image URL…" value={form.avatarUrl} onChange={e => setForm({ ...form, avatarUrl: e.target.value })} />
+                       <label className="form-label">Avatar</label>
+                       <ImageUploadInput
+                           value={form.avatarUrl}
+                           onChange={url => setForm(prev => ({ ...prev, avatarUrl: url }))}
+                           placeholder="Paste URL or click Upload"
+                       />
                    </div>
                 </div>
 
@@ -739,12 +776,35 @@ export default function ProfilePage() {
                     <div className="form-group" style={{ padding: '1.5rem', background: 'var(--bg-hover)', borderRadius: '20px', border: '1px solid var(--border-light)' }}>
                         <label className="form-label" style={{ fontWeight: 700, fontSize: '1rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>Portfolio Media Manager</label>
 
-                        {/* Current Items */}
+                        {/* Current Items — drag to reorder */}
+                        {sortedPortfolioItems.length > 0 && (
+                            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                                Drag items to reorder
+                            </p>
+                        )}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '1.5rem' }}>
-                            {user.portfolioItems?.map(item => (
-                                <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem 1rem', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-light)' }}>
-                                    <div>
-                                        <strong style={{ fontSize: '0.9rem' }}>{item.title || "Untitled"}</strong> <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({item.type})</span>
+                            {sortedPortfolioItems.map((item, idx) => (
+                                <div
+                                    key={item.id}
+                                    draggable
+                                    onDragStart={() => handleDragStart(idx)}
+                                    onDragEnter={() => handleDragEnter(idx)}
+                                    onDragEnd={handleDragEnd}
+                                    onDragOver={e => e.preventDefault()}
+                                    style={{
+                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                        padding: '0.75rem 1rem', background: 'var(--bg-card)',
+                                        borderRadius: '12px', border: '1px solid var(--border-light)',
+                                        cursor: 'grab', userSelect: 'none',
+                                        transition: 'box-shadow 0.15s',
+                                    }}
+                                    onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 0 0 2px var(--accent)'; }}
+                                    onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', cursor: 'grab' }}>⠿</span>
+                                        <strong style={{ fontSize: '0.9rem' }}>{item.title || "Untitled"}</strong>
+                                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>({item.type})</span>
                                     </div>
                                     <button type="button" onClick={() => handleDeletePortfolio(item.id)} className="btn-secondary" style={{ padding: '0.3rem 0.8rem', fontSize: '0.75rem', color: 'var(--warning)' }}>Remove</button>
                                 </div>
