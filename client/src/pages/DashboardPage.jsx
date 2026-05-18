@@ -32,6 +32,8 @@ export default function DashboardPage() {
     const [confirmDeleteId, setConfirmDeleteId] = useState(null);
     const [recommendations, setRecommendations] = useState([]);
     const [loadingRecs, setLoadingRecs] = useState(false);
+    const [wishlistData, setWishlistData] = useState(null);
+    const [loadingWishlist, setLoadingWishlist] = useState(false);
 
     useEffect(() => {
         if (user && (user.role === "STUDIO" || user.role === "AGENCY")) {
@@ -72,6 +74,14 @@ export default function DashboardPage() {
                     .then(data => setRecommendations(Array.isArray(data) ? data : []))
                     .catch(err => console.error("Recommendations failed", err))
                     .finally(() => setLoadingRecs(false));
+            });
+
+            setLoadingWishlist(true);
+            import("../api/events.js").then(api => {
+                api.getWishlistAnalytics()
+                    .then(data => setWishlistData(data))
+                    .catch(err => console.error("Wishlist analytics failed", err))
+                    .finally(() => setLoadingWishlist(false));
             });
         }
     }, [user]);
@@ -552,6 +562,127 @@ export default function DashboardPage() {
                                 ))}
                             </div>
                         </>)}
+
+                        {/* ── Wishlist Analytics ── */}
+                        <div style={{ marginTop: '3rem' }}>
+                            <h2 style={{ marginBottom: '0.4rem', fontSize: '1.3rem' }}>Wishlist Analytics</h2>
+                            <p className="subtitle" style={{ marginBottom: '2rem', fontSize: '0.95rem' }}>
+                                See which events dancers saved to their wish list — and who converted to a purchase.
+                            </p>
+
+                            {loadingWishlist ? (
+                                <p className="hint">Loading wishlist data…</p>
+                            ) : !wishlistData || wishlistData.perEvent.length === 0 ? (
+                                <div style={{ padding: '2rem', border: '1px dashed var(--border-light)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                    No wishlist data yet. Dancers can save your events by tapping the heart icon on event pages.
+                                </div>
+                            ) : (() => {
+                                const { summary, perEvent: wEvents } = wishlistData;
+
+                                function wishlistInsight(ev) {
+                                    if (ev.savedCount === 0) return "No saves yet — increase visibility with promotions or invitations.";
+                                    if (ev.conversionRate >= 70) return "Excellent conversion — dancers who save this event almost always buy. Keep the strategy.";
+                                    if (ev.conversionRate >= 40) return "Good interest. Consider a reminder or limited-time offer to nudge undecided dancers.";
+                                    if (ev.savedNotPurchased > 3 && ev.conversionRate < 20) return "High save rate but low conversion — price or event details may be deterring purchase. Review your offer.";
+                                    return "Monitor as the event date approaches; interest may convert closer to the deadline.";
+                                }
+
+                                const convColor = (rate) => {
+                                    if (rate === null) return 'var(--text-muted)';
+                                    if (rate >= 60) return 'var(--success)';
+                                    if (rate >= 30) return 'var(--warning)';
+                                    return 'var(--danger)';
+                                };
+
+                                return (
+                                    <>
+                                        {/* Summary KPIs */}
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2.5rem' }}>
+                                            {[
+                                                { label: 'Total Saves', value: summary.totalSaved, color: 'var(--accent)' },
+                                                { label: 'Converted to Purchase', value: summary.totalConversions, color: 'var(--success)' },
+                                                { label: 'Saved — Not Purchased', value: summary.totalSavedNotPurchased, color: 'var(--warning)' },
+                                                { label: 'Overall Conversion', value: summary.overallConversionRate !== null ? `${summary.overallConversionRate}%` : 'N/A', color: convColor(summary.overallConversionRate) },
+                                            ].map(k => (
+                                                <div key={k.label} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '1rem', boxShadow: 'var(--shadow-sm)' }}>
+                                                    <span style={{ display: 'block', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', marginBottom: '0.3rem', fontWeight: 600 }}>{k.label}</span>
+                                                    <strong style={{ fontSize: '1.4rem', color: k.color, fontFamily: 'var(--font-display)' }}>{k.value}</strong>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {/* Per-event wishlist cards */}
+                                        <h3 style={{ marginBottom: '1rem', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 700 }}>Per-Event Wishlist Breakdown</h3>
+                                        <div style={{ display: 'grid', gap: '1rem' }}>
+                                            {wEvents.map(ev => {
+                                                const barSaved = ev.savedCount > 0 ? 100 : 0;
+                                                const barConverted = ev.savedCount > 0 ? Math.round((ev.savedAndPurchased / ev.savedCount) * 100) : 0;
+                                                return (
+                                                    <div key={ev.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '1.25rem 1.5rem', boxShadow: 'var(--shadow-sm)' }}>
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                                                            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                                                {ev.imageUrl && (
+                                                                    <div style={{ width: '44px', height: '44px', borderRadius: 'var(--radius-sm)', background: `url(${ev.imageUrl}) center/cover`, flexShrink: 0 }} />
+                                                                )}
+                                                                <div>
+                                                                    <h4 style={{ margin: '0 0 0.2rem', fontSize: '1rem' }}>{ev.title}</h4>
+                                                                    <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                                                        {new Date(ev.startAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                                        {new Date(ev.startAt) > new Date()
+                                                                            ? <span style={{ marginLeft: '0.5rem', color: 'var(--accent)', fontWeight: 600 }}>Upcoming</span>
+                                                                            : <span style={{ marginLeft: '0.5rem', color: 'var(--text-muted)' }}>Past</span>}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                                <strong style={{ display: 'block', fontSize: '1.3rem', color: convColor(ev.conversionRate) }}>
+                                                                    {ev.conversionRate !== null ? `${ev.conversionRate}%` : '—'}
+                                                                </strong>
+                                                                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>conversion</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Funnel stats */}
+                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
+                                                            {[
+                                                                { label: 'Total Saves', value: ev.savedCount, color: 'var(--accent)' },
+                                                                { label: 'Saved & Purchased', value: ev.savedAndPurchased, color: 'var(--success)' },
+                                                                { label: 'Saved, Not Purchased', value: ev.savedNotPurchased, color: 'var(--warning)' },
+                                                            ].map(stat => (
+                                                                <div key={stat.label} style={{ background: 'var(--bg-input)', borderRadius: 'var(--radius-sm)', padding: '0.6rem 0.75rem' }}>
+                                                                    <span style={{ display: 'block', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.2rem' }}>{stat.label}</span>
+                                                                    <strong style={{ fontSize: '1.1rem', color: stat.color }}>{stat.value}</strong>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+
+                                                        {/* Conversion funnel bar */}
+                                                        {ev.savedCount > 0 && (
+                                                            <div style={{ marginBottom: '0.75rem' }}>
+                                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                                                                    <span>Saves</span>
+                                                                    <span>→ Purchases</span>
+                                                                </div>
+                                                                <div style={{ position: 'relative', height: '8px', background: 'var(--bg-input)', borderRadius: '4px', overflow: 'hidden' }}>
+                                                                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${barSaved}%`, background: 'rgba(99,102,241,0.3)', borderRadius: '4px' }} />
+                                                                    <div style={{ position: 'absolute', left: 0, top: 0, height: '100%', width: `${barConverted}%`, background: convColor(ev.conversionRate), borderRadius: '4px', transition: 'width 0.4s ease' }} />
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Insight */}
+                                                        <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem' }}>
+                                                            <span style={{ color: 'var(--primary)', fontWeight: 600 }}>Wishlist Insight: </span>
+                                                            {wishlistInsight(ev)}
+                                                        </p>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </>
+                                );
+                            })()}
+                        </div>
                     </div>
                 );
             })()}

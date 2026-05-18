@@ -224,6 +224,14 @@ export async function searchAllForInvite(q) {
 }
 
 /**
+ * GET /api/events/me/wishlist-analytics
+ * Wishlist save/conversion funnel for STUDIO/AGENCY — per-event and overall totals.
+ */
+export async function getWishlistAnalytics() {
+    return apiRequest("/events/me/wishlist-analytics");
+}
+
+/**
  * POST /api/events/:id/invite — invite a user (dancer/studio/agency) to the event.
  * Creates a notification with a link to the event so the invitee can preview before accepting.
  */

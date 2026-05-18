@@ -12,6 +12,7 @@ import {
     saveEventById,
     unsaveEventById,
     getUserSavedEvents,
+    getWishlistAnalytics,
     cancelTicketById,
     getSuggestedDancers,
     inviteToEvent,
@@ -148,6 +149,16 @@ export async function cancelTicket(req, res, next) {
         const ticketId = Number(req.params.id);
         const result = await cancelTicketById(req.user.userId, ticketId);
         return res.json(result);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+/** GET /api/events/me/wishlist-analytics — STUDIO/AGENCY only */
+export async function wishlistAnalytics(req, res, next) {
+    try {
+        const data = await getWishlistAnalytics(req.user.userId);
+        return res.json(data);
     } catch (err) {
         return next(err);
     }

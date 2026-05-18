@@ -16,6 +16,7 @@ import {
   saveEvent,
   unsaveEvent,
   getSavedEvents,
+  wishlistAnalytics,
   cancelTicket,
   suggestDancers,
   inviteParticipant,
@@ -37,6 +38,9 @@ router.get("/me/tickets", requireAuth, requireRole(["DANCER"]), myTickets);
 
 // GET /api/events/me/saved (DANCER sees saved events)
 router.get("/me/saved", requireAuth, requireRole(["DANCER"]), getSavedEvents);
+
+// GET /api/events/me/wishlist-analytics (STUDIO/AGENCY — save/conversion funnel for their events)
+router.get("/me/wishlist-analytics", requireAuth, requireRole(["STUDIO", "AGENCY"]), wishlistAnalytics);
 
 
 // GET /api/events/:id (public details)
