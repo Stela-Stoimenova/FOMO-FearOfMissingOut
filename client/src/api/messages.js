@@ -53,3 +53,22 @@ export async function getConversations() {
 export async function getThread(userId) {
     return apiRequest(`/messages/thread/${userId}`);
 }
+
+/**
+ * POST /api/messages/typing
+ * Signal that the current user is typing to someone.
+ */
+export async function sendTypingSignal(toUserId) {
+    return apiRequest("/messages/typing", {
+        method: "POST",
+        body: JSON.stringify({ toUserId }),
+    });
+}
+
+/**
+ * GET /api/messages/typing/:userId
+ * Check if a specific user is currently typing to me.
+ */
+export async function getTypingStatus(userId) {
+    return apiRequest(`/messages/typing/${userId}`);
+}

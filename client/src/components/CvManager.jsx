@@ -3,6 +3,25 @@ import { getUserCv, createCvEntry, updateCvEntry, deleteCvEntry } from "../api/c
 import UserSelect from "./UserSelect.jsx";
 
 const CV_TYPES = ["TRAINING", "PROJECT", "WORKSHOP", "COMPETITION"];
+
+const VERIFICATION_CONFIG = {
+    PENDING:  { label: "Pending Verification", color: "#f59e0b", bg: "rgba(245,158,11,0.12)", icon: "⏳" },
+    VERIFIED: { label: "Verified",              color: "#10b981", bg: "rgba(16,185,129,0.12)", icon: "✓" },
+    REJECTED: { label: "Declined",              color: "#ef4444", bg: "rgba(239,68,68,0.12)",  icon: "✗" },
+};
+
+function VerificationBadge({ status }) {
+    const cfg = VERIFICATION_CONFIG[status] || VERIFICATION_CONFIG.PENDING;
+    return (
+        <span style={{
+            fontSize: "0.7rem", fontWeight: 600, padding: "0.2rem 0.6rem",
+            borderRadius: "999px", background: cfg.bg, color: cfg.color,
+            border: `1px solid ${cfg.color}33`, whiteSpace: "nowrap",
+        }}>
+            {cfg.icon} {cfg.label}
+        </span>
+    );
+}
 const EMPTY_FORM = { type: "PROJECT", title: "", description: "", startDate: "", endDate: "", choreographer: "", taggedStudioId: null, taggedAgencyId: null };
 
 function toDateInput(iso) {
@@ -151,9 +170,12 @@ export default function CvManager({ userId }) {
               ) : (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", padding: "1.25rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px solid var(--border-light)" }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginBottom: "0.5rem" }}>
+                    <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap" }}>
                       <span className="role-badge" style={{ fontSize: "0.65rem", padding: "0.2rem 0.6rem", borderRadius: "999px" }}>{e.type}</span>
                       <strong style={{ fontSize: "1.05rem", fontWeight: 700 }}>{e.title}</strong>
+                      {(e.taggedStudio || e.taggedAgency) && e.verificationStatus && (
+                          <VerificationBadge status={e.verificationStatus} />
+                      )}
                     </div>
                     <div style={{ fontSize: "0.85rem", color: "var(--text-muted)", display: "flex", gap: "0.75rem", flexWrap: "wrap", marginBottom: "0.5rem" }}>
                       {e.startDate && (

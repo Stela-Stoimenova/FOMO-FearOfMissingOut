@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { getConversations, getThread, sendMessage } from "../api/messages.js";
+import { getConversations, getThread, sendMessage, sendTypingSignal, getTypingStatus } from "../api/messages.js";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function MessagesPage() {
@@ -16,19 +16,54 @@ export default function MessagesPage() {
     const [replyContent, setReplyContent] = useState("");
     const [sending, setSending] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
+    const [otherUserTyping, setOtherUserTyping] = useState(false);
     const threadEndRef = useRef(null);
+    const activeThreadRef = useRef(null);
+    const typingTimeoutRef = useRef(null);
 
     useEffect(() => {
         if (!user) return;
         loadConversations();
     }, [user]);
 
+    // Keep ref in sync so polling closure has current activeThread
     useEffect(() => {
-        // Scroll to bottom of thread when messages change
+        activeThreadRef.current = activeThread;
+    }, [activeThread]);
+
+    // Poll active thread for new messages every 3 seconds
+    useEffect(() => {
+        if (!activeThread) return;
+        const interval = setInterval(async () => {
+            try {
+                const messages = await getThread(activeThread.id);
+                setThreadMessages(prev => {
+                    if (messages.length !== prev.length) return messages;
+                    return prev;
+                });
+            } catch { /* non-critical */ }
+        }, 3000);
+        return () => clearInterval(interval);
+    }, [activeThread?.id]);
+
+    // Poll whether the active thread user is typing
+    useEffect(() => {
+        if (!activeThread) return;
+        const interval = setInterval(async () => {
+            try {
+                const data = await getTypingStatus(activeThread.id);
+                setOtherUserTyping(data.typing);
+            } catch { /* non-critical */ }
+        }, 2000);
+        return () => clearInterval(interval);
+    }, [activeThread?.id]);
+
+    useEffect(() => {
+        // Scroll to bottom of thread when messages change or typing indicator appears
         if (threadEndRef.current) {
             threadEndRef.current.scrollIntoView({ behavior: "smooth" });
         }
-    }, [threadMessages]);
+    }, [threadMessages, otherUserTyping]);
 
     async function loadConversations() {
         setLoading(true);
@@ -80,6 +115,17 @@ export default function MessagesPage() {
             e.preventDefault();
             handleSendReply();
         }
+    }
+
+    function handleReplyChange(e) {
+        setReplyContent(e.target.value);
+        if (!activeThread) return;
+        // Debounce typing signal — send at most once per 2s
+        if (typingTimeoutRef.current) return;
+        sendTypingSignal(activeThread.id).catch(() => {});
+        typingTimeoutRef.current = setTimeout(() => {
+            typingTimeoutRef.current = null;
+        }, 2000);
     }
 
     if (!user) {
@@ -244,6 +290,26 @@ export default function MessagesPage() {
                                         );
                                     })
                                 )}
+                                {otherUserTyping && (
+                                    <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                                        <div style={{
+                                            padding: "0.6rem 1rem",
+                                            borderRadius: "var(--radius-md) var(--radius-md) var(--radius-md) 4px",
+                                            background: "var(--bg-hover)",
+                                            display: "flex", alignItems: "center", gap: "4px"
+                                        }}>
+                                            <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginRight: "4px" }}>{activeThread.name} is typing</span>
+                                            {[0, 1, 2].map(i => (
+                                                <span key={i} style={{
+                                                    width: "6px", height: "6px", borderRadius: "50%",
+                                                    background: "var(--text-muted)",
+                                                    display: "inline-block",
+                                                    animation: `typingDot 1.2s ${i * 0.2}s infinite ease-in-out`,
+                                                }} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                                 <div ref={threadEndRef} />
                             </div>
 
@@ -255,7 +321,7 @@ export default function MessagesPage() {
                             }}>
                                 <textarea
                                     value={replyContent}
-                                    onChange={e => setReplyContent(e.target.value)}
+                                    onChange={handleReplyChange}
                                     onKeyDown={handleKeyDown}
                                     placeholder="Type a message..."
                                     rows={1}
