@@ -54,4 +54,5 @@ export const createStudioTeamMemberSchema = z.object({
 export const createCollaborationSchema = z.object({
   agencyId: z.number().int(),
   description: z.string().optional().nullable(),
+  eventId: z.number().int().optional().nullable(),
 });

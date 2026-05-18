@@ -14,6 +14,7 @@ import {
     getUserSavedEvents,
     cancelTicketById,
     getSuggestedDancers,
+    inviteToEvent,
 } from "../services/eventService.js";
 
 export async function list(req, res, next) {
@@ -158,6 +159,21 @@ export async function suggestDancers(req, res, next) {
         const eventId = Number(req.params.id);
         const dancers = await getSuggestedDancers(eventId, req.user.userId);
         return res.json(dancers);
+    } catch (err) {
+        return next(err);
+    }
+}
+
+/** POST /api/events/:id/invite — STUDIO/AGENCY only, invites any user to the event */
+export async function inviteParticipant(req, res, next) {
+    try {
+        const eventId = Number(req.params.id);
+        const { receiverId } = req.body;
+        if (!receiverId) {
+            return res.status(400).json({ error: { message: "receiverId is required" } });
+        }
+        const result = await inviteToEvent(eventId, req.user.userId, receiverId);
+        return res.json(result);
     } catch (err) {
         return next(err);
     }

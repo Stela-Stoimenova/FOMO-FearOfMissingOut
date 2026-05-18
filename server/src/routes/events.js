@@ -18,6 +18,7 @@ import {
   getSavedEvents,
   cancelTicket,
   suggestDancers,
+  inviteParticipant,
 } from "../controllers/eventController.js";
 
 const router = Router();
@@ -67,5 +68,8 @@ router.post("/tickets/:id/cancel", requireAuth, requireRole(["DANCER"]), cancelT
 
 // GET /api/events/:id/suggested-dancers (STUDIO/AGENCY only — their own event)
 router.get("/:id/suggested-dancers", requireAuth, requireRole(["STUDIO", "AGENCY"]), suggestDancers);
+
+// POST /api/events/:id/invite (STUDIO/AGENCY only — invite any user to the event)
+router.post("/:id/invite", requireAuth, requireRole(["STUDIO", "AGENCY"]), inviteParticipant);
 
 export default router;

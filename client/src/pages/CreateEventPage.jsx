@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { createEvent, getSuggestedDancers, searchOrganisers } from "../api/events.js";
+import { createEvent, getSuggestedDancers, searchAllForInvite, inviteEventParticipant } from "../api/events.js";
 import { apiRequest } from "../api/client.js";
 import { DANCE_STYLE_OPTIONS } from "../utils/constants.js";
 
@@ -36,19 +36,19 @@ export default function CreateEventPage() {
     const [selectedStyles, setSelectedStyles] = useState([]);
     const [styleInput, setStyleInput] = useState("");
 
-    // Post-creation suggestions state
+    // Post-creation state
     const [createdEvent, setCreatedEvent] = useState(null);
     const [suggestions, setSuggestions] = useState([]);
     const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+
+    // Unified invite state — shared across both the search section and suggested dancers
     const [invitedIds, setInvitedIds] = useState(new Set());
     const [sendingId, setSendingId] = useState(null);
 
-    // Co-organizer invite state
-    const [coOrgQuery, setCoOrgQuery] = useState("");
-    const [coOrgResults, setCoOrgResults] = useState([]);
-    const [coOrgLoading, setCoOrgLoading] = useState(false);
-    const [coOrgInvitedIds, setCoOrgInvitedIds] = useState(new Set());
-    const [coOrgSendingId, setCoOrgSendingId] = useState(null);
+    // Invite search state
+    const [inviteQuery, setInviteQuery] = useState("");
+    const [inviteResults, setInviteResults] = useState([]);
+    const [inviteLoading, setInviteLoading] = useState(false);
 
     function handleChange(e) {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -68,34 +68,47 @@ export default function CreateEventPage() {
         setStyleInput("");
     }
 
-    async function handleCoOrgSearch(e) {
+    async function handleInviteSearch(e) {
         e.preventDefault();
-        setCoOrgLoading(true);
+        setInviteLoading(true);
         try {
-            const results = await searchOrganisers(coOrgQuery);
-            setCoOrgResults(results);
+            const results = await searchAllForInvite(inviteQuery);
+            setInviteResults(results);
         } catch {
-            setCoOrgResults([]);
+            setInviteResults([]);
         } finally {
-            setCoOrgLoading(false);
+            setInviteLoading(false);
         }
     }
 
-    async function handleInviteCoOrg(org) {
-        setCoOrgSendingId(org.id);
+    async function handleInvite(user) {
+        setSendingId(user.id);
         try {
-            await apiRequest("/messages", {
-                method: "POST",
-                body: JSON.stringify({
-                    receiverId: org.id,
-                    content: `Hi ${org.name || "there"}! We'd like to invite you to collaborate on our event "${createdEvent.title}". Take a look and let us know if you're interested in being a co-organiser!`,
-                }),
-            });
-            setCoOrgInvitedIds(prev => new Set([...prev, org.id]));
+            if (user.role === "AGENCY") {
+                // Create a proper collaboration record so the request appears in the agency's dashboard
+                try {
+                    await apiRequest("/studios/me/collaborations", {
+                        method: "POST",
+                        body: JSON.stringify({
+                            agencyId: user.id,
+                            description: `Invited to co-organize "${createdEvent.title}"`,
+                            eventId: createdEvent.id,
+                        }),
+                    });
+                } catch (err) {
+                    if (err.status !== 409 && err.status !== 403) throw err;
+                    // Already collaborating, or caller is not a STUDIO — fall through to standard invite
+                    await inviteEventParticipant(createdEvent.id, user.id);
+                }
+            } else {
+                // STUDIO or DANCER: sends notification with event link so they can preview first
+                await inviteEventParticipant(createdEvent.id, user.id);
+            }
+            setInvitedIds(prev => new Set([...prev, user.id]));
         } catch {
             // silent fail
         } finally {
-            setCoOrgSendingId(null);
+            setSendingId(null);
         }
     }
 
@@ -151,23 +164,6 @@ export default function CreateEventPage() {
         }
     }
 
-    async function handleInvite(dancer) {
-        setSendingId(dancer.id);
-        try {
-            await apiRequest("/messages", {
-                method: "POST",
-                body: JSON.stringify({
-                    receiverId: dancer.id,
-                    content: `Hi ${dancer.name || "there"}! We'd love to have you perform at our event "${createdEvent.title}". Check it out and let us know if you're interested!`,
-                }),
-            });
-            setInvitedIds(prev => new Set([...prev, dancer.id]));
-        } catch {
-            // silent fail
-        } finally {
-            setSendingId(null);
-        }
-    }
 
     // ── Post-creation: show suggestions ──────────────────────────────────────
     if (createdEvent) {
@@ -184,48 +180,48 @@ export default function CreateEventPage() {
                     </div>
                 </div>
 
-                {/* Co-organizer invite section */}
+                {/* Unified invite section */}
                 <div style={{ background: "var(--bg-card)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-lg)", padding: "2rem", marginBottom: "2rem" }}>
-                    <h2 style={{ marginBottom: "0.5rem" }}>Invite Co-organizers</h2>
+                    <h2 style={{ marginBottom: "0.5rem" }}>Invite Participants</h2>
                     <p className="subtitle" style={{ marginBottom: "1.25rem" }}>
-                        Search for studios or agencies to collaborate on this event.
+                        Search for dancers, studios, or agencies to invite. They'll receive a notification with a link to view the event before deciding.
                     </p>
-                    <form onSubmit={handleCoOrgSearch} style={{ display: "flex", gap: "0.75rem", marginBottom: "1.25rem" }}>
+                    <form onSubmit={handleInviteSearch} style={{ display: "flex", gap: "0.75rem", marginBottom: "1.25rem" }}>
                         <input
-                            value={coOrgQuery}
-                            onChange={e => setCoOrgQuery(e.target.value)}
-                            placeholder="Search by name…"
+                            value={inviteQuery}
+                            onChange={e => setInviteQuery(e.target.value)}
+                            placeholder="Search dancers, studios, or agencies…"
                             style={{ flex: 1, background: "var(--bg-input)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", padding: "0.6rem 0.9rem", color: "var(--text-main)", fontSize: "0.9rem" }}
                         />
-                        <button type="submit" disabled={coOrgLoading} style={{ padding: "0.6rem 1.25rem", background: "var(--accent)", border: "none", borderRadius: "999px", color: "#fff", fontWeight: 600, cursor: coOrgLoading ? "not-allowed" : "pointer", fontSize: "0.88rem" }}>
-                            {coOrgLoading ? "Searching…" : "Search"}
+                        <button type="submit" disabled={inviteLoading} style={{ padding: "0.6rem 1.25rem", background: "var(--accent)", border: "none", borderRadius: "999px", color: "#fff", fontWeight: 600, cursor: inviteLoading ? "not-allowed" : "pointer", fontSize: "0.88rem" }}>
+                            {inviteLoading ? "Searching…" : "Search"}
                         </button>
                     </form>
 
-                    {coOrgResults.length > 0 && (
+                    {inviteResults.length > 0 && (
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "0.75rem" }}>
-                            {coOrgResults.map(org => (
-                                <div key={org.id} style={{ background: "var(--bg-hover)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", padding: "0.9rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                            {inviteResults.map(user => (
+                                <div key={user.id} style={{ background: "var(--bg-hover)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", padding: "0.9rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
                                     <div style={{ width: 40, height: 40, borderRadius: "50%", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", color: "var(--text-muted)" }}>
-                                        {org.avatarUrl ? <img src={org.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (org.name || "?").charAt(0).toUpperCase()}
+                                        {user.avatarUrl ? <img src={user.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (user.name || "?").charAt(0).toUpperCase()}
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontWeight: 600, fontSize: "0.92rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{org.name}</div>
-                                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{org.role}{org.city ? ` · ${org.city}` : ""}</div>
+                                        <div style={{ fontWeight: 600, fontSize: "0.92rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</div>
+                                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{user.role}{user.city ? ` · ${user.city}` : ""}</div>
                                     </div>
                                     <button
-                                        onClick={() => handleInviteCoOrg(org)}
-                                        disabled={coOrgInvitedIds.has(org.id) || coOrgSendingId === org.id}
-                                        style={{ padding: "0.4rem 0.8rem", borderRadius: "999px", border: "none", cursor: coOrgInvitedIds.has(org.id) ? "default" : "pointer", fontWeight: 600, fontSize: "0.78rem", background: coOrgInvitedIds.has(org.id) ? "var(--bg-input)" : "var(--accent)", color: coOrgInvitedIds.has(org.id) ? "var(--text-muted)" : "#fff", flexShrink: 0 }}
+                                        onClick={() => handleInvite(user)}
+                                        disabled={invitedIds.has(user.id) || sendingId === user.id}
+                                        style={{ padding: "0.4rem 0.8rem", borderRadius: "999px", border: "none", cursor: invitedIds.has(user.id) ? "default" : "pointer", fontWeight: 600, fontSize: "0.78rem", background: invitedIds.has(user.id) ? "var(--bg-input)" : "var(--accent)", color: invitedIds.has(user.id) ? "var(--text-muted)" : "#fff", flexShrink: 0 }}
                                     >
-                                        {coOrgSendingId === org.id ? "…" : coOrgInvitedIds.has(org.id) ? "✓ Invited" : "Invite"}
+                                        {sendingId === user.id ? "…" : invitedIds.has(user.id) ? "✓ Invited" : "Invite"}
                                     </button>
                                 </div>
                             ))}
                         </div>
                     )}
-                    {coOrgResults.length === 0 && coOrgQuery && !coOrgLoading && (
-                        <p style={{ color: "var(--text-muted)", fontSize: "0.88rem" }}>No studios or agencies found for "{coOrgQuery}".</p>
+                    {inviteResults.length === 0 && inviteQuery && !inviteLoading && (
+                        <p style={{ color: "var(--text-muted)", fontSize: "0.88rem" }}>No users found for "{inviteQuery}".</p>
                     )}
                 </div>
 

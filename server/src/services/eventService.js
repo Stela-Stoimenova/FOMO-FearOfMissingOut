@@ -27,7 +27,7 @@ function haversineKm(lat1, lon1, lat2, lon2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-export async function listEvents({ q, city, from, to, minPrice, maxPrice, creatorId, attendeeId, page = "1", limit = "10" }) {
+export async function listEvents({ q, city, from, to, minPrice, maxPrice, maxCapacity, creatorId, attendeeId, page = "1", limit = "10" }) {
     const where = {
         AND: [
             q
@@ -36,6 +36,7 @@ export async function listEvents({ q, city, from, to, minPrice, maxPrice, creato
                         { title: { contains: String(q), mode: "insensitive" } },
                         { description: { contains: String(q), mode: "insensitive" } },
                         { location: { contains: String(q), mode: "insensitive" } },
+                        { creator: { name: { contains: String(q), mode: "insensitive" } } },
                     ],
                 }
                 : {},
@@ -46,6 +47,7 @@ export async function listEvents({ q, city, from, to, minPrice, maxPrice, creato
             to ? { startAt: { lte: new Date(String(to)) } } : {},
             minPrice ? { priceCents: { gte: Number(minPrice) } } : {},
             maxPrice ? { priceCents: { lte: Number(maxPrice) } } : {},
+            maxCapacity ? { capacity: { lte: Number(maxCapacity), not: null } } : {},
         ],
     };
 
@@ -618,6 +620,66 @@ export async function getSuggestedDancers(eventId, requestingUserId) {
         .slice(0, 15);
 
     return scored;
+}
+
+/**
+ * Invite any user (DANCER, STUDIO, or AGENCY) to an event.
+ * Creates a notification with a link to the event so the invitee can preview it before deciding.
+ */
+export async function inviteToEvent(eventId, actorId, receiverId) {
+    const event = await prisma.event.findUnique({
+        where: { id: Number(eventId) },
+        select: { id: true, title: true, creatorId: true },
+    });
+    if (!event) {
+        const err = new Error("Event not found"); err.status = 404; throw err;
+    }
+    if (event.creatorId !== Number(actorId)) {
+        const err = new Error("Forbidden"); err.status = 403; throw err;
+    }
+
+    const actor = await prisma.user.findUnique({
+        where: { id: Number(actorId) },
+        select: { name: true },
+    });
+    const receiver = await prisma.user.findUnique({
+        where: { id: Number(receiverId) },
+        select: { id: true, role: true },
+    });
+    if (!receiver) {
+        const err = new Error("User not found"); err.status = 404; throw err;
+    }
+
+    const actorName = actor?.name || "An organizer";
+    const isCollaborator = receiver.role === "STUDIO" || receiver.role === "AGENCY";
+    const notifType = isCollaborator ? "EVENT_COLLAB_INVITE" : "EVENT_INVITE";
+    const message = isCollaborator
+        ? `${actorName} invited you to co-organize the event "${event.title}".`
+        : `${actorName} invited you to perform at the event "${event.title}".`;
+
+    await createNotification({
+        userId: Number(receiverId),
+        actorId: Number(actorId),
+        type: notifType,
+        message,
+        linkPath: `/events/${event.id}`,
+    });
+
+    const existing = await prisma.message.findFirst({
+        where: {
+            senderId: Number(actorId),
+            receiverId: Number(receiverId),
+            content: message,
+            createdAt: { gte: new Date(Date.now() - 1000 * 60 * 5) },
+        },
+    });
+    if (!existing) {
+        await prisma.message.create({
+            data: { senderId: Number(actorId), receiverId: Number(receiverId), content: message },
+        });
+    }
+
+    return { ok: true };
 }
 
 /** Cancel a ticket with time-based refund tiers. Platform keeps its commission. Loyalty points are not restored. */

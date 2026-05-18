@@ -12,18 +12,25 @@ export async function apiRequest(path, options = {}) {
         ...options,
     });
 
+    const text = await response.text();
+
     // Expired or invalid token — clear session and redirect to login
     if (response.status === 401) {
-        localStorage.removeItem("token");
-        if (!path.startsWith("/auth/")) {
-            window.location.href = "/login";
+        if (path.startsWith("/auth/")) {
+            // Auth endpoint: surface the real error (e.g. "Invalid credentials")
+            let data = null;
+            try { data = text ? JSON.parse(text) : null; } catch {}
+            const message = data?.error?.message || "Invalid credentials";
+            const err = new Error(message);
+            err.status = 401;
+            throw err;
         }
+        localStorage.removeItem("token");
+        window.location.href = "/login";
         const err = new Error("Session expired. Please log in again.");
         err.status = 401;
         throw err;
     }
-
-    const text = await response.text();
     let data = null;
     try {
         data = text ? JSON.parse(text) : null;

@@ -207,15 +207,30 @@ export async function getSuggestedDancers(eventId) {
 }
 
 /**
- * GET /api/users/search?query=&role=STUDIO + AGENCY combined
- * Search for studios/agencies to invite as co-organizers.
+ * GET /api/users/search — search studios, agencies, and dancers for event invitations.
  */
-export async function searchOrganisers(q) {
-    const [studios, agencies] = await Promise.all([
+export async function searchAllForInvite(q) {
+    const [studios, agencies, dancers] = await Promise.all([
         apiRequest(`/users/search?role=STUDIO${q ? `&query=${encodeURIComponent(q)}` : ""}`),
         apiRequest(`/users/search?role=AGENCY${q ? `&query=${encodeURIComponent(q)}` : ""}`),
+        apiRequest(`/users/search?role=DANCER${q ? `&query=${encodeURIComponent(q)}` : ""}`),
     ]);
-    const combined = [...(Array.isArray(studios) ? studios : []), ...(Array.isArray(agencies) ? agencies : [])];
+    const combined = [
+        ...(Array.isArray(studios) ? studios : []),
+        ...(Array.isArray(agencies) ? agencies : []),
+        ...(Array.isArray(dancers) ? dancers : []),
+    ];
     return combined.filter((u, i, arr) => arr.findIndex(x => x.id === u.id) === i);
+}
+
+/**
+ * POST /api/events/:id/invite — invite a user (dancer/studio/agency) to the event.
+ * Creates a notification with a link to the event so the invitee can preview before accepting.
+ */
+export async function inviteEventParticipant(eventId, receiverId) {
+    return apiRequest(`/events/${eventId}/invite`, {
+        method: "POST",
+        body: JSON.stringify({ receiverId }),
+    });
 }
 
