@@ -120,6 +120,12 @@ router.delete(
 
 // --- Collaborations ---
 // Protected (STUDIO only): /me/* must come before /:id/* to avoid "me" being captured as :id
+router.get(
+  "/me/collaborations",
+  requireAuth,
+  requireRole(["STUDIO"]),
+  studioController.getMyCollaborations
+);
 router.post(
   "/me/collaborations",
   requireAuth,

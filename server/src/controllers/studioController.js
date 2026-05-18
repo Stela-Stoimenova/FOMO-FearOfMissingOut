@@ -166,6 +166,13 @@ export async function listCollaborations(req, res, next) {
   } catch (err) { next(err); }
 }
 
+export async function getMyCollaborations(req, res, next) {
+  try {
+    const collabs = await studioService.listCollaborations(req.user.userId);
+    res.json(collabs);
+  } catch (err) { next(err); }
+}
+
 export async function addCollaboration(req, res, next) {
   try {
     const collab = await studioService.addCollaboration(req.user.userId, req.body);

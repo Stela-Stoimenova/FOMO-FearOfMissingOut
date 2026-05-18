@@ -126,7 +126,7 @@ export default function StudioManager({ studioId }) {
       const payload = {
         name: editingMem.name,
         description: editingMem.description,
-        priceCents: Math.round(Number(editingMem.priceCents) * 100),
+        priceCents: editingMem.priceCents,
         classLimit: editingMem.classLimit ? Number(editingMem.classLimit) : null,
         durationDays: Number(editingMem.durationDays),
         isActive: editingMem.isActive,
@@ -416,6 +416,7 @@ export default function StudioManager({ studioId }) {
                     <span style={{ display: "block" }}>{m.classLimit ? `${m.classLimit} Classes` : "Unlimited Classes"}</span>
                     <span>Valid for {m.durationDays} Days</span>
                   </div>
+                  {m.description && <div style={{ fontSize: "0.8rem", color: "var(--text-main)", marginTop: "0.5rem", fontStyle: "italic" }}>{m.description}</div>}
                 </div>
               )}
             </div>
@@ -531,7 +532,7 @@ export default function StudioManager({ studioId }) {
           <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0 0 1rem 0" }}>The agency will receive a notification and can accept or decline.</p>
           <form onSubmit={handleAddCollab} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
             <div className="form-group"><label className="form-label">Search Agency *</label><UserSelect role="AGENCY" value={collabForm.agencyId} onChange={id => setCollabForm({ ...collabForm, agencyId: id })} placeholder="Type agency name..." /></div>
-            <div className="form-group"><label className="form-label">Message / Description (Optional)</label><input type="text" className="form-input" placeholder="e.g. Looking for representation in Eastern Europe" value={collabForm.description} onChange={e => setCollabForm({ ...collabForm, description: e.target.value })} /></div>
+            <div className="form-group"><label className="form-label">Message / Description (Optional)</label><input type="text" className="form-input" placeholder={`e.g. "We're hosting a Latin event on June 15 — looking for an agency partner"`} value={collabForm.description} onChange={e => setCollabForm({ ...collabForm, description: e.target.value })} /></div>
             <button type="submit" className="btn-primary" style={{ alignSelf: "flex-start", padding: "0.75rem 2.5rem", borderRadius: "14px" }}>Send Request</button>
           </form>
         </div>

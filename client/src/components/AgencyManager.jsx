@@ -159,7 +159,7 @@ export default function AgencyManager() {
           <span style={{ fontSize: "1.1rem" }}>🔔</span>
           <div style={{ flex: 1 }}>
             <strong style={{ color: "var(--warning)", fontSize: "0.95rem" }}>
-              {pendingFromStudios.length} incoming collaboration request{pendingFromStudios.length > 1 ? "s" : ""}
+              {pendingFromStudios.length} incoming {pendingFromStudios.some(c => c.description?.startsWith('Invited to co-organize "')) ? "event invitation" : "collaboration request"}{pendingFromStudios.length > 1 ? "s" : ""}
             </strong>
             <p style={{ margin: "0.1rem 0 0 0", fontSize: "0.8rem", color: "var(--text-muted)" }}>
               Studio{pendingFromStudios.length > 1 ? "s" : ""} waiting for your response — click to review
@@ -278,22 +278,39 @@ export default function AgencyManager() {
                 Incoming Requests ({pendingFromStudios.length})
               </h3>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                {pendingFromStudios.map(c => (
-                  <div key={c.studioId} style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1rem 1.25rem", background: "rgba(245,158,11,0.05)", borderRadius: "16px", border: "1px solid rgba(245,158,11,0.2)" }}>
+                {pendingFromStudios.map(c => {
+                  const isEventInvite = c.description && c.description.startsWith('Invited to co-organize "');
+                  const eventTitle = isEventInvite
+                    ? c.description.replace(/^Invited to co-organize "/, "").replace(/"$/, "")
+                    : null;
+                  return (
+                  <div key={c.studioId} style={{ display: "flex", alignItems: "flex-start", gap: "1rem", padding: "1rem 1.25rem", background: isEventInvite ? "rgba(99,102,241,0.07)" : "rgba(245,158,11,0.05)", borderRadius: "16px", border: `1px solid ${isEventInvite ? "rgba(99,102,241,0.3)" : "rgba(245,158,11,0.2)"}` }}>
                     <div style={{ width: "44px", height: "44px", borderRadius: "12px", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
                       <img src={c.studio.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700 }}>{c.studio.name || "Unnamed Studio"}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.2rem" }}>
+                        <span style={{ fontWeight: 700 }}>{c.studio.name || "Unnamed Studio"}</span>
+                        {isEventInvite && (
+                          <span style={{ fontSize: "0.68rem", padding: "0.15rem 0.5rem", borderRadius: "999px", background: "rgba(99,102,241,0.15)", color: "var(--accent)", fontWeight: 700, letterSpacing: "0.03em" }}>EVENT INVITATION</span>
+                        )}
+                      </div>
                       {c.studio.city && <div style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>{c.studio.city}</div>}
-                      {c.description && <div style={{ fontSize: "0.85rem", color: "var(--text-main)", marginTop: "0.25rem" }}>{c.description}</div>}
+                      {isEventInvite ? (
+                        <div style={{ marginTop: "0.35rem", fontSize: "0.88rem", color: "var(--text-main)" }}>
+                          Inviting you to co-organize: <strong>"{eventTitle}"</strong>
+                        </div>
+                      ) : c.description ? (
+                        <div style={{ fontSize: "0.85rem", color: "var(--text-main)", marginTop: "0.25rem" }}>{c.description}</div>
+                      ) : null}
                     </div>
-                    <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
+                    <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0, marginTop: "0.1rem" }}>
                       <button onClick={() => handleAccept(c.studioId)} className="btn-primary" style={{ padding: "0.5rem 1.25rem", fontSize: "0.85rem", borderRadius: "10px" }}>Accept</button>
                       <button onClick={() => handleDecline(c.studioId)} className="btn-secondary" style={{ padding: "0.5rem 1rem", fontSize: "0.85rem", borderRadius: "10px", border: "1px solid rgba(239,68,68,0.3)", color: "var(--warning)" }}>Decline</button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </section>
           )}

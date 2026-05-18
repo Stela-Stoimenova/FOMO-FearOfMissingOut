@@ -259,6 +259,15 @@ export async function addCollaboration(studioId, data) {
     const err = new Error("Target user is not an AGENCY"); err.status = 400; throw err;
   }
 
+  // Optionally look up the linked event for richer notifications
+  let event = null;
+  if (data.eventId) {
+    event = await prisma.event.findUnique({
+      where: { id: Number(data.eventId) },
+      select: { id: true, title: true },
+    });
+  }
+
   const collab = await prisma.collaboration.create({
     data: {
       studioId: Number(studioId),
@@ -269,7 +278,11 @@ export async function addCollaboration(studioId, data) {
     include: { agency: { select: { id: true, name: true, avatarUrl: true } } },
   });
 
-  const content = `${studio?.name || "A studio"} sent you a collaboration request.`;
+  const studioName = studio?.name || "A studio";
+  const content = event
+    ? `${studioName} invited you to co-organize their event "${event.title}".`
+    : `${studioName} sent you a collaboration request.`;
+
   const existing = await prisma.message.findFirst({
     where: {
       senderId: Number(studioId),
@@ -286,9 +299,9 @@ export async function addCollaboration(studioId, data) {
   createNotification({
     userId: Number(data.agencyId),
     actorId: Number(studioId),
-    type: "COLLAB_REQUEST",
+    type: event ? "EVENT_COLLAB_INVITE" : "COLLAB_REQUEST",
     message: content,
-    linkPath: `/dashboard`,
+    linkPath: event ? `/events/${event.id}` : `/dashboard`,
   }).catch(() => {});
 
   return collab;

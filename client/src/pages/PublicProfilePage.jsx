@@ -404,10 +404,11 @@ export default function PublicProfilePage() {
                                     <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent)', marginBottom: '0.75rem' }}>
                                         €{(m.priceCents / 100).toFixed(2)}
                                     </div>
-                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '1.5rem' }}>
+                                    <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: m.description ? '0.5rem' : '1.5rem' }}>
                                         <span style={{ display: 'block' }}>{m.durationDays} Days Validity</span>
                                         <span>{m.classLimit ? `${m.classLimit} Classes` : 'Unlimited Classes'}</span>
                                     </div>
+                                    {m.description && <div style={{ fontSize: '0.8rem', color: 'var(--text-main)', marginBottom: '1.5rem', fontStyle: 'italic' }}>{m.description}</div>}
                                 </div>
                                 {me?.role === "DANCER" && !isOwnProfile && (
                                     <button
