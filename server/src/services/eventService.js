@@ -430,7 +430,7 @@ export async function purchaseTicket(eventId, userId, usePoints = false, stripeP
 
     if (usePoints && loyaltyAccount && loyaltyAccount.points > 0) {
         const potentialDiscountCents = loyaltyAccount.points * BUSINESS.POINT_TO_CENT;
-        // Cap: points can cover at most LOYALTY_MAX_DISCOUNT_RATE (50%) of the ticket price
+        // Cap: points can cover at most LOYALTY_MAX_DISCOUNT_RATE (15%) of the ticket price
         const maxDiscountCents = Math.floor(finalPrice * BUSINESS.LOYALTY_MAX_DISCOUNT_RATE);
         discountCents = Math.min(potentialDiscountCents, maxDiscountCents);
         pointsToDeduct = Math.ceil(discountCents / BUSINESS.POINT_TO_CENT);

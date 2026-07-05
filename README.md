@@ -61,19 +61,19 @@ npx prisma migrate deploy
 
 ### 5. Seed demo data *(optional)*
 
-Creates 3 demo users and 10 events across Sofia, Plovdiv, and Varna.
+Creates 20 dancers, 8 studios, and 6 agencies with realistic European profiles, plus events spread across 18 cities.
 
 ```bash
 npm run seed
 ```
 
-Seeded accounts:
+All seeded accounts share the same password:
 
-| Role | Email | Password |
-|------|-------|----------|
-| DANCER | dancer@fomo.dev | dancer123 |
-| STUDIO | studio@fomo.dev | studio123 |
-| AGENCY | agency@fomo.dev | agency123 |
+| Role | Example email | Password |
+|------|--------------|----------|
+| DANCER | dancer1@demo.com | password123 |
+| STUDIO | studio1@demo.com | password123 |
+| AGENCY | agency1@demo.com | password123 |
 
 ### 6. Start the server
 
@@ -160,7 +160,7 @@ server/
 |------|--------|
 | **Dynamic pricing** | Ticket price increases **+15%** when more than 50% of capacity is sold |
 | **Commission** | Platform takes **10%** of every ticket purchase (recorded per transaction) |
-| **Loyalty points** | Dancer earns **5%** of the ticket gross price in loyalty points |
+| **Loyalty points** | Dancer earns **1%** of the ticket gross price in loyalty points (1 point = 1 cent, capped at 15% discount per purchase) |
 | **Duplicate prevention** | A dancer cannot buy a second ticket for the same event (`409`) |
 | **Sold out** | Purchase blocked when `ticketsSold >= capacity` (`409`) |
 | **Ownership** | Only the event creator can edit or delete their event |
@@ -211,11 +211,13 @@ npm run seed
 
 ### Demo Accounts (from seed)
 
-| Role   | Email              | Password   | What they can do |
-|--------|--------------------|------------|------------------|
-| DANCER | dancer@fomo.dev    | dancer123  | Browse events, buy tickets, earn/spend loyalty points, follow users |
-| STUDIO | studio@fomo.dev    | studio123  | Create events, manage weekly classes, publish membership tiers |
-| AGENCY | agency@fomo.dev    | agency123  | Manage talent roster, accept/decline studio collaborations |
+All accounts use the password **`password123`**.
+
+| Role   | Email                | Name                  | What they can do |
+|--------|---------------------|-----------------------|------------------|
+| DANCER | dancer1@demo.com    | Lucia Fernandez       | Browse events, buy tickets, earn/spend loyalty points, follow users |
+| STUDIO | studio1@demo.com    | Movement Lifestyle    | Create events, manage weekly classes, publish membership tiers |
+| AGENCY | agency1@demo.com    | Clear Talent Group    | Manage talent roster, accept/decline studio collaborations |
 
 ---
 
@@ -228,7 +230,7 @@ npm run seed
 
 **2. Log in as Dancer**
 - Click **Login** in the navbar
-- Email: `dancer@fomo.dev` / Password: `dancer123`
+- Email: `dancer1@demo.com` / Password: `password123`
 - The navbar now shows your role badge and a link to **Dashboard**
 
 **3. Buy a Ticket with Loyalty Points**
@@ -246,7 +248,7 @@ npm run seed
 **4. Check Your Tickets**
 - Click **Dashboard** → **My Tickets** (or navigate to `/my-tickets`)
 - Your ticket appears with status **Confirmed** and the exact price paid
-- Click **Cancel** to test the 90% refund flow
+- Click **Cancel** to test the time-based refund (80% if 7+ days out, 50% if 2–7 days, 0% under 48 h)
 
 **5. Explore the Wish List**
 - On any event detail page, click the **❤** button to save the event
@@ -254,7 +256,7 @@ npm run seed
 - Click it again to unsave (a toast confirms the action)
 
 **6. Studio Profile & Memberships**
-- Log out → Log in as `studio@fomo.dev`
+- Log out → Log in as `studio1@demo.com` (password: `password123`)
 - Go to **My Profile** → you'll see the **Studio Manager** with tabs:
   - **Schedule** — add/edit weekly classes
   - **Memberships** — create tiered plans (e.g. 10-class pass)
@@ -263,14 +265,14 @@ npm run seed
 - Navigate to **`/users/<studio-id>`** to see the public-facing studio profile
 
 **7. Agency Collaboration Flow**
-- Log out → Log in as `agency@fomo.dev`
+- Log out → Log in as `agency1@demo.com` (password: `password123`)
 - Go to **My Profile** → **Agency Manager**
   - **Collaborations** tab: the studio request appears as *Pending* → click **Accept**
   - **Talent Roster** tab: search for a dancer and add them to your managed roster
   - **CV Mentions** tab: any dancer who tagged this agency in their CV appears here
 
 **8. Dancer CV**
-- Log out → Log in as `dancer@fomo.dev`
+- Log out → Log in as `dancer1@demo.com` (password: `password123`)
 - Go to **My Profile** → **CV Manager**
 - Add a CV entry (e.g. a training or project) and optionally tag the studio/agency
 - Navigate to your public profile (`/users/<dancer-id>`) to see the professional timeline
@@ -284,6 +286,6 @@ npm run seed
 | Buy same ticket twice | `409` error toast: "You already have a ticket for this event" |
 | Buy when sold out | Button shows **Sold Out** (disabled) |
 | Buy when >50% sold | Price shows +15% surge badge, original price struck through |
-| Cancel a ticket | Status → CANCELLED, 90% refund shown; commission transaction reversed |
+| Cancel a ticket | Status → CANCELLED; refund is time-based: 80% (7+ days), 50% (2–7 days), 0% (under 48 h) |
 | Use loyalty points | Discount deducted from price; points balance updates immediately |
 
