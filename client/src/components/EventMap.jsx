@@ -49,7 +49,7 @@ export default function EventMap({ events, userLocation, nearbyEventIds = [] }) 
                         <div style={{
                             width: isNearby ? '32px' : '24px',
                             height: isNearby ? '32px' : '24px',
-                            background: isNearby ? 'var(--success)' : 'var(--primary)',
+                            background: isNearby ? 'var(--success)' : '#6366f1',
                             borderRadius: '50%',
                             border: '3px solid var(--bg-card)',
                             boxShadow: isNearby ? '0 0 15px var(--success)' : '0 0 10px rgba(255,255,255,0.3)',
@@ -110,9 +110,9 @@ export default function EventMap({ events, userLocation, nearbyEventIds = [] }) 
                                 </span>
                                 <Link
                                     to={`/events/${popupInfo.id}`}
-                                    style={{ background: 'var(--primary)', color: 'white', padding: '0.35rem 0.75rem', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 600, textDecoration: 'none' }}
+                                    style={{ background: '#6366f1', color: '#fff', padding: '0.4rem 0.9rem', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 700, textDecoration: 'none', letterSpacing: '0.01em' }}
                                 >
-                                    Details
+                                    View Event →
                                 </Link>
                             </div>
                         </div>

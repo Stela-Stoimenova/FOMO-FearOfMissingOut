@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { getUserProfile, followUser, unfollowUser, getMe, getFollowers } from "../api/users.js";
 import { sendMessage } from "../api/messages.js";
-import { getEvents } from "../api/events.js";
+import { getEvents, getPortfolioEvents } from "../api/events.js";
 import { getStudioClasses, getStudioMemberships, getStudioTeam, getStudioCollaborations, purchaseMembership, getPublicStudioCvTags, createMembershipPaymentIntent } from "../api/studios.js";
 import { getPublicAgencyRoster, getPublicAgencyCollaborations, getPublicAgencyCvTags } from "../api/agency.js";
 import { getWallet } from "../api/payments.js";
@@ -39,6 +39,7 @@ export default function PublicProfilePage() {
     const [membershipSavedCards, setMembershipSavedCards] = useState([]);
     const [createdEvents, setCreatedEvents] = useState([]);
     const [attendedEvents, setAttendedEvents] = useState([]);
+    const [portfolioEvents, setPortfolioEvents] = useState([]);
 
     // New Data States
     const [classes, setClasses] = useState([]);
@@ -78,8 +79,12 @@ export default function PublicProfilePage() {
                 // Fetch events created by this user if they are a Studio or Agency
                 if (data.role === "STUDIO" || data.role === "AGENCY") {
                     try {
-                        const evtData = await getEvents({ creatorId: id, limit: 100 });
+                        const [evtData, portfolioData] = await Promise.all([
+                            getEvents({ creatorId: id, limit: 100 }),
+                            getPortfolioEvents(id),
+                        ]);
                         setCreatedEvents(evtData.items ?? []);
+                        setPortfolioEvents(Array.isArray(portfolioData) ? portfolioData : []);
                     } catch { /* non-critical */ }
                 }
 
@@ -778,6 +783,54 @@ export default function PublicProfilePage() {
                     </section>
                 )
             }
+
+            {/* Portfolio Events — past events archived by this organiser */}
+            {portfolioEvents.length > 0 && (
+                <section className="detail-card" style={{ marginBottom: '1.5rem', padding: '2rem', borderRadius: '24px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem' }}>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Past Events</h3>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>Archive</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {portfolioEvents.map(evt => (
+                            <Link
+                                to={`/events/${evt.id}`}
+                                key={evt.id}
+                                style={{
+                                    display: 'grid',
+                                    gridTemplateColumns: '64px 1fr auto',
+                                    gap: '1rem',
+                                    alignItems: 'center',
+                                    padding: '1rem',
+                                    background: 'var(--bg-hover)',
+                                    borderRadius: '20px',
+                                    border: '1px solid rgba(245,158,11,0.2)',
+                                    textDecoration: 'none',
+                                    color: 'inherit',
+                                    opacity: 0.85,
+                                }}
+                            >
+                                <div style={{
+                                    width: '64px', height: '64px', borderRadius: '12px',
+                                    backgroundImage: evt.imageUrl ? `url(${evt.imageUrl})` : 'linear-gradient(135deg, rgba(245,158,11,0.3), rgba(217,119,6,0.15))',
+                                    backgroundSize: 'cover', backgroundPosition: 'center', flexShrink: 0,
+                                }} />
+                                <div style={{ minWidth: 0 }}>
+                                    <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 700 }}>
+                                        {evt.title}
+                                    </h4>
+                                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                                        {evt.location} &bull; {new Date(evt.startAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </span>
+                                </div>
+                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '0.2rem 0.5rem', borderRadius: '999px', background: 'rgba(245,158,11,0.12)', color: '#f59e0b' }}>Past</span>
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* Member Since */}
             <section className="detail-card" style={{ padding: '1.5rem', borderRadius: '20px', textAlign: 'center' }}>

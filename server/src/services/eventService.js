@@ -30,6 +30,7 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 export async function listEvents({ q, city, from, to, minPrice, maxPrice, maxCapacity, creatorId, attendeeId, page = "1", limit = "10" }) {
     const where = {
         AND: [
+            { isPortfolio: false },
             q
                 ? {
                     OR: [
@@ -75,7 +76,7 @@ export async function getPopularEvents() {
     // Aggregate ticket counts per event using groupBy
     const ticketCounts = await prisma.ticket.groupBy({
         by: ["eventId"],
-        where: { status: "VALID" },
+        where: { status: "VALID", event: { isPortfolio: false } },
         _count: { eventId: true },
         orderBy: { _count: { eventId: "desc" } },
         take: 20,
@@ -145,6 +146,7 @@ export async function getNearbyEvents({ lat, lng, radius = 10 }) {
             latitude: { not: null },
             longitude: { not: null },
             startAt: { gte: new Date() },
+            isPortfolio: false,
         },
         include: {
             creator: { select: { id: true, name: true, role: true } },
@@ -188,9 +190,16 @@ export async function getEventById(id) {
     return event;
 }
 
-export async function createEvent({ title, description, location, startAt, endAt, priceCents, capacity, latitude, longitude, imageUrl, danceStyles }, userId) {
+export async function createEvent({ title, description, location, startAt, endAt, priceCents, capacity, latitude, longitude, imageUrl, danceStyles, isPortfolio = false }, userId) {
     if (!title || !location || !startAt || typeof priceCents !== "number") {
         const err = new Error("title, location, startAt, priceCents are required");
+        err.status = 400;
+        throw err;
+    }
+
+    // Block past dates for regular events — portfolio events are allowed to be in the past
+    if (!isPortfolio && new Date(startAt) < new Date()) {
+        const err = new Error("Event start date cannot be in the past. To document a past event, mark it as a portfolio event.");
         err.status = 400;
         throw err;
     }
@@ -210,11 +219,24 @@ export async function createEvent({ title, description, location, startAt, endAt
             longitude: typeof longitude === "number" ? longitude : null,
             imageUrl: imageUrl || null,
             danceStyles: Array.isArray(danceStyles) ? danceStyles : [],
+            isPortfolio,
             creatorId: userId,
         },
     });
 
     return event;
+}
+
+export async function getPortfolioEvents(creatorId) {
+    const events = await prisma.event.findMany({
+        where: { creatorId: Number(creatorId), isPortfolio: true },
+        orderBy: { startAt: "desc" },
+        include: {
+            creator: { select: { id: true, name: true, role: true } },
+            _count: { select: { tickets: { where: { status: "VALID" } } } },
+        },
+    });
+    return events;
 }
 
 export async function updateEvent(id, data, userId) {
@@ -237,7 +259,7 @@ export async function updateEvent(id, data, userId) {
         throw err;
     }
 
-    const { title, description, location, startAt, endAt, priceCents, capacity, latitude, longitude, imageUrl, danceStyles } = data;
+    const { title, description, location, startAt, endAt, priceCents, capacity, latitude, longitude, imageUrl, danceStyles, isPortfolio } = data;
 
     validateCoordinates(latitude, longitude);
 
@@ -255,6 +277,7 @@ export async function updateEvent(id, data, userId) {
             longitude: typeof longitude === "number" ? longitude : existing.longitude,
             imageUrl: imageUrl !== undefined ? (imageUrl || null) : existing.imageUrl,
             danceStyles: Array.isArray(danceStyles) ? danceStyles : existing.danceStyles,
+            isPortfolio: typeof isPortfolio === "boolean" ? isPortfolio : existing.isPortfolio,
         },
     });
 
@@ -354,6 +377,12 @@ export async function purchaseTicket(eventId, userId, usePoints = false, stripeP
     if (!event) {
         const err = new Error("Event not found");
         err.status = 404;
+        throw err;
+    }
+
+    if (event.isPortfolio) {
+        const err = new Error("This is a portfolio/archive event and cannot be purchased");
+        err.status = 400;
         throw err;
     }
 

@@ -20,6 +20,7 @@ import {
   cancelTicket,
   suggestDancers,
   inviteParticipant,
+  portfolioByCreator,
 } from "../controllers/eventController.js";
 
 const router = Router();
@@ -41,6 +42,9 @@ router.get("/me/saved", requireAuth, requireRole(["DANCER"]), getSavedEvents);
 
 // GET /api/events/me/wishlist-analytics (STUDIO/AGENCY — save/conversion funnel for their events)
 router.get("/me/wishlist-analytics", requireAuth, requireRole(["STUDIO", "AGENCY"]), wishlistAnalytics);
+
+// GET /api/events/portfolio?creatorId=X (public — portfolio/archive events for a creator's profile)
+router.get("/portfolio", portfolioByCreator);
 
 
 // GET /api/events/:id (public details)

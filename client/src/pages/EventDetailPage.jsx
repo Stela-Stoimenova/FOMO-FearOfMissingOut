@@ -325,8 +325,8 @@ export default function EventDetailPage() {
 
                     {/* Role-based action area */}
                     {!isLoggedIn ? (
-                        <button className="btn-primary" onClick={() => navigate("/login")}>Login to buy tickets</button>
-                    ) : user.role === "DANCER" ? (
+                        !event.isPortfolio && <button className="btn-primary" onClick={() => navigate("/login")}>Login to buy tickets</button>
+                    ) : user.role === "DANCER" && !event.isPortfolio ? (
                         purchaseResult ? (
                             <div className="detail-item" style={{ marginTop: "1rem", border: "1px solid var(--success)", background: "rgba(16,185,129,0.05)" }}>
                                 <h3 style={{ color: "var(--success)", marginBottom: "1rem" }}>Ticket Purchased Successfully!</h3>
@@ -363,6 +363,16 @@ export default function EventDetailPage() {
                     ) : isLoggedIn && (user.role === "STUDIO" || user.role === "AGENCY") ? (
                         <p className="hint">Studios and agencies cannot purchase tickets. Sign up as a dancer to attend events.</p>
                     ) : null}
+
+                    {event.isPortfolio && (
+                        <div style={{ marginTop: "1rem", padding: "0.85rem 1rem", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "var(--radius-md)", display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                            <span style={{ fontSize: "1rem" }}>🗂</span>
+                            <div>
+                                <strong style={{ fontSize: "0.88rem", color: "#f59e0b" }}>Portfolio Event</strong>
+                                <p style={{ margin: "0.1rem 0 0", fontSize: "0.8rem", color: "var(--text-muted)" }}>This is an archived past event. Tickets are not available.</p>
+                            </div>
+                        </div>
+                    )}
 
                     {!isLoggedIn && <p className="hint">You need to be logged in as a DANCER to purchase tickets.</p>}
                     {purchaseResult && (

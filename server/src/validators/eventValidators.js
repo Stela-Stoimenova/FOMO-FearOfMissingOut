@@ -13,6 +13,7 @@ export const createEventSchema = z.object({
     longitude: z.number().min(-180).max(180).optional(),
     imageUrl: z.string().url("Invalid URL").optional().or(z.literal('')),
     danceStyles: danceStylesField,
+    isPortfolio: z.boolean().optional().default(false),
 });
 
 export const updateEventSchema = z.object({
@@ -27,6 +28,7 @@ export const updateEventSchema = z.object({
     longitude: z.number().min(-180).max(180).optional(),
     imageUrl: z.string().url("Invalid URL").optional().or(z.literal('')),
     danceStyles: danceStylesField,
+    isPortfolio: z.boolean().optional(),
 });
 
 export const nearbyQuerySchema = z.object({

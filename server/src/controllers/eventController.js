@@ -16,7 +16,17 @@ import {
     cancelTicketById,
     getSuggestedDancers,
     inviteToEvent,
+    getPortfolioEvents,
 } from "../services/eventService.js";
+
+export async function portfolioByCreator(req, res, next) {
+    try {
+        const { creatorId } = req.query;
+        if (!creatorId) return res.status(400).json({ error: { message: "creatorId required" } });
+        const events = await getPortfolioEvents(creatorId);
+        res.json(events);
+    } catch (err) { next(err); }
+}
 
 export async function list(req, res, next) {
     try {

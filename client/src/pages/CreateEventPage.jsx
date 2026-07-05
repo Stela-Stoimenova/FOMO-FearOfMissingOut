@@ -38,6 +38,7 @@ export default function CreateEventPage() {
     });
     const [selectedStyles, setSelectedStyles] = useState([]);
     const [styleInput, setStyleInput] = useState("");
+    const [isPortfolio, setIsPortfolio] = useState(false);
 
     // Post-creation state
     const [createdEvent, setCreatedEvent] = useState(null);
@@ -143,6 +144,13 @@ export default function CreateEventPage() {
                 return;
             }
 
+            // Block past dates unless the studio explicitly marked it as a portfolio event
+            if (!isPortfolio && startAt && new Date(startAt) < new Date()) {
+                setError("The start date is in the past. If you want to document a past event, enable \"Portfolio Event\" below.");
+                setLoading(false);
+                return;
+            }
+
             const payload = {
                 title: form.title,
                 description: form.description || undefined,
@@ -152,6 +160,7 @@ export default function CreateEventPage() {
                 endAt,
                 priceCents: Number(form.priceCents),
                 danceStyles: selectedStyles,
+                isPortfolio,
                 ...coords,
             };
             if (form.capacity) payload.capacity = Number(form.capacity);
@@ -373,6 +382,28 @@ export default function CreateEventPage() {
                                 Capacity
                                 <input id="create-ev-capacity" type="number" name="capacity" value={form.capacity} onChange={handleChange} min={1} placeholder="Leave blank for unlimited" autoComplete="off" />
                             </label>
+
+                            {/* Portfolio toggle — shown when start date is in the past */}
+                            {form.startDate && new Date(`${form.startDate}T${form.startTime || "00:00"}`) < new Date() && (
+                                <div style={{ gridColumn: "1 / -1", background: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.3)", borderRadius: "var(--radius-md)", padding: "1rem 1.25rem", display: "flex", gap: "0.75rem", alignItems: "flex-start" }}>
+                                    <input
+                                        type="checkbox"
+                                        id="create-ev-portfolio"
+                                        name="isPortfolio"
+                                        checked={isPortfolio}
+                                        onChange={e => setIsPortfolio(e.target.checked)}
+                                        style={{ marginTop: "2px", width: "1.1rem", height: "1.1rem", accentColor: "var(--accent)", flexShrink: 0 }}
+                                    />
+                                    <div>
+                                        <label htmlFor="create-ev-portfolio" style={{ fontWeight: 600, fontSize: "0.9rem", cursor: "pointer", color: "#f59e0b" }}>
+                                            Portfolio / Archive Event
+                                        </label>
+                                        <p style={{ margin: "0.2rem 0 0", fontSize: "0.82rem", color: "var(--text-muted)", lineHeight: 1.5 }}>
+                                            This event is in the past. Mark it as a portfolio entry to document your history — it won't appear in the public listing and tickets cannot be purchased.
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* Dance Styles */}

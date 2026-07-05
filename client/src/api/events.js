@@ -242,3 +242,11 @@ export async function inviteEventParticipant(eventId, receiverId) {
     });
 }
 
+/**
+ * GET /api/events/portfolio?creatorId=X
+ * Fetch portfolio/archive events for a studio or agency's profile page.
+ */
+export async function getPortfolioEvents(creatorId) {
+    return apiRequest(`/events/portfolio?creatorId=${creatorId}`);
+}
+

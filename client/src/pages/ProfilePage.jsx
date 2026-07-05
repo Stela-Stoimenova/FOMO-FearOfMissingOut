@@ -6,7 +6,7 @@ import { updateMe, getMe, addPortfolioItem, deletePortfolioItem, tagEvent, delet
 import { getStripeOnboardingLink, checkStripeStatus, getWallet, deleteCard } from "../api/payments.js";
 import AddCardModal from "../components/AddCardModal.jsx";
 
-import { getMyTickets } from "../api/events.js";
+import { getMyTickets, getPortfolioEvents } from "../api/events.js";
 import FollowListModal from "../components/FollowListModal.jsx";
 import CvManager from "../components/CvManager.jsx";
 import StudioManager from "../components/StudioManager.jsx";
@@ -45,6 +45,7 @@ export default function ProfilePage() {
     const [invites, setInvites] = useState({ rosterInvites: [], teamInvites: [] });
     const [wallet, setWallet] = useState([]);
     const [stripeStatus, setStripeStatus] = useState(null);
+    const [myPortfolioEvents, setMyPortfolioEvents] = useState([]);
 
     // Reset and Load fresh profile data
     const resetAndLoad = useCallback(async () => {
@@ -111,6 +112,7 @@ export default function ProfilePage() {
         }
         if (user?.role === "STUDIO" || user?.role === "AGENCY") {
             checkStripeStatus().then(setStripeStatus).catch(console.error);
+            getPortfolioEvents(user.id).then(setMyPortfolioEvents).catch(console.error);
         }
     }, [user?.role, editing, loadWallet]);
 
@@ -425,6 +427,45 @@ export default function ProfilePage() {
                                         <button onClick={() => handleAcceptTeam(inv.id)} className="btn-primary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>Accept</button>
                                     </div>
                                 </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* Portfolio / Past Events — own view */}
+                {isMyProfile && (user?.role === "STUDIO" || user?.role === "AGENCY") && myPortfolioEvents.length > 0 && (
+                    <section className="detail-card" style={{ marginBottom: "2rem" }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
+                            <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Past Events</h3>
+                            <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>Archive</span>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {myPortfolioEvents.map(evt => (
+                                <a
+                                    key={evt.id}
+                                    href={`/events/${evt.id}`}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: '1rem',
+                                        padding: '0.85rem 1rem',
+                                        background: 'var(--bg-hover)',
+                                        borderRadius: 'var(--radius-md)',
+                                        border: '1px solid rgba(245,158,11,0.2)',
+                                        textDecoration: 'none', color: 'inherit', opacity: 0.85,
+                                    }}
+                                >
+                                    <div style={{
+                                        width: '48px', height: '48px', borderRadius: '10px', flexShrink: 0,
+                                        backgroundImage: evt.imageUrl ? `url(${evt.imageUrl})` : 'linear-gradient(135deg, rgba(245,158,11,0.3), rgba(217,119,6,0.15))',
+                                        backgroundSize: 'cover', backgroundPosition: 'center',
+                                    }} />
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{evt.title}</p>
+                                        <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                                            {evt.location} &bull; {new Date(evt.startAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        </p>
+                                    </div>
+                                    <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '0.2rem 0.5rem', borderRadius: '999px', background: 'rgba(245,158,11,0.12)', color: '#f59e0b', flexShrink: 0 }}>Past</span>
+                                </a>
                             ))}
                         </div>
                     </section>
