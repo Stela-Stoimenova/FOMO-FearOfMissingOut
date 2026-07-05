@@ -112,7 +112,13 @@ export async function getWallet(req, res, next) {
   try {
     const cards = await stripeService.listSavedCards(req.user.userId);
     res.json(cards);
-  } catch (err) { next(err); }
+  } catch (err) {
+    // Stripe unavailable (no key, no internet) — return empty wallet instead of crashing
+    if (err.status === 503 || err.type === "StripeConnectionError" || err.code === "ETIMEDOUT") {
+      return res.json([]);
+    }
+    next(err);
+  }
 }
 
 export async function removeCard(req, res, next) {

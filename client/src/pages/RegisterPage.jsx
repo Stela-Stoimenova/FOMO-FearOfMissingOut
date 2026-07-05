@@ -47,6 +47,7 @@ export default function RegisterPage() {
                     <input
                         type="text"
                         name="name"
+                        autoComplete="name"
                         value={form.name}
                         onChange={handleChange}
                         placeholder="Your name"
@@ -58,6 +59,7 @@ export default function RegisterPage() {
                     <input
                         type="email"
                         name="email"
+                        autoComplete="email"
                         value={form.email}
                         onChange={handleChange}
                         placeholder="you@example.com"
@@ -70,6 +72,7 @@ export default function RegisterPage() {
                     <input
                         type="password"
                         name="password"
+                        autoComplete="new-password"
                         value={form.password}
                         onChange={handleChange}
                         placeholder="Min 6 characters"
@@ -80,7 +83,7 @@ export default function RegisterPage() {
 
                 <label>
                     I am a…
-                    <select name="role" value={form.role} onChange={handleChange}>
+                    <select id="register-role" name="role" value={form.role} onChange={handleChange}>
                         <option value="DANCER">Dancer</option>
                         <option value="STUDIO">Studio</option>
                         <option value="AGENCY">Agency</option>

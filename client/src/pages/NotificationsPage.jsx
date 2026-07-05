@@ -112,7 +112,7 @@ export default function NotificationsPage() {
             >
               <div style={{ flexShrink: 0, marginTop: "2px" }}>
                 {n.actor?.avatarUrl ? (
-                  <img src={n.actor.avatarUrl} alt="" style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }} />
+                  <img src={n.actor.avatarUrl} alt="" referrerPolicy="no-referrer" style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
                 ) : (
                   <NotificationTypeIcon type={n.type} size={18} />
                 )}

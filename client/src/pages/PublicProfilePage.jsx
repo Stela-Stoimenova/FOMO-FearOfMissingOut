@@ -275,30 +275,30 @@ export default function PublicProfilePage() {
             )}
 
             {/* Profile Header */}
-            <div className="detail-card" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '1.5rem', marginBottom: '2rem', padding: '2rem', borderRadius: '24px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
-                    <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--bg-hover), var(--bg-card))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 'bold', border: '3px solid var(--border-light)', overflow: 'hidden' }}>
+            <div className="detail-card profile-header-card">
+                <div className="profile-header-avatar-col">
+                    <div className="profile-header-avatar">
                         {profile.avatarUrl ? (
-                            <img src={profile.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <img src={profile.avatarUrl} alt="Avatar" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = "none"; }} />
                         ) : (
                             <span>{Initials}</span>
                         )}
                     </div>
                 </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                        <h1 style={{ margin: 0, fontSize: 'clamp(1.25rem, 4vw, 2rem)', wordBreak: 'break-word' }}>{profile.name || "Unnamed"}</h1>
-                        <span className="role-badge" style={{ fontSize: '0.75rem', padding: '0.25rem 0.7rem', borderRadius: '10px' }}>{profile.role}</span>
+                <div className="profile-header-body">
+                    <div className="profile-header-name-row">
+                        <h1 className="profile-header-name">{profile.name || "Unnamed"}</h1>
+                        <span className="role-badge">{profile.role}</span>
                         {profile.experienceLevel && (
-                            <span style={{ fontSize: '0.8rem', padding: '0.25rem 0.7rem', borderRadius: '10px', background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>{profile.experienceLevel}</span>
+                            <span className="profile-level-badge">{profile.experienceLevel}</span>
                         )}
                     </div>
-                    {profile.city && <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{profile.city}</p>}
-                    {profile.bio && <p style={{ color: 'var(--text-main)', lineHeight: 1.6, marginBottom: '1rem' }}>{profile.bio}</p>}
+                    {profile.city && <p className="profile-header-city">{profile.city}</p>}
+                    {profile.bio && <p className="profile-header-bio">{profile.bio}</p>}
 
-                    <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', marginBottom: '1.25rem' }}>
-                        <span onClick={() => handleShowList('followers')} style={{ color: 'var(--text-muted)', fontSize: '0.9rem', cursor: 'pointer' }}><strong style={{ color: 'var(--text-main)' }}>{profile._count?.followers || 0}</strong> followers</span>
-                        <span onClick={() => handleShowList('following')} style={{ color: 'var(--text-muted)', fontSize: '0.9rem', cursor: 'pointer' }}><strong style={{ color: 'var(--text-main)' }}>{profile._count?.following || 0}</strong> following</span>
+                    <div className="profile-stats-row" style={{ marginBottom: '1.25rem' }}>
+                        <span onClick={() => handleShowList('followers')} className="profile-stat-item"><strong>{profile._count?.followers || 0}</strong> followers</span>
+                        <span onClick={() => handleShowList('following')} className="profile-stat-item"><strong>{profile._count?.following || 0}</strong> following</span>
                     </div>
 
                     <FollowListModal
@@ -328,7 +328,10 @@ export default function PublicProfilePage() {
                     {/* Message Composer Box */}
                     {isWritingMessage && !isOwnProfile && (
                         <div style={{ marginTop: '1.25rem', background: 'var(--bg-card)', padding: '1.25rem', borderRadius: '20px', border: '1px solid var(--border-light)', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
+                            <label htmlFor="msg-content" className="form-label" style={{ marginBottom: '0.5rem' }}>Message</label>
                             <textarea
+                                id="msg-content"
+                                name="message"
                                 value={messageContent}
                                 onChange={e => setMessageContent(e.target.value)}
                                 placeholder="Write a message..."
@@ -354,6 +357,18 @@ export default function PublicProfilePage() {
                 </div>
             </div>
 
+            {/* Dance Styles — always first after header */}
+            {profile.danceStyles?.length > 0 && (
+                <section className="detail-card" style={{ marginBottom: '1.5rem', padding: '1.5rem', borderRadius: '24px' }}>
+                    <h3 style={{ marginBottom: '0.875rem', fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>Dance Styles</h3>
+                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        {profile.danceStyles.map(s => (
+                            <span key={s} className="style-chip">{s}</span>
+                        ))}
+                    </div>
+                </section>
+            )}
+
             {/* Studio: Weekly Schedule */}
             {profile.role === "STUDIO" && classes.length > 0 && (
                 <section className="detail-card" style={{ marginBottom: '1.5rem', padding: '2rem', borderRadius: '24px' }}>
@@ -376,12 +391,12 @@ export default function PublicProfilePage() {
                                         c.teacher.id ? (
                                             <Link to={`/users/${c.teacher.id}`} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end', textDecoration: 'none' }}>
                                                 <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>w/ <strong style={{ color: 'var(--text-main)' }}>{c.teacher.name}</strong></span>
-                                                {c.teacher.avatarUrl && <img src={c.teacher.avatarUrl} alt="" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />}
+                                                {c.teacher.avatarUrl && <img src={c.teacher.avatarUrl} alt="" referrerPolicy="no-referrer" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} onError={e => { e.target.style.display = "none"; }} />}
                                             </Link>
                                         ) : (
                                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
                                                 <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>w/ <strong style={{ color: 'var(--text-main)' }}>{c.teacher.name}</strong></span>
-                                                {c.teacher.avatarUrl && <img src={c.teacher.avatarUrl} alt="" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} />}
+                                                {c.teacher.avatarUrl && <img src={c.teacher.avatarUrl} alt="" referrerPolicy="no-referrer" style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} onError={e => { e.target.style.display = "none"; }} />}
                                                 {(() => { console.warn("Missing linked teacher id", c.teacher); return null; })()}
                                             </div>
                                         )
@@ -434,7 +449,7 @@ export default function PublicProfilePage() {
                             const content = (
                                 <>
                                     <div style={{ width: '80px', height: '80px', borderRadius: '20px', overflow: 'hidden', border: '2px solid var(--border-light)', background: 'var(--bg-input)' }}>
-                                        <img src={t.user?.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        <img src={t.user?.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = "none"; }} />
                                     </div>
                                     <div style={{ textAlign: 'center' }}>
                                         <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{t.user?.name || "Unnamed"}</div>
@@ -470,7 +485,7 @@ export default function PublicProfilePage() {
                         {collabs.map(c => {
                             const content = (
                                 <>
-                                    {c.agency.avatarUrl && <img src={c.agency.avatarUrl} alt="" style={{ width: '32px', height: '32px', borderRadius: '10px', objectFit: 'cover' }} />}
+                                    {c.agency.avatarUrl && <img src={c.agency.avatarUrl} alt="" referrerPolicy="no-referrer" style={{ width: '32px', height: '32px', borderRadius: '10px', objectFit: 'cover' }} onError={e => { e.target.style.display = "none"; }} />}
                                     <span style={{ fontSize: '0.95rem', fontWeight: 700 }}>{c.agency.name || "Unnamed Agency"}</span>
                                 </>
                             );
@@ -503,7 +518,7 @@ export default function PublicProfilePage() {
                             m.user?.id ? (
                                 <Link key={m.id} to={`/users/${m.user.id}`} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1.25rem', background: 'var(--bg-hover)', borderRadius: '20px', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
                                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', background: 'var(--bg-input)', flexShrink: 0 }}>
-                                        {m.user.avatarUrl ? <img src={m.user.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem' }}>{(m.user.name || "?").charAt(0)}</div>}
+                                        {m.user.avatarUrl ? <img src={m.user.avatarUrl} alt="" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = "none"; }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem' }}>{(m.user.name || "?").charAt(0)}</div>}
                                     </div>
                                     <div>
                                         <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{m.user.name}</div>
@@ -525,7 +540,7 @@ export default function PublicProfilePage() {
                             r.dancer?.id ? (
                                 <Link key={r.id} to={`/users/${r.dancer.id}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', textDecoration: 'none', color: 'inherit', minWidth: '100px' }}>
                                     <div style={{ width: '80px', height: '80px', borderRadius: '20px', overflow: 'hidden', border: '2px solid var(--border-light)', background: 'var(--bg-input)' }}>
-                                        {r.dancer.avatarUrl ? <img src={r.dancer.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.5rem' }}>{(r.dancer.name || "?").charAt(0)}</div>}
+                                        {r.dancer.avatarUrl ? <img src={r.dancer.avatarUrl} alt="" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = "none"; }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '1.5rem' }}>{(r.dancer.name || "?").charAt(0)}</div>}
                                     </div>
                                     <div style={{ textAlign: 'center' }}>
                                         <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{r.dancer.name || "Unnamed"}</div>
@@ -546,7 +561,7 @@ export default function PublicProfilePage() {
                         {agencyPartnerStudios.map(c => (
                             c.studio?.id ? (
                                 <Link key={c.studioId} to={`/users/${c.studio.id}`} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem 1.25rem', background: 'var(--bg-hover)', borderRadius: '20px', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
-                                    {c.studio.avatarUrl && <img src={c.studio.avatarUrl} alt="" style={{ width: '32px', height: '32px', borderRadius: '10px', objectFit: 'cover' }} />}
+                                    {c.studio.avatarUrl && <img src={c.studio.avatarUrl} alt="" referrerPolicy="no-referrer" style={{ width: '32px', height: '32px', borderRadius: '10px', objectFit: 'cover' }} onError={e => { e.target.style.display = "none"; }} />}
                                     <span style={{ fontSize: '0.95rem', fontWeight: 700 }}>{c.studio.name || "Unnamed Studio"}</span>
                                 </Link>
                             ) : null
@@ -564,7 +579,7 @@ export default function PublicProfilePage() {
                             m.user?.id ? (
                                 <Link key={m.id} to={`/users/${m.user.id}`} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1.25rem', background: 'var(--bg-hover)', borderRadius: '20px', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
                                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', background: 'var(--bg-input)', flexShrink: 0 }}>
-                                        {m.user.avatarUrl ? <img src={m.user.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem' }}>{(m.user.name || "?").charAt(0)}</div>}
+                                        {m.user.avatarUrl ? <img src={m.user.avatarUrl} alt="" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = "none"; }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.85rem' }}>{(m.user.name || "?").charAt(0)}</div>}
                                     </div>
                                     <div>
                                         <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{m.user.name}</div>
@@ -682,19 +697,6 @@ export default function PublicProfilePage() {
                 </section>
             )}
 
-            {/* Dance Styles */}
-            {
-                profile.danceStyles?.length > 0 && (
-                    <section className="detail-card" style={{ marginBottom: '1.5rem', padding: '2rem', borderRadius: '24px' }}>
-                        <h3 style={{ marginBottom: '1.25rem', fontSize: '1.1rem' }}>Dance Styles</h3>
-                        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap' }}>
-                            {profile.danceStyles.map(s => (
-                                <span key={s} className="style-chip">{s}</span>
-                            ))}
-                        </div>
-                    </section>
-                )
-            }
 
             {/* Rich Portfolio Media */}
             {

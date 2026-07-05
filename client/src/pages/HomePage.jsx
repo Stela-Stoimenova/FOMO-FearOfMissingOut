@@ -203,22 +203,22 @@ export default function HomePage() {
 
             {/* Search & Filter Bar */}
             <div style={{ marginBottom: '2rem' }}>
-                <div className="search-bar" style={{ marginBottom: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+                <div style={{ marginBottom: '0.75rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                     <input
                         type="text"
+                        className="home-search-input"
                         placeholder="Search events by name, studio, location…"
                         value={searchInput}
                         onChange={(e) => setSearchInput(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                        style={{ flex: 1 }}
                     />
                     <button
                         onClick={() => setShowFilters(!showFilters)}
-                        style={{ padding: '0.6rem 1.1rem', borderRadius: '999px', background: showFilters ? 'var(--accent-soft)' : 'rgba(255,255,255,0.08)', color: 'var(--text-main)', border: '1px solid var(--border-light)', cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap' }}
+                        style={{ flexShrink: 0, padding: '0.65rem 1.1rem', borderRadius: '12px', background: showFilters ? 'var(--accent-soft)' : 'rgba(255,255,255,0.06)', color: 'var(--text-main)', border: '1px solid var(--border-light)', cursor: 'pointer', fontSize: '0.85rem', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)', transition: 'all 0.2s' }}
                     >
                         {showFilters ? 'Hide Filters' : 'Filters'}
                     </button>
-                    <button className="btn-primary" onClick={handleSearch}>
+                    <button className="btn-primary home-search-btn" onClick={handleSearch}>
                         Search
                     </button>
                 </div>
@@ -227,8 +227,8 @@ export default function HomePage() {
                 {showFilters && (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1.25rem', padding: '1.5rem', background: 'rgba(24, 24, 27, 0.7)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', backdropFilter: 'blur(12px)', boxShadow: 'var(--shadow-md)' }}>
                         <div className="form-group">
-                            <label className="form-label">City</label>
-                            <select className="filter-select" value={filterCity} onChange={e => setFilterCity(e.target.value)}>
+                            <label className="form-label" htmlFor="home-city">City</label>
+                            <select id="home-city" name="city" className="filter-select" value={filterCity} onChange={e => setFilterCity(e.target.value)}>
                                 <option value="">Anywhere</option>
                                 <option value="Sofia">Sofia</option>
                                 <option value="Plovdiv">Plovdiv</option>
@@ -246,8 +246,8 @@ export default function HomePage() {
                             </select>
                         </div>
                         <div className="form-group">
-                            <label className="form-label">Dance Style</label>
-                            <select className="filter-select" value={filterStyle} onChange={e => setFilterStyle(e.target.value)}>
+                            <label className="form-label" htmlFor="home-style">Dance Style</label>
+                            <select id="home-style" name="style" className="filter-select" value={filterStyle} onChange={e => setFilterStyle(e.target.value)}>
                                 <option value="">All Styles</option>
                                 <option value="Hip Hop">Hip Hop</option>
                                 <option value="Contemporary">Contemporary</option>
@@ -260,8 +260,10 @@ export default function HomePage() {
                             </select>
                         </div>
                         <div className="form-group">
-                            <label className="form-label">Max Price (€)</label>
+                            <label className="form-label" htmlFor="home-price">Max Price (€)</label>
                             <input
+                                id="home-price"
+                                name="maxPrice"
                                 type="number"
                                 className="filter-input"
                                 placeholder="Any price"
@@ -270,8 +272,10 @@ export default function HomePage() {
                             />
                         </div>
                         <div className="form-group">
-                            <label className="form-label">Max Capacity</label>
+                            <label className="form-label" htmlFor="home-capacity">Max Capacity</label>
                             <input
+                                id="home-capacity"
+                                name="maxCapacity"
                                 type="number"
                                 className="filter-input"
                                 placeholder="Any size"

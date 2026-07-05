@@ -7,13 +7,16 @@ import { getEventById, updateEvent } from "../api/events.js";
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
-// Convert an ISO date string to the format required by <input type="datetime-local">
-function toDatetimeLocal(isoStr) {
+function toDateInput(isoStr) {
     if (!isoStr) return "";
     const d = new Date(isoStr);
-    return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-        .toISOString()
-        .slice(0, 16);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+function toTimeInput(isoStr) {
+    if (!isoStr) return "";
+    const d = new Date(isoStr);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(11, 16);
 }
 
 async function geocodeLocation(locationText) {
@@ -43,8 +46,10 @@ export default function EditEventPage() {
         description: "",
         location: "",
         imageUrl: "",
-        startAt: "",
-        endAt: "",
+        startDate: "",
+        startTime: "",
+        endDate: "",
+        endTime: "",
         priceCents: "",
         capacity: "",
     });
@@ -66,8 +71,10 @@ export default function EditEventPage() {
                     description: data.description ?? "",
                     location: data.location ?? "",
                     imageUrl: data.imageUrl ?? "",
-                    startAt: toDatetimeLocal(data.startAt),
-                    endAt: toDatetimeLocal(data.endAt),
+                    startDate: toDateInput(data.startAt),
+                    startTime: toTimeInput(data.startAt),
+                    endDate: toDateInput(data.endAt),
+                    endTime: toTimeInput(data.endAt),
                     priceCents: data.priceCents ?? "",
                     capacity: data.capacity ?? "",
                 });
@@ -102,13 +109,26 @@ export default function EditEventPage() {
                 }
             }
 
+            const startAt = form.startDate
+                ? (form.startTime ? `${form.startDate}T${form.startTime}` : form.startDate)
+                : "";
+            const endAt = form.endDate
+                ? (form.endTime ? `${form.endDate}T${form.endTime}` : form.endDate)
+                : null;
+
+            if (endAt && startAt && endAt <= startAt) {
+                setError("End date/time must be after the start date/time.");
+                setSaving(false);
+                return;
+            }
+
             const payload = {
                 title: form.title,
                 description: form.description || null,
                 location: form.location,
                 imageUrl: form.imageUrl?.trim() || "",
-                startAt: form.startAt,
-                endAt: form.endAt || null,
+                startAt,
+                endAt,
                 priceCents: Number(form.priceCents),
                 ...coords,
             };
@@ -167,90 +187,54 @@ export default function EditEventPage() {
 
                 {error && <div className="form-error">{error}</div>}
 
-                <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: '2.5rem', alignItems: 'start' }}>
+                <form onSubmit={handleSubmit} className="edit-event-form">
                     {/* Left Column: Form Fields */}
                     <div className="auth-form" style={{ margin: 0 }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
                             <label style={{ gridColumn: '1 / -1' }}>
                                 Title *
-                                <input
-                                    name="title"
-                                    value={form.title}
-                                    onChange={handleChange}
-                                    placeholder="Event name"
-                                    required
-                                />
+                                <input id="edit-ev-title" name="title" value={form.title} onChange={handleChange} placeholder="Event name" required autoComplete="off" />
                             </label>
 
                             <label style={{ gridColumn: '1 / -1' }}>
                                 Description
-                                <textarea
-                                    name="description"
-                                    value={form.description}
-                                    onChange={handleChange}
-                                    rows={4}
-                                    placeholder="What's this event about?"
-                                />
+                                <textarea id="edit-ev-desc" name="description" value={form.description} onChange={handleChange} rows={4} placeholder="What's this event about?" autoComplete="off" />
                             </label>
 
                             <label style={{ gridColumn: '1 / -1' }}>
                                 Location *
-                                <input
-                                    name="location"
-                                    value={form.location}
-                                    onChange={handleChange}
-                                    placeholder="e.g. Sofia Dance Studio, Berlin, or Millennium Complex Budapest"
-                                    required
-                                />
-                                <small style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: '0.25rem' }}>
-                                    We'll automatically place this on the map.
-                                </small>
+                                <input id="edit-ev-location" name="location" value={form.location} onChange={handleChange} placeholder="e.g. Sofia Dance Studio, Berlin, or Millennium Complex Budapest" required autoComplete="off" />
+                                <small style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: '0.25rem' }}>We'll automatically place this on the map.</small>
                             </label>
 
                             <label>
-                                Start date &amp; time *
-                                <input
-                                    type="datetime-local"
-                                    name="startAt"
-                                    value={form.startAt}
-                                    onChange={handleChange}
-                                    required
-                                />
+                                Start Date *
+                                <input id="edit-ev-start-date" name="startDate" type="date" value={form.startDate} onChange={handleChange} required autoComplete="off" style={{ colorScheme: 'dark' }} />
                             </label>
 
                             <label>
-                                End date &amp; time
-                                <input
-                                    type="datetime-local"
-                                    name="endAt"
-                                    value={form.endAt}
-                                    onChange={handleChange}
-                                />
+                                Start Time *
+                                <input id="edit-ev-start-time" name="startTime" type="time" value={form.startTime} onChange={handleChange} required autoComplete="off" style={{ colorScheme: 'dark' }} />
+                            </label>
+
+                            <label>
+                                End Date
+                                <input id="edit-ev-end-date" name="endDate" type="date" value={form.endDate} onChange={handleChange} autoComplete="off" style={{ colorScheme: 'dark' }} />
+                            </label>
+
+                            <label>
+                                End Time
+                                <input id="edit-ev-end-time" name="endTime" type="time" value={form.endTime} onChange={handleChange} autoComplete="off" style={{ colorScheme: 'dark' }} />
                             </label>
 
                             <label>
                                 Price (cents) *
-                                <input
-                                    type="number"
-                                    name="priceCents"
-                                    value={form.priceCents}
-                                    onChange={handleChange}
-                                    min={0}
-                                    placeholder="e.g. 2500 for €25.00"
-                                    required
-                                />
+                                <input id="edit-ev-price" type="number" name="priceCents" value={form.priceCents} onChange={handleChange} min={0} placeholder="e.g. 2500 for €25.00" required autoComplete="off" />
                             </label>
 
                             <label>
                                 Capacity
-                                <input
-                                    type="number"
-                                    name="capacity"
-                                    value={form.capacity}
-                                    onChange={handleChange}
-                                    min={1}
-                                    placeholder="Leave blank for unlimited"
-                                />
+                                <input id="edit-ev-capacity" type="number" name="capacity" value={form.capacity} onChange={handleChange} min={1} placeholder="Leave blank for unlimited" autoComplete="off" />
                             </label>
                         </div>
 
@@ -285,7 +269,9 @@ export default function EditEventPage() {
                         <label>
                             Image URL
                             <input
+                                id="edit-ev-image"
                                 name="imageUrl"
+                                autoComplete="off"
                                 value={form.imageUrl}
                                 onChange={handleChange}
                                 placeholder="https://..."

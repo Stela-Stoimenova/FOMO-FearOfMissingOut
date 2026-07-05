@@ -6,7 +6,6 @@ import {
   getStudioCollaborations, createCollaboration, deleteCollaboration, acceptAgencyCollaboration,
   getTaggedCvEntries, acceptCvTag, declineCvTag,
 } from "../api/studios.js";
-import { getRecommendedDancers } from "../api/users.js";
 import UserSelect from "./UserSelect.jsx";
 
 const DAYS = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"];
@@ -29,7 +28,6 @@ export default function StudioManager({ studioId }) {
   const [team, setTeam] = useState([]);
   const [collabs, setCollabs] = useState([]);
   const [cvTags, setCvTags] = useState([]);
-  const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -49,15 +47,14 @@ export default function StudioManager({ studioId }) {
     if (!studioId) return;
     setLoading(true);
     try {
-      const [cls, mem, tm, col, recs, cv] = await Promise.all([
+      const [cls, mem, tm, col, cv] = await Promise.all([
         getStudioClasses(studioId),
-        getOwnMembershipsManage(),      // uses /studios/me/memberships-manage → all tiers
+        getOwnMembershipsManage(),
         getStudioTeam(studioId),
         getStudioCollaborations(studioId),
-        getRecommendedDancers().catch(e => { console.error("Recommendations error:", e); return []; }),
         getTaggedCvEntries().catch(e => { console.error("CV error:", e); return []; }),
       ]);
-      setClasses(cls); setMemberships(mem); setTeam(tm); setCollabs(col); setRecommendations(recs); setCvTags(cv);
+      setClasses(cls); setMemberships(mem); setTeam(tm); setCollabs(col); setCvTags(cv);
     } catch (err) {
       console.error("Load failed:", err);
     } finally {
@@ -229,66 +226,6 @@ export default function StudioManager({ studioId }) {
 
 
 
-      {/* ── Dancer Recommendations ── */}
-      {recommendations.length > 0 && (
-        <section className="detail-card" style={{ ...cardStyle, border: "2px solid var(--accent)", background: "linear-gradient(145deg, var(--bg-card), var(--bg-hover))" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700 }}>
-                Dancer Recommendations
-              </h3>
-              <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>Talent matching your studio's location and styles.</p>
-            </div>
-            <span style={{ fontSize: "0.8rem", color: "var(--accent)", background: "var(--accent-soft)", padding: "0.3rem 0.8rem", borderRadius: "20px" }}>{recommendations.length} Matches</span>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1.25rem" }}>
-            {recommendations.map(dancer => (
-              <div key={dancer.id} style={{ display: "flex", flexDirection: "column", padding: "1.25rem", background: "var(--bg-card)", borderRadius: "20px", border: "1px solid var(--border-light)", transition: "transform 0.2s, border-color 0.2s", cursor: "pointer" }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'var(--accent-hover)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border-light)'; }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.75rem" }}>
-                  <div style={{ width: "50px", height: "50px", borderRadius: "50%", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
-                    <img src={dancer.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: "1rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{dancer.name || "Unnamed"}</div>
-                    {dancer.city && <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{dancer.city}</div>}
-                  </div>
-                  <div style={{ background: "var(--accent-soft)", color: "var(--accent)", fontWeight: 800, fontSize: "0.85rem", padding: "0.3rem 0.6rem", borderRadius: "10px" }}>
-                    {dancer.matchScore}%
-                  </div>
-                </div>
-
-                {dancer.matchReasons?.length > 0 && (
-                  <div style={{ marginBottom: "0.75rem", display: "flex", flexDirection: "column", gap: "0.2rem" }}>
-                    {dancer.matchReasons.map((reason, i) => (
-                      <div key={i} style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                        <span style={{ color: "var(--accent)", fontSize: "0.65rem" }}>✓</span> {reason}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {dancer.danceStyles?.length > 0 && (
-                  <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap", marginBottom: "1rem" }}>
-                    {dancer.danceStyles.slice(0, 3).map(s => (
-                      <span key={s} style={{ fontSize: "0.65rem", padding: "0.2rem 0.5rem", borderRadius: "999px", background: "var(--bg-hover)", color: "var(--text-main)", border: "1px solid var(--border-light)" }}>{s}</span>
-                    ))}
-                    {dancer.danceStyles.length > 3 && <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", padding: "0.2rem" }}>+{dancer.danceStyles.length - 3}</span>}
-                  </div>
-                )}
-
-                <div style={{ marginTop: "auto", display: "flex", gap: "0.5rem" }}>
-                  <a href={`/users/${dancer.id}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ flex: 1, textAlign: "center", padding: "0.5rem", fontSize: "0.8rem", borderRadius: "999px", textDecoration: "none" }}>View Profile</a>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
       {/* ── Classes ── */}
       <section className="detail-card" style={cardStyle}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
@@ -306,18 +243,18 @@ export default function StudioManager({ studioId }) {
                     <h4 style={{ margin: 0, color: "var(--accent)", fontSize: "0.9rem" }}>Editing class</h4>
                     <button type="button" onClick={() => setEditingClass(null)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "1.2rem" }}>&times;</button>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                    <div className="form-group"><label className="form-label">Title *</label><input type="text" className="form-input" value={editingClass.title} onChange={e => setEditingClass({ ...editingClass, title: e.target.value })} required /></div>
-                    <div className="form-group"><label className="form-label">Day *</label><select className="filter-select" value={editingClass.dayOfWeek} onChange={e => setEditingClass({ ...editingClass, dayOfWeek: e.target.value })}>{DAYS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
+                    <div className="form-group"><label className="form-label" htmlFor="edit-title">Title *</label><input id="edit-title" name="title" type="text" className="form-input" value={editingClass.title} onChange={e => setEditingClass({ ...editingClass, title: e.target.value })} required /></div>
+                    <div className="form-group"><label className="form-label" htmlFor="edit-day">Day *</label><select id="edit-day" name="dayOfWeek" className="filter-select" value={editingClass.dayOfWeek} onChange={e => setEditingClass({ ...editingClass, dayOfWeek: e.target.value })}>{DAYS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
-                    <div className="form-group"><label className="form-label">Start *</label><input type="time" className="form-input" value={editingClass.startTime} onChange={e => setEditingClass({ ...editingClass, startTime: e.target.value })} required /></div>
-                    <div className="form-group"><label className="form-label">End *</label><input type="time" className="form-input" value={editingClass.endTime} onChange={e => setEditingClass({ ...editingClass, endTime: e.target.value })} required /></div>
-                    <div className="form-group"><label className="form-label">Style *</label><input type="text" className="form-input" value={editingClass.style} onChange={e => setEditingClass({ ...editingClass, style: e.target.value })} required /></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "1rem" }}>
+                    <div className="form-group"><label className="form-label" htmlFor="edit-start">Start *</label><input id="edit-start" name="startTime" type="time" className="form-input" value={editingClass.startTime} onChange={e => setEditingClass({ ...editingClass, startTime: e.target.value })} required /></div>
+                    <div className="form-group"><label className="form-label" htmlFor="edit-end">End *</label><input id="edit-end" name="endTime" type="time" className="form-input" value={editingClass.endTime} onChange={e => setEditingClass({ ...editingClass, endTime: e.target.value })} required /></div>
+                    <div className="form-group"><label className="form-label" htmlFor="edit-style">Style *</label><input id="edit-style" name="style" type="text" className="form-input" value={editingClass.style} onChange={e => setEditingClass({ ...editingClass, style: e.target.value })} required /></div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                    <div className="form-group"><label className="form-label">Level *</label><select className="filter-select" value={editingClass.level} onChange={e => setEditingClass({ ...editingClass, level: e.target.value })}>{LEVELS.map(l => <option key={l} value={l}>{l}</option>)}</select></div>
-                    <div className="form-group"><label className="form-label">Teacher Name</label><input type="text" className="form-input" value={editingClass.teacherName || ""} onChange={e => setEditingClass({ ...editingClass, teacherName: e.target.value })} /></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
+                    <div className="form-group"><label className="form-label" htmlFor="edit-level">Level *</label><select id="edit-level" name="level" className="filter-select" value={editingClass.level} onChange={e => setEditingClass({ ...editingClass, level: e.target.value })}>{LEVELS.map(l => <option key={l} value={l}>{l}</option>)}</select></div>
+                    <div className="form-group"><label className="form-label" htmlFor="edit-teacher">Teacher Name</label><input id="edit-teacher" name="teacherName" type="text" className="form-input" value={editingClass.teacherName || ""} onChange={e => setEditingClass({ ...editingClass, teacherName: e.target.value })} /></div>
                   </div>
                   <div style={{ display: "flex", gap: "0.75rem" }}>
                     <button type="submit" className="btn-primary" style={{ padding: "0.65rem 2rem", borderRadius: "12px", fontSize: "0.9rem" }}>Save Changes</button>
@@ -353,18 +290,18 @@ export default function StudioManager({ studioId }) {
         <div style={formBoxStyle}>
           <h4 style={{ margin: "0 0 1.25rem 0", fontSize: "0.95rem", color: "var(--text-muted)" }}>Add a New Class</h4>
           <form onSubmit={handleAddClass} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-              <div className="form-group"><label className="form-label">Class Title *</label><input type="text" className="form-input" placeholder="e.g. Intermediate Hip Hop" value={classForm.title} onChange={e => setClassForm({ ...classForm, title: e.target.value })} required /></div>
-              <div className="form-group"><label className="form-label">Day of Week *</label><select className="filter-select" value={classForm.dayOfWeek} onChange={e => setClassForm({ ...classForm, dayOfWeek: e.target.value })} required>{DAYS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
+              <div className="form-group"><label className="form-label" htmlFor="cls-title">Class Title *</label><input id="cls-title" name="title" type="text" className="form-input" placeholder="e.g. Intermediate Hip Hop" value={classForm.title} onChange={e => setClassForm({ ...classForm, title: e.target.value })} required /></div>
+              <div className="form-group"><label className="form-label" htmlFor="cls-day">Day of Week *</label><select id="cls-day" name="dayOfWeek" className="filter-select" value={classForm.dayOfWeek} onChange={e => setClassForm({ ...classForm, dayOfWeek: e.target.value })} required>{DAYS.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
-              <div className="form-group"><label className="form-label">Start Time *</label><input type="time" className="form-input" value={classForm.startTime} onChange={e => setClassForm({ ...classForm, startTime: e.target.value })} required /></div>
-              <div className="form-group"><label className="form-label">End Time *</label><input type="time" className="form-input" value={classForm.endTime} onChange={e => setClassForm({ ...classForm, endTime: e.target.value })} required /></div>
-              <div className="form-group"><label className="form-label">Dance Style *</label><input type="text" className="form-input" placeholder="e.g. House" value={classForm.style} onChange={e => setClassForm({ ...classForm, style: e.target.value })} required /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "1rem" }}>
+              <div className="form-group"><label className="form-label" htmlFor="cls-start">Start Time *</label><input id="cls-start" name="startTime" type="time" className="form-input" value={classForm.startTime} onChange={e => setClassForm({ ...classForm, startTime: e.target.value })} required /></div>
+              <div className="form-group"><label className="form-label" htmlFor="cls-end">End Time *</label><input id="cls-end" name="endTime" type="time" className="form-input" value={classForm.endTime} onChange={e => setClassForm({ ...classForm, endTime: e.target.value })} required /></div>
+              <div className="form-group"><label className="form-label" htmlFor="cls-style">Dance Style *</label><input id="cls-style" name="style" type="text" className="form-input" placeholder="e.g. House" value={classForm.style} onChange={e => setClassForm({ ...classForm, style: e.target.value })} required /></div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-              <div className="form-group"><label className="form-label">Level *</label><select className="filter-select" value={classForm.level} onChange={e => setClassForm({ ...classForm, level: e.target.value })} required>{LEVELS.map(l => <option key={l} value={l}>{l}</option>)}</select></div>
-              <div className="form-group"><label className="form-label">Teacher Name (Optional)</label><input type="text" className="form-input" placeholder="e.g. Sarah J." value={classForm.teacherName} onChange={e => setClassForm({ ...classForm, teacherName: e.target.value })} /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
+              <div className="form-group"><label className="form-label" htmlFor="cls-level">Level *</label><select id="cls-level" name="level" className="filter-select" value={classForm.level} onChange={e => setClassForm({ ...classForm, level: e.target.value })} required>{LEVELS.map(l => <option key={l} value={l}>{l}</option>)}</select></div>
+              <div className="form-group"><label className="form-label" htmlFor="cls-teacher">Teacher Name (Optional)</label><input id="cls-teacher" name="teacherName" type="text" className="form-input" placeholder="e.g. Sarah J." value={classForm.teacherName} onChange={e => setClassForm({ ...classForm, teacherName: e.target.value })} /></div>
             </div>
             <div className="form-group">
               <label className="form-label">Or Link to Teacher Profile</label>
@@ -388,14 +325,14 @@ export default function StudioManager({ studioId }) {
                     <h4 style={{ margin: 0, color: "var(--accent)", fontSize: "0.9rem" }}>Editing plan</h4>
                     <button type="button" onClick={() => setEditingMem(null)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "1.2rem" }}>&times;</button>
                   </div>
-                  <div className="form-group"><label className="form-label">Name *</label><input type="text" className="form-input" value={editingMem.name} onChange={e => setEditingMem({ ...editingMem, name: e.target.value })} required /></div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                    <div className="form-group"><label className="form-label">Price (EUR) *</label><input type="number" step="0.01" className="form-input" value={(editingMem.priceCents / 100).toFixed(2)} onChange={e => setEditingMem({ ...editingMem, priceCents: Math.round(Number(e.target.value) * 100) })} required /></div>
-                    <div className="form-group"><label className="form-label">Duration (Days) *</label><input type="number" className="form-input" value={editingMem.durationDays} onChange={e => setEditingMem({ ...editingMem, durationDays: Number(e.target.value) })} required /></div>
+                  <div className="form-group"><label className="form-label" htmlFor="em-name">Name *</label><input id="em-name" name="name" type="text" className="form-input" value={editingMem.name} onChange={e => setEditingMem({ ...editingMem, name: e.target.value })} required /></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "0.75rem" }}>
+                    <div className="form-group"><label className="form-label" htmlFor="em-price">Price (EUR) *</label><input id="em-price" name="priceCents" type="number" step="0.01" className="form-input" value={(editingMem.priceCents / 100).toFixed(2)} onChange={e => setEditingMem({ ...editingMem, priceCents: Math.round(Number(e.target.value) * 100) })} required /></div>
+                    <div className="form-group"><label className="form-label" htmlFor="em-days">Duration (Days) *</label><input id="em-days" name="durationDays" type="number" className="form-input" value={editingMem.durationDays} onChange={e => setEditingMem({ ...editingMem, durationDays: Number(e.target.value) })} required /></div>
                   </div>
-                  <div className="form-group"><label className="form-label">Class Limit (empty = unlimited)</label><input type="number" className="form-input" value={editingMem.classLimit || ""} onChange={e => setEditingMem({ ...editingMem, classLimit: e.target.value ? Number(e.target.value) : null })} /></div>
-                  <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontSize: "0.9rem" }}>
-                    <input type="checkbox" checked={editingMem.isActive} onChange={e => setEditingMem({ ...editingMem, isActive: e.target.checked })} />
+                  <div className="form-group"><label className="form-label" htmlFor="em-limit">Class Limit (empty = unlimited)</label><input id="em-limit" name="classLimit" type="number" className="form-input" value={editingMem.classLimit || ""} onChange={e => setEditingMem({ ...editingMem, classLimit: e.target.value ? Number(e.target.value) : null })} /></div>
+                  <label htmlFor="em-active" style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontSize: "0.9rem" }}>
+                    <input id="em-active" name="isActive" type="checkbox" checked={editingMem.isActive} onChange={e => setEditingMem({ ...editingMem, isActive: e.target.checked })} />
                     Active (visible to dancers)
                   </label>
                   <div style={{ display: "flex", gap: "0.75rem" }}>
@@ -430,15 +367,15 @@ export default function StudioManager({ studioId }) {
         <div style={formBoxStyle}>
           <h4 style={{ margin: "0 0 1.25rem 0", fontSize: "0.95rem", color: "var(--text-muted)" }}>Create a New Plan</h4>
           <form onSubmit={handleAddMem} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "1rem" }}>
-              <div className="form-group"><label className="form-label">Plan Name *</label><input type="text" className="form-input" placeholder="e.g. Unlimited Month" value={memForm.name} onChange={e => setMemForm({ ...memForm, name: e.target.value })} required /></div>
-              <div className="form-group"><label className="form-label">Price (EUR) *</label><input type="number" className="form-input" placeholder="0.00" step="0.01" value={memForm.priceCents} onChange={e => setMemForm({ ...memForm, priceCents: e.target.value })} required /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "1rem" }}>
+              <div className="form-group"><label className="form-label" htmlFor="mem-name">Plan Name *</label><input id="mem-name" name="name" type="text" className="form-input" placeholder="e.g. Unlimited Month" value={memForm.name} onChange={e => setMemForm({ ...memForm, name: e.target.value })} required /></div>
+              <div className="form-group"><label className="form-label" htmlFor="mem-price">Price (EUR) *</label><input id="mem-price" name="priceCents" type="number" className="form-input" placeholder="0.00" step="0.01" value={memForm.priceCents} onChange={e => setMemForm({ ...memForm, priceCents: e.target.value })} required /></div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-              <div className="form-group"><label className="form-label">Class Limit (empty = unlimited)</label><input type="number" className="form-input" placeholder="e.g. 8" value={memForm.classLimit} onChange={e => setMemForm({ ...memForm, classLimit: e.target.value })} /></div>
-              <div className="form-group"><label className="form-label">Duration (Days) *</label><input type="number" className="form-input" value={memForm.durationDays} onChange={e => setMemForm({ ...memForm, durationDays: e.target.value })} required /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "1rem" }}>
+              <div className="form-group"><label className="form-label" htmlFor="mem-limit">Class Limit (empty = unlimited)</label><input id="mem-limit" name="classLimit" type="number" className="form-input" placeholder="e.g. 8" value={memForm.classLimit} onChange={e => setMemForm({ ...memForm, classLimit: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label" htmlFor="mem-days">Duration (Days) *</label><input id="mem-days" name="durationDays" type="number" className="form-input" value={memForm.durationDays} onChange={e => setMemForm({ ...memForm, durationDays: e.target.value })} required /></div>
             </div>
-            <div className="form-group"><label className="form-label">Description (Optional)</label><input type="text" className="form-input" placeholder="e.g. Best for serious dancers" value={memForm.description} onChange={e => setMemForm({ ...memForm, description: e.target.value })} /></div>
+            <div className="form-group"><label className="form-label" htmlFor="mem-desc">Description (Optional)</label><input id="mem-desc" name="description" type="text" className="form-input" placeholder="e.g. Best for serious dancers" value={memForm.description} onChange={e => setMemForm({ ...memForm, description: e.target.value })} /></div>
             <button type="submit" className="btn-primary" style={{ alignSelf: "flex-start", padding: "0.75rem 2.5rem", borderRadius: "14px" }}>Create Plan</button>
           </form>
         </div>
@@ -451,7 +388,7 @@ export default function StudioManager({ studioId }) {
           {team.length > 0 ? team.map(t => (
             <div key={t.id} style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "0.75rem 1.25rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px solid var(--border-light)" }}>
               <div style={{ width: "44px", height: "44px", borderRadius: "14px", overflow: "hidden", border: "1px solid var(--border-light)", background: "var(--bg-input)" }}>
-                <img src={t.user.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img src={t.user.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
               </div>
               <div style={{ minWidth: "100px" }}>
                 <div style={{ fontSize: "0.95rem", fontWeight: 700 }}>{t.user.name || "Unnamed"}</div>
@@ -468,9 +405,9 @@ export default function StudioManager({ studioId }) {
         <div style={formBoxStyle}>
           <h4 style={{ margin: "0 0 1.25rem 0", fontSize: "0.95rem", color: "var(--text-muted)" }}>Add Team Member</h4>
           <form onSubmit={handleAddTeam} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem", alignItems: "flex-end" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1.25rem", alignItems: "flex-end" }}>
               <div className="form-group"><label className="form-label">Search User *</label><UserSelect role="" value={teamForm.userId} onChange={id => setTeamForm({ ...teamForm, userId: id })} placeholder="Type name..." /></div>
-              <div className="form-group"><label className="form-label">Role *</label><select className="filter-select" value={teamForm.role} onChange={e => setTeamForm({ ...teamForm, role: e.target.value })} required>{TEAM_ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
+              <div className="form-group"><label className="form-label" htmlFor="team-role">Role *</label><select id="team-role" name="role" className="filter-select" value={teamForm.role} onChange={e => setTeamForm({ ...teamForm, role: e.target.value })} required>{TEAM_ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
             </div>
             <button type="submit" className="btn-primary" style={{ alignSelf: "flex-start", padding: "0.75rem 2.5rem", borderRadius: "14px" }}>Add to Team</button>
           </form>
@@ -491,7 +428,7 @@ export default function StudioManager({ studioId }) {
               {collabs.filter(c => c.initiatedBy === "AGENCY" && c.status === "PENDING").map(c => (
                 <div key={c.agencyId} style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1rem 1.25rem", background: "var(--bg-hover)", borderRadius: "16px", border: "1px solid var(--border-light)" }}>
                   <div style={{ width: "44px", height: "44px", borderRadius: "12px", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
-                    <img src={c.agency.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <img src={c.agency.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 700 }}>{c.agency.name || "Unnamed Agency"}</div>
@@ -511,7 +448,7 @@ export default function StudioManager({ studioId }) {
           {collabs.filter(c => !(c.initiatedBy === "AGENCY" && c.status === "PENDING")).length > 0 ? collabs.filter(c => !(c.initiatedBy === "AGENCY" && c.status === "PENDING")).map(c => (
             <div key={c.agencyId} style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "0.75rem 1.25rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px solid var(--border-light)" }}>
               <div style={{ width: "40px", height: "40px", borderRadius: "12px", overflow: "hidden", background: "var(--bg-input)" }}>
-                <img src={c.agency.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                <img src={c.agency.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
               </div>
               <div>
                 <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>{c.agency.name || "Unnamed Agency"}</div>
@@ -532,7 +469,7 @@ export default function StudioManager({ studioId }) {
           <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0 0 1rem 0" }}>The agency will receive a notification and can accept or decline.</p>
           <form onSubmit={handleAddCollab} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
             <div className="form-group"><label className="form-label">Search Agency *</label><UserSelect role="AGENCY" value={collabForm.agencyId} onChange={id => setCollabForm({ ...collabForm, agencyId: id })} placeholder="Type agency name..." /></div>
-            <div className="form-group"><label className="form-label">Message / Description (Optional)</label><input type="text" className="form-input" placeholder={`e.g. "We're hosting a Latin event on June 15 — looking for an agency partner"`} value={collabForm.description} onChange={e => setCollabForm({ ...collabForm, description: e.target.value })} /></div>
+            <div className="form-group"><label className="form-label" htmlFor="collab-desc">Message / Description (Optional)</label><input id="collab-desc" name="description" type="text" className="form-input" placeholder={`e.g. "We're hosting a Latin event on June 15 — looking for an agency partner"`} value={collabForm.description} onChange={e => setCollabForm({ ...collabForm, description: e.target.value })} /></div>
             <button type="submit" className="btn-primary" style={{ alignSelf: "flex-start", padding: "0.75rem 2.5rem", borderRadius: "14px" }}>Send Request</button>
           </form>
         </div>
@@ -549,7 +486,7 @@ export default function StudioManager({ studioId }) {
             {cvTags.map(entry => (
               <div key={entry.id} style={{ display: "flex", gap: "1rem", padding: "1.25rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px solid var(--border-light)", alignItems: "flex-start" }}>
                 <div style={{ width: "44px", height: "44px", borderRadius: "14px", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
-                  <img src={entry.user.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <img src={entry.user.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginBottom: "0.4rem", flexWrap: "wrap" }}>

@@ -129,7 +129,7 @@ export default function DashboardPage() {
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', marginBottom: '1.5rem' }}>
                 {user.avatarUrl ? (
-                    <img src={user.avatarUrl} alt="Avatar" style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }} />
+                    <img src={user.avatarUrl} alt="Avatar" referrerPolicy="no-referrer" style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }} onError={e => { e.target.style.display = "none"; }} />
                 ) : (
                     <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--bg-hover) 0%, var(--bg-card) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 'bold', border: '2px solid var(--border-light)', boxShadow: 'var(--shadow-sm)' }}>
                         {(user.name || user.email).charAt(0).toUpperCase()}
@@ -394,7 +394,7 @@ export default function DashboardPage() {
                         ) : (<>
 
                             {/* Top 2-Column Section: My Events & KPIs */}
-                            <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '3rem', marginBottom: '3rem', alignItems: 'start' }}>
+                            <div className="dashboard-events-grid">
                                 {/* Left: My Created Events */}
                                 <div>
                                     <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

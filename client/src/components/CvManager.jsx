@@ -148,20 +148,20 @@ export default function CvManager({ userId }) {
                     <h4 style={{ margin: 0, color: "var(--accent)", fontSize: "0.9rem" }}>Editing entry</h4>
                     <button type="button" onClick={cancelEdit} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "1.2rem" }}>&times;</button>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "1rem" }}>
-                    <div className="form-group"><label className="form-label">Type *</label><select className="filter-select" value={editingEntry.type} onChange={ev => setEditingEntry({ ...editingEntry, type: ev.target.value })} required>{CV_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-                    <div className="form-group"><label className="form-label">Title *</label><input type="text" className="form-input" value={editingEntry.title} onChange={ev => setEditingEntry({ ...editingEntry, title: ev.target.value })} required /></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "1rem" }}>
+                    <div className="form-group"><label className="form-label" htmlFor="ee-type">Type *</label><select id="ee-type" name="type" className="filter-select" value={editingEntry.type} onChange={ev => setEditingEntry({ ...editingEntry, type: ev.target.value })} required>{CV_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+                    <div className="form-group"><label className="form-label" htmlFor="ee-title">Title *</label><input id="ee-title" name="title" type="text" className="form-input" value={editingEntry.title} onChange={ev => setEditingEntry({ ...editingEntry, title: ev.target.value })} required /></div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
-                    <div className="form-group"><label className="form-label">Choreographer</label><input type="text" className="form-input" value={editingEntry.choreographer || ""} onChange={ev => setEditingEntry({ ...editingEntry, choreographer: ev.target.value })} /></div>
-                    <div className="form-group"><label className="form-label">Start Date</label><input type="date" className="form-input" value={editingEntry.startDate || ""} onChange={ev => setEditingEntry({ ...editingEntry, startDate: ev.target.value })} /></div>
-                    <div className="form-group"><label className="form-label">End Date</label><input type="date" className="form-input" value={editingEntry.endDate || ""} onChange={ev => setEditingEntry({ ...editingEntry, endDate: ev.target.value })} /></div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "1rem" }}>
+                    <div className="form-group"><label className="form-label" htmlFor="ee-choreo">Choreographer</label><input id="ee-choreo" name="choreographer" type="text" className="form-input" value={editingEntry.choreographer || ""} onChange={ev => setEditingEntry({ ...editingEntry, choreographer: ev.target.value })} /></div>
+                    <div className="form-group"><label className="form-label" htmlFor="ee-start">Start Date</label><input id="ee-start" name="startDate" type="date" className="form-input" value={editingEntry.startDate || ""} onChange={ev => setEditingEntry({ ...editingEntry, startDate: ev.target.value })} /></div>
+                    <div className="form-group"><label className="form-label" htmlFor="ee-end">End Date</label><input id="ee-end" name="endDate" type="date" className="form-input" value={editingEntry.endDate || ""} onChange={ev => setEditingEntry({ ...editingEntry, endDate: ev.target.value })} /></div>
                   </div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
                     <div className="form-group"><label className="form-label">Tag Studio</label><UserSelect role="STUDIO" value={editingEntry.taggedStudioId} onChange={id => setEditingEntry({ ...editingEntry, taggedStudioId: id })} placeholder="Search Studio..." /></div>
                     <div className="form-group"><label className="form-label">Tag Agency</label><UserSelect role="AGENCY" value={editingEntry.taggedAgencyId} onChange={id => setEditingEntry({ ...editingEntry, taggedAgencyId: id })} placeholder="Search Agency..." /></div>
                   </div>
-                  <div className="form-group"><label className="form-label">Description</label><textarea className="form-input" value={editingEntry.description || ""} onChange={ev => setEditingEntry({ ...editingEntry, description: ev.target.value })} rows={3} style={{ resize: "vertical" }} /></div>
+                  <div className="form-group"><label className="form-label" htmlFor="ee-desc">Description</label><textarea id="ee-desc" name="description" className="form-input" value={editingEntry.description || ""} onChange={ev => setEditingEntry({ ...editingEntry, description: ev.target.value })} rows={3} style={{ resize: "vertical" }} /></div>
                   <div style={{ display: "flex", gap: "0.75rem" }}>
                     <button type="submit" className="btn-primary" style={{ padding: "0.65rem 2rem", borderRadius: "12px", fontSize: "0.9rem" }}>Save Changes</button>
                     <button type="button" onClick={cancelEdit} className="btn-secondary" style={{ padding: "0.65rem 1.5rem", borderRadius: "12px", fontSize: "0.9rem" }}>Cancel</button>
@@ -212,20 +212,20 @@ export default function CvManager({ userId }) {
         <div style={{ background: "var(--bg-hover)", padding: "1.5rem", borderRadius: "20px", border: "1px solid var(--border-light)" }}>
           <h4 style={{ margin: "0 0 1.25rem 0", fontSize: "0.95rem", color: "var(--text-muted)" }}>Add a New Experience</h4>
           <form onSubmit={handleAdd} style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: "1rem" }}>
-              <div className="form-group"><label className="form-label">Entry Type *</label><select className="filter-select" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} required>{CV_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-              <div className="form-group"><label className="form-label">Title *</label><input type="text" className="form-input" placeholder="e.g. World of Dance Finals" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "1rem" }}>
+              <div className="form-group"><label className="form-label" htmlFor="cv-type">Entry Type *</label><select id="cv-type" name="type" className="filter-select" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} required>{CV_TYPES.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+              <div className="form-group"><label className="form-label" htmlFor="cv-title">Title *</label><input id="cv-title" name="title" type="text" className="form-input" placeholder="e.g. World of Dance Finals" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} required /></div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "1rem" }}>
-              <div className="form-group"><label className="form-label">Choreographer (Optional)</label><input type="text" className="form-input" placeholder="e.g. Kyle Hanagami" value={form.choreographer} onChange={e => setForm({ ...form, choreographer: e.target.value })} /></div>
-              <div className="form-group"><label className="form-label">Start Date (Optional)</label><input type="date" className="form-input" value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} /></div>
-              <div className="form-group"><label className="form-label">End Date (Optional)</label><input type="date" className="form-input" value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} /></div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "1rem" }}>
+              <div className="form-group"><label className="form-label" htmlFor="cv-choreo">Choreographer (Optional)</label><input id="cv-choreo" name="choreographer" type="text" className="form-input" placeholder="e.g. Kyle Hanagami" value={form.choreographer} onChange={e => setForm({ ...form, choreographer: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label" htmlFor="cv-start">Start Date (Optional)</label><input id="cv-start" name="startDate" type="date" className="form-input" value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value })} /></div>
+              <div className="form-group"><label className="form-label" htmlFor="cv-end">End Date (Optional)</label><input id="cv-end" name="endDate" type="date" className="form-input" value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} /></div>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
               <div className="form-group"><label className="form-label">Tag Studio (Optional)</label><UserSelect role="STUDIO" value={form.taggedStudioId} onChange={id => setForm({ ...form, taggedStudioId: id })} placeholder="Search Studio..." /></div>
               <div className="form-group"><label className="form-label">Tag Agency (Optional)</label><UserSelect role="AGENCY" value={form.taggedAgencyId} onChange={id => setForm({ ...form, taggedAgencyId: id })} placeholder="Search Agency..." /></div>
             </div>
-            <div className="form-group"><label className="form-label">Short Description (Optional)</label><textarea className="form-input" placeholder="What did you do/learn?" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} style={{ resize: "vertical" }} /></div>
+            <div className="form-group"><label className="form-label" htmlFor="cv-desc">Short Description (Optional)</label><textarea id="cv-desc" name="description" className="form-input" placeholder="What did you do/learn?" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} rows={3} style={{ resize: "vertical" }} /></div>
             <button type="submit" className="btn-primary" style={{ alignSelf: "flex-start", padding: "0.75rem 2.5rem", borderRadius: "14px" }}>Add Entry</button>
           </form>
         </div>

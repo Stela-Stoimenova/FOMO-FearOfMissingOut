@@ -21,7 +21,8 @@ export default function DiscoveryPage() {
 
     useEffect(() => {
         handleSearch();
-    }, [role, city, style]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [role, city, style, query]);
 
     const handleSearch = async (e) => {
         if (e) e.preventDefault();
@@ -64,8 +65,10 @@ export default function DiscoveryPage() {
                     border: "1px solid var(--border-light)",
                 }}>
                     <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label">Search</label>
+                        <label className="form-label" htmlFor="discover-query">Search</label>
                         <input
+                            id="discover-query"
+                            name="query"
                             type="text"
                             className="form-input"
                             placeholder="Name..."
@@ -74,16 +77,18 @@ export default function DiscoveryPage() {
                         />
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label">Role</label>
-                        <select className="filter-select" value={role} onChange={e => setRole(e.target.value)}>
+                        <label className="form-label" htmlFor="discover-role">Role</label>
+                        <select id="discover-role" name="role" className="filter-select" value={role} onChange={e => setRole(e.target.value)}>
                             {ROLES.map(r => (
                                 <option key={r} value={r}>{r === "ALL" ? "All Roles" : r}</option>
                             ))}
                         </select>
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label">City</label>
+                        <label className="form-label" htmlFor="discover-city">City</label>
                         <input
+                            id="discover-city"
+                            name="city"
                             type="text"
                             className="form-input"
                             placeholder="e.g. Sofia"
@@ -92,8 +97,8 @@ export default function DiscoveryPage() {
                         />
                     </div>
                     <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label">Style</label>
-                        <select className="filter-select" value={style} onChange={e => setStyle(e.target.value)}>
+                        <label className="form-label" htmlFor="discover-style">Style</label>
+                        <select id="discover-style" name="style" className="filter-select" value={style} onChange={e => setStyle(e.target.value)}>
                             <option value="">Any Style</option>
                             {STYLES.map(s => (
                                 <option key={s} value={s}>{s}</option>
@@ -176,7 +181,7 @@ export default function DiscoveryPage() {
                                                     flexShrink: 0, overflow: "hidden",
                                                 }}>
                                                     {user.avatarUrl ? (
-                                                        <img src={user.avatarUrl} alt={user.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "13px" }} />
+                                                        <img src={user.avatarUrl} alt={user.name} referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "13px" }} onError={e => { e.target.style.display = "none"; }} />
                                                     ) : initials}
                                                 </div>
                                                 <div style={{ minWidth: 0, flex: 1 }}>

@@ -34,6 +34,8 @@ export default function ImageUploadInput({ value, onChange, placeholder = "https
             <div style={{ display: "flex", gap: "0.5rem" }}>
                 <input
                     type="text"
+                    name="imageUrl"
+                    autoComplete="off"
                     className="form-input"
                     placeholder={placeholder}
                     value={value}

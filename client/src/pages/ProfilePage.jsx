@@ -40,6 +40,8 @@ export default function ProfilePage() {
     const dragOverItemRef = useRef(null);
     const [myTickets, setMyTickets] = useState([]);
     const [selectedEventToTag, setSelectedEventToTag] = useState("");
+    const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
+    const tagDropdownRef = useRef(null);
     const [invites, setInvites] = useState({ rosterInvites: [], teamInvites: [] });
     const [wallet, setWallet] = useState([]);
     const [stripeStatus, setStripeStatus] = useState(null);
@@ -85,6 +87,17 @@ export default function ProfilePage() {
             });
         }
     }, [user?.id, user?.role]); // Re-sync if user ID or role changes
+
+    // Close tag dropdown on outside click
+    useEffect(() => {
+        function handleClickOutside(e) {
+            if (tagDropdownRef.current && !tagDropdownRef.current.contains(e.target)) {
+                setTagDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     // Fetch tickets and invites
     useEffect(() => {
@@ -307,41 +320,41 @@ export default function ProfilePage() {
                 )}
 
                 {/* Profile Header */}
-                <div className="detail-card" style={{ display: 'flex', alignItems: 'flex-start', gap: '2rem', marginBottom: '2rem', padding: '2.5rem', borderRadius: '24px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
-                        <div className="profile-avatar" style={{ overflow: 'hidden', width: '120px', height: '120px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--bg-hover), var(--bg-card))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 'bold', border: '3px solid var(--border-light)', flexShrink: 0 }}>
+                <div className="detail-card profile-header-card">
+                    <div className="profile-header-avatar-col">
+                        <div className="profile-header-avatar">
                             {user.avatarUrl ? (
-                                <img src={user.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <img src={user.avatarUrl} alt="Avatar" referrerPolicy="no-referrer" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.target.style.display = "none"; }} />
                             ) : (
                                 <span>{Initials}</span>
                             )}
                         </div>
                     </div>
-                    <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                            <h1 style={{ margin: 0, fontSize: '2rem' }}>{user.name || user.email.split('@')[0]}</h1>
-                            <span className="role-badge" style={{ fontSize: '0.75rem', padding: '0.25rem 0.7rem', borderRadius: '10px' }}>{user.role}</span>
+                    <div className="profile-header-body">
+                        <div className="profile-header-name-row">
+                            <h1 className="profile-header-name">{user.name || user.email.split('@')[0]}</h1>
+                            <span className="role-badge">{user.role}</span>
                             {user.experienceLevel && (
-                                <span style={{ fontSize: '0.8rem', padding: '0.25rem 0.7rem', borderRadius: '10px', background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>{user.experienceLevel}</span>
+                                <span className="profile-level-badge">{user.experienceLevel}</span>
                             )}
                         </div>
-                        {user.city && <p style={{ color: 'var(--text-muted)', marginBottom: '0.5rem' }}>{user.city}</p>}
-                        {user.bio && <p style={{ color: 'var(--text-main)', lineHeight: 1.6, marginBottom: '1rem' }}>{user.bio}</p>}
+                        {user.city && <p className="profile-header-city">{user.city}</p>}
+                        {user.bio && <p className="profile-header-bio">{user.bio}</p>}
 
                         {/* Stats row */}
-                        <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div className="profile-stats-row">
                             {user._count && (
                                 <>
-                                    <span onClick={() => setShowList('followers')} style={{ color: 'var(--text-muted)', fontSize: '0.9rem', cursor: 'pointer' }}><strong style={{ color: 'var(--text-main)' }}>{user._count.followers}</strong> followers</span>
-                                    <span onClick={() => setShowList('following')} style={{ color: 'var(--text-muted)', fontSize: '0.9rem', cursor: 'pointer' }}><strong style={{ color: 'var(--text-main)' }}>{user._count.following}</strong> following</span>
+                                    <span onClick={() => setShowList('followers')} className="profile-stat-item"><strong>{user._count.followers}</strong> followers</span>
+                                    <span onClick={() => setShowList('following')} className="profile-stat-item"><strong>{user._count.following}</strong> following</span>
                                 </>
                             )}
                             {isDancer && user.loyaltyAccount && (
-                                <span style={{ color: 'var(--accent)', fontSize: '0.9rem' }}><strong style={{ color: 'var(--accent)' }}>{user.loyaltyAccount.points}</strong> points</span>
+                                <span className="profile-stat-item profile-stat-accent"><strong>{user.loyaltyAccount.points}</strong> points</span>
                             )}
                         </div>
                     </div>
-                    <button className="btn-primary" style={{ flexShrink: 0, borderRadius: '12px' }} onClick={() => setEditing(true)}>
+                    <button className="btn-primary profile-header-edit-btn" onClick={() => setEditing(true)}>
                         Edit Profile
                     </button>
                 </div>
@@ -352,6 +365,18 @@ export default function ProfilePage() {
                     type={showList}
                     userId={user.id}
                 />
+
+                {/* Dance Styles — shown first so it's immediately visible */}
+                {user.danceStyles?.length > 0 && (
+                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px', padding: '1.5rem' }}>
+                        <h3 style={{ marginBottom: '0.875rem', fontSize: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>Dance Styles</h3>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            {user.danceStyles.map(s => (
+                                <span key={s} className="style-chip">{s}</span>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 {/* Manager Sections (Visible in View Mode for Clarity) */}
                 {isStudio && (
@@ -378,7 +403,7 @@ export default function ProfilePage() {
                         <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--accent)' }}>Pending Invitations</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                             {invites.rosterInvites.map(inv => (
-                                <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--bg-hover)', borderRadius: '16px' }}>
+                                <div key={inv.id} className="invite-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--bg-hover)', borderRadius: '16px' }}>
                                     <div>
                                         <strong style={{ display: 'block', fontSize: '0.95rem' }}>{inv.agency.name || 'Agency'}</strong>
                                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Invited you to their Talent Roster</span>
@@ -390,7 +415,7 @@ export default function ProfilePage() {
                                 </div>
                             ))}
                             {invites.teamInvites.map(inv => (
-                                <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--bg-hover)', borderRadius: '16px' }}>
+                                <div key={inv.id} className="invite-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'var(--bg-hover)', borderRadius: '16px' }}>
                                     <div>
                                         <strong style={{ display: 'block', fontSize: '0.95rem' }}>{inv.studio.name || 'Studio'}</strong>
                                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Invited you to their Team as <b>{inv.role}</b></span>
@@ -407,8 +432,8 @@ export default function ProfilePage() {
 
                 {/* Payout / Stripe Section */}
                 {isMyProfile && (user?.role === "STUDIO" || user?.role === "AGENCY") && (
-                    <section className="detail-card" style={{ marginBottom: "2rem", padding: "2rem", borderRadius: "24px", border: `1px solid ${stripeStatus?.complete ? "rgba(16,185,129,0.3)" : "var(--border-light)"}`, background: stripeStatus?.complete ? "linear-gradient(145deg, rgba(16,185,129,0.05), var(--bg-card))" : "linear-gradient(145deg, var(--bg-card), var(--bg-hover))" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
+                    <section className="detail-card profile-stripe-card" style={{ marginBottom: "2rem", border: `1px solid ${stripeStatus?.complete ? "rgba(16,185,129,0.3)" : "var(--border-light)"}`, background: stripeStatus?.complete ? "linear-gradient(145deg, rgba(16,185,129,0.05), var(--bg-card))" : "linear-gradient(145deg, var(--bg-card), var(--bg-hover))" }}>
+                        <div className="profile-stripe-inner">
                             <div style={{ flex: 1 }}>
                                 <h3 style={{ margin: "0 0 0.4rem", fontSize: "1.1rem", fontWeight: 700 }}>
                                     Payout Settings
@@ -466,8 +491,8 @@ export default function ProfilePage() {
 
                 {/* Wallet Section */}
                 {isMyProfile && isDancer && (
-                    <section className="detail-card" style={{ marginBottom: "2rem", padding: "2rem", borderRadius: "24px", background: "var(--bg-card)", border: "1px solid var(--border-light)" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.75rem" }}>
+                    <section className="detail-card profile-wallet-card">
+                        <div className="profile-wallet-header">
                             <div>
                                 <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>My Wallet</h3>
                                 <p style={{ margin: "0.3rem 0 0", fontSize: "0.8rem", color: "var(--text-muted)" }}>
@@ -483,8 +508,8 @@ export default function ProfilePage() {
                             </button>
                         </div>
 
-                        {wallet.length === 0 ? (
-                            <div style={{ textAlign: "center", padding: "3rem 2rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px dashed var(--border-light)" }}>
+                    {wallet.length === 0 ? (
+                            <div style={{ textAlign: "center", padding: "2rem 1rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px dashed var(--border-light)" }}>
                                 <h4 style={{ margin: "0 0 0.5rem", fontSize: "1rem", color: "var(--text-main)" }}>No saved cards yet</h4>
                                 <p style={{ margin: "0 0 1.5rem", fontSize: "0.85rem", color: "var(--text-muted)", maxWidth: "300px", marginLeft: "auto", marginRight: "auto" }}>
                                     Add a card to check out instantly at any event — no need to re-enter your details each time.
@@ -590,17 +615,6 @@ export default function ProfilePage() {
                     </section>
                 )}
 
-                {/* Dance Styles */}
-                {user.danceStyles?.length > 0 && (
-                    <section className="detail-card" style={{ marginBottom: '1.5rem', borderRadius: '24px', padding: '2rem' }}>
-                        <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Dance Styles & Focus</h3>
-                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            {user.danceStyles.map(s => (
-                                <span key={s} className="style-chip">{s}</span>
-                            ))}
-                        </div>
-                    </section>
-                )}
 
                 {/* Portfolio Links */}
                 {isDancer && user.portfolioLinks?.length > 0 && (
@@ -647,7 +661,7 @@ export default function ProfilePage() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                             {user.taggedEvents.map(evt => (
                                 <Link to={`/events/${evt.id}`} key={evt.id} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.75rem', background: 'var(--bg-hover)', borderRadius: '16px', textDecoration: 'none', color: 'inherit', border: '1px solid var(--border-light)' }}>
-                                    {evt.imageUrl && <img src={evt.imageUrl} alt={evt.title} style={{ width: '40px', height: '40px', borderRadius: '12px', objectFit: 'cover' }} />}
+                                    {evt.imageUrl && <img src={evt.imageUrl} alt={evt.title} referrerPolicy="no-referrer" style={{ width: '40px', height: '40px', borderRadius: '12px', objectFit: 'cover' }} onError={e => { e.target.style.display = "none"; }} />}
                                     <div>
                                         <h4 style={{ margin: 0, fontSize: '0.95rem' }}>{evt.title}</h4>
                                         <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{evt.location}</span>
@@ -677,13 +691,13 @@ export default function ProfilePage() {
             <Link to="/dashboard" className="back-link">← Dashboard</Link>
             <h1 style={{ marginBottom: '1.5rem' }}>Edit Profile</h1>
 
-            <div className="detail-card" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', borderRadius: '24px', padding: '2rem' }}>
+            <div className="detail-card profile-edit-card">
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                <div className="profile-edit-grid">
                    {/* Name */}
                    <div className="form-group">
-                       <label className="form-label">Display Name</label>
-                       <input type="text" className="form-input" placeholder="Your name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                       <label className="form-label" htmlFor="profile-name">Display Name</label>
+                       <input id="profile-name" name="name" autoComplete="name" type="text" className="form-input" placeholder="Your name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
                    </div>
                    {/* Avatar */}
                    <div className="form-group">
@@ -698,14 +712,14 @@ export default function ProfilePage() {
 
                 {/* Bio */}
                 <div className="form-group">
-                    <label className="form-label">Bio / About</label>
-                    <textarea className="form-input" placeholder="Tell the dance world about yourself…" value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} rows={4} />
+                    <label className="form-label" htmlFor="profile-bio">Bio / About</label>
+                    <textarea id="profile-bio" name="bio" className="form-input" placeholder="Tell the dance world about yourself…" value={form.bio} onChange={e => setForm({ ...form, bio: e.target.value })} rows={4} />
                 </div>
 
                 {/* City */}
                 <div className="form-group">
-                    <label className="form-label">City / Location</label>
-                    <input type="text" className="form-input" placeholder="e.g. Sofia, Bulgaria" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} />
+                    <label className="form-label" htmlFor="profile-city">City / Location</label>
+                    <input id="profile-city" name="city" autoComplete="address-level2" type="text" className="form-input" placeholder="e.g. Sofia, Bulgaria" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} />
                 </div>
 
                 {/* Dance Styles */}
@@ -721,6 +735,9 @@ export default function ProfilePage() {
                     </div>
                     <div style={{ display: "flex", gap: "0.5rem" }}>
                         <input
+                            id="profile-style"
+                            name="styleInput"
+                            autoComplete="off"
                             value={styleInput}
                             onChange={e => setStyleInput(e.target.value)}
                             onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addCustomStyle())}
@@ -742,8 +759,8 @@ export default function ProfilePage() {
                 {/* Experience Level */}
                 {isDancer && (
                     <div className="form-group">
-                        <label className="form-label">Experience Level</label>
-                        <select value={form.experienceLevel} onChange={e => setForm({ ...form, experienceLevel: e.target.value })} className="filter-select">
+                        <label className="form-label" htmlFor="profile-level">Experience Level</label>
+                        <select id="profile-level" name="experienceLevel" value={form.experienceLevel} onChange={e => setForm({ ...form, experienceLevel: e.target.value })} className="filter-select">
                             <option value="">Select level…</option>
                             {EXPERIENCE_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
                         </select>
@@ -753,7 +770,7 @@ export default function ProfilePage() {
                 {/* Portfolio Links */}
                 {isDancer && (
                     <div className="form-group">
-                        <label className="form-label">Portfolio Links</label>
+                        <label className="form-label" htmlFor="portfolio-link">Portfolio Links</label>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginBottom: '0.75rem' }}>
                             {form.portfolioLinks.map((link, i) => (
                                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'var(--bg-hover)', padding: '0.5rem 0.75rem', borderRadius: '10px' }}>
@@ -763,7 +780,7 @@ export default function ProfilePage() {
                             ))}
                         </div>
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <input type="url" className="form-input" placeholder="https://youtube.com/..." value={newLink} onChange={e => setNewLink(e.target.value)} style={{ flex: 1 }}
+                            <input id="portfolio-link" name="portfolioLink" type="url" className="form-input" placeholder="https://youtube.com/..." value={newLink} onChange={e => setNewLink(e.target.value)} style={{ flex: 1 }} autoComplete="off"
                                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addPortfolioLink(); } }}
                             />
                             <button type="button" onClick={addPortfolioLink} className="btn-primary" style={{ padding: '0.5rem 1.5rem', fontSize: '0.85rem', borderRadius: '10px' }}>Add</button>
@@ -774,7 +791,7 @@ export default function ProfilePage() {
                 {/* Media Portfolio Manager */}
                 {isDancer && (
                     <div className="form-group" style={{ padding: '1.5rem', background: 'var(--bg-hover)', borderRadius: '20px', border: '1px solid var(--border-light)' }}>
-                        <label className="form-label" style={{ fontWeight: 700, fontSize: '1rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>Portfolio Media Manager</label>
+                        <label className="form-label" htmlFor="portfolio-type" style={{ fontWeight: 700, fontSize: '1rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem', marginBottom: '1.25rem' }}>Portfolio Media Manager</label>
 
                         {/* Current Items — drag to reorder */}
                         {sortedPortfolioItems.length > 0 && (
@@ -815,14 +832,14 @@ export default function ProfilePage() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'var(--bg-input)', padding: '1.25rem', borderRadius: '16px' }}>
                             <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>Add New Media</div>
                             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                <select className="filter-select" value={newPortfolio.type} onChange={e => setNewPortfolio({ ...newPortfolio, type: e.target.value })} style={{ flex: '0 0 110px' }}>
+                                <select id="portfolio-type" name="portfolioType" className="filter-select" value={newPortfolio.type} onChange={e => setNewPortfolio({ ...newPortfolio, type: e.target.value })} style={{ flex: '0 0 110px' }}>
                                     <option value="VIDEO">Video</option>
                                     <option value="PHOTO">Photo</option>
                                 </select>
-                                <input type="url" className="form-input" placeholder="Media URL…" value={newPortfolio.url} onChange={e => setNewPortfolio({ ...newPortfolio, url: e.target.value })} style={{ flex: 1 }} />
+                                <input id="portfolio-url" name="portfolioUrl" type="url" className="form-input" placeholder="Media URL…" value={newPortfolio.url} onChange={e => setNewPortfolio({ ...newPortfolio, url: e.target.value })} style={{ flex: 1 }} autoComplete="off" />
                             </div>
-                            <input type="text" className="form-input" placeholder="Title (e.g. Dance Reel)" value={newPortfolio.title} onChange={e => setNewPortfolio({ ...newPortfolio, title: e.target.value })} />
-                            <input type="text" className="form-input" placeholder="Short description…" value={newPortfolio.description} onChange={e => setNewPortfolio({ ...newPortfolio, description: e.target.value })} />
+                            <input id="portfolio-title" name="portfolioTitle" type="text" className="form-input" placeholder="Title (e.g. Dance Reel)" value={newPortfolio.title} onChange={e => setNewPortfolio({ ...newPortfolio, title: e.target.value })} autoComplete="off" />
+                            <input id="portfolio-desc" name="portfolioDesc" type="text" className="form-input" placeholder="Short description…" value={newPortfolio.description} onChange={e => setNewPortfolio({ ...newPortfolio, description: e.target.value })} autoComplete="off" />
                             <button type="button" onClick={handleAddPortfolio} className="btn-primary" style={{ alignSelf: 'flex-start', padding: '0.6rem 2rem', borderRadius: '10px' }}>Add Media Item</button>
                         </div>
                     </div>
@@ -831,25 +848,80 @@ export default function ProfilePage() {
                 {/* Event Tagging Manager */}
                 {isDancer && (
                     <div className="form-group" style={{ padding: '1.5rem', background: 'var(--bg-hover)', borderRadius: '20px', border: '1px solid var(--border-light)' }}>
-                        <label className="form-label" style={{ fontWeight: 700, fontSize: '1rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>Tag Events</label>
+                        <p className="form-label" style={{ fontWeight: 700, fontSize: '1rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem', marginBottom: '1rem' }}>Tag Events</p>
                         <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Showcase events from your ticket history on your profile.</p>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <select className="filter-select" value={selectedEventToTag} onChange={e => setSelectedEventToTag(e.target.value)} style={{ flex: 1 }}>
-                                <option value="">Select an event…</option>
-                                {myTickets
-                                    .filter(t => t.status !== "CANCELLED")
-                                    .map(t => {
-                                        const isAlreadyTagged = user.taggedEvents?.some(te => te.id === t.event.id);
-                                        const isPast = new Date(t.event.startAt) < new Date();
-                                        const label = isPast ? "Attended" : "Will be there";
-                                        return (
-                                            <option key={t.event.id} value={t.event.id}>
-                                                {isAlreadyTagged ? "✓ " : ""}{t.event.title} — {label}
-                                            </option>
-                                        );
-                                    })}
-                            </select>
-                            <button type="button" onClick={handleTagEvent} className="btn-primary" style={{ padding: '0.6rem 1.5rem', borderRadius: '10px' }}>
+                        <input type="hidden" id="tag-event" name="tagEvent" value={selectedEventToTag} readOnly />
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                            {/* Custom dropdown */}
+                            <div ref={tagDropdownRef} style={{ position: 'relative', flex: 1 }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setTagDropdownOpen(o => !o)}
+                                    style={{
+                                        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                        gap: '0.5rem', padding: '0.65rem 1rem', background: 'var(--bg-input)',
+                                        border: '1px solid var(--border-light)', borderRadius: '12px',
+                                        color: selectedEventToTag ? 'var(--text-main)' : 'var(--text-muted)',
+                                        fontSize: '0.9rem', cursor: 'pointer', textAlign: 'left',
+                                    }}
+                                >
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        {selectedEventToTag
+                                            ? (() => {
+                                                const t = myTickets.find(t => t.event.id === selectedEventToTag);
+                                                if (!t) return 'Select an event…';
+                                                const tagged = user.taggedEvents?.some(te => te.id === t.event.id);
+                                                const past = new Date(t.event.startAt) < new Date();
+                                                return `${tagged ? '✓ ' : ''}${t.event.title} — ${past ? 'Attended' : 'Will be there'}`;
+                                            })()
+                                            : 'Select an event…'}
+                                    </span>
+                                    <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', flexShrink: 0 }}>▼</span>
+                                </button>
+                                {tagDropdownOpen && (
+                                    <ul style={{
+                                        position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 200,
+                                        background: 'var(--bg-card)', border: '1px solid var(--border-light)',
+                                        borderRadius: '16px', listStyle: 'none', margin: 0, padding: '6px',
+                                        maxHeight: '220px', overflowY: 'auto',
+                                        boxShadow: '0 10px 30px rgba(0,0,0,0.4)', backdropFilter: 'blur(10px)',
+                                    }}>
+                                        <li
+                                            onClick={() => { setSelectedEventToTag(""); setTagDropdownOpen(false); }}
+                                            style={{ padding: '0.6rem 0.9rem', borderRadius: '10px', cursor: 'pointer', fontSize: '0.88rem', color: 'var(--text-muted)' }}
+                                            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                        >Select an event…</li>
+                                        {myTickets
+                                            .filter(t => t.status !== "CANCELLED")
+                                            .map(t => {
+                                                const isTagged = user.taggedEvents?.some(te => te.id === t.event.id);
+                                                const isPast = new Date(t.event.startAt) < new Date();
+                                                const lbl = isPast ? 'Attended' : 'Will be there';
+                                                return (
+                                                    <li
+                                                        key={t.event.id}
+                                                        onClick={() => { setSelectedEventToTag(t.event.id); setTagDropdownOpen(false); }}
+                                                        style={{
+                                                            padding: '0.6rem 0.9rem', borderRadius: '10px', cursor: 'pointer',
+                                                            fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '0.5rem',
+                                                            background: selectedEventToTag === t.event.id ? 'var(--bg-hover)' : 'transparent',
+                                                        }}
+                                                        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+                                                        onMouseLeave={e => e.currentTarget.style.background = selectedEventToTag === t.event.id ? 'var(--bg-hover)' : 'transparent'}
+                                                    >
+                                                        {isTagged && <span style={{ color: 'var(--accent)', fontSize: '0.75rem', flexShrink: 0 }}>✓</span>}
+                                                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                            {t.event.title}
+                                                        </span>
+                                                        <span style={{ fontSize: '0.75rem', color: isPast ? 'var(--text-muted)' : 'var(--accent)', flexShrink: 0, fontWeight: 600 }}>{lbl}</span>
+                                                    </li>
+                                                );
+                                            })}
+                                    </ul>
+                                )}
+                            </div>
+                            <button type="button" onClick={handleTagEvent} className="btn-primary" style={{ padding: '0.65rem 1.5rem', borderRadius: '12px', flexShrink: 0 }}>
                                 Toggle Tag
                             </button>
                         </div>

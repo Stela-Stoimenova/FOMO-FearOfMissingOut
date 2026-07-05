@@ -10,7 +10,7 @@ function getStripe() {
     err.status = 503;
     throw err;
   }
-  _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-04-10" });
+  _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: "2024-04-10", timeout: 8000 });
   return _stripe;
 }
 

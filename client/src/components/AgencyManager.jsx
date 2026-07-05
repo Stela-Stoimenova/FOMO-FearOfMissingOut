@@ -5,7 +5,6 @@ import {
   getAgencyRoster, addToRoster, removeFromRoster,
   getTaggedCvEntries, acceptCvTag, declineCvTag,
 } from "../api/agency.js";
-import { getRecommendedDancers } from "../api/users.js";
 import UserSelect from "./UserSelect.jsx";
 
 const STATUS_COLORS = {
@@ -25,7 +24,6 @@ export default function AgencyManager() {
   const [collabs, setCollabs] = useState([]);
   const [roster, setRoster] = useState([]);
   const [cvTags, setCvTags] = useState([]);
-  const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -37,16 +35,14 @@ export default function AgencyManager() {
     setLoading(true);
     setError(null);
     try {
-      const [c, r, cv, recs] = await Promise.all([
+      const [c, r, cv] = await Promise.all([
         getAgencyCollaborations(),
         getAgencyRoster(),
         getTaggedCvEntries(),
-        getRecommendedDancers().catch(e => { console.error("Recommendations error:", e); return []; }),
       ]);
       setCollabs(c);
       setRoster(r);
       setCvTags(cv);
-      setRecommendations(recs);
     } catch (err) {
       console.error("Agency load failed:", err);
       setError(err.message || "Failed to load agency data. Please refresh.");
@@ -201,72 +197,6 @@ export default function AgencyManager() {
         ))}
       </div>
 
-      {/* ── Dancer Recommendations ── */}
-      <section className="detail-card" style={{ padding: "2rem", borderRadius: "24px", border: "2px solid var(--accent)", background: "linear-gradient(145deg, var(--bg-card), var(--bg-hover))", boxShadow: "0 10px 40px rgba(0,0,0,0.2)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700 }}>
-              Dancer Recommendations
-            </h3>
-            <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0.25rem 0 0 0" }}>Talent matching your agency's location and styles.</p>
-          </div>
-          <span style={{ fontSize: "0.8rem", color: "var(--accent)", background: "var(--accent-soft)", padding: "0.3rem 0.8rem", borderRadius: "20px" }}>{recommendations.length} Matches</span>
-        </div>
-
-        {recommendations.length > 0 ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1.25rem" }}>
-            {recommendations.map(dancer => (
-              <div key={dancer.id} style={{ display: "flex", flexDirection: "column", padding: "1.25rem", background: "var(--bg-card)", borderRadius: "20px", border: "1px solid var(--border-light)", transition: "transform 0.2s, border-color 0.2s", cursor: "pointer" }}
-                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'var(--accent-hover)'; }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.borderColor = 'var(--border-light)'; }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.75rem" }}>
-                  <div style={{ width: "50px", height: "50px", borderRadius: "50%", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
-                    <img src={dancer.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 700, fontSize: "1rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{dancer.name || "Unnamed"}</div>
-                    {dancer.city && <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{dancer.city}</div>}
-                  </div>
-                  <div style={{ background: "var(--accent-soft)", color: "var(--accent)", fontWeight: 800, fontSize: "0.85rem", padding: "0.3rem 0.6rem", borderRadius: "10px" }}>
-                    {dancer.matchScore}%
-                  </div>
-                </div>
-
-                {dancer.matchReasons?.length > 0 && (
-                  <div style={{ marginBottom: "0.75rem", display: "flex", flexDirection: "column", gap: "0.2rem" }}>
-                    {dancer.matchReasons.map((reason, i) => (
-                      <div key={i} style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                        <span style={{ color: "var(--accent)", fontSize: "0.65rem" }}>✓</span> {reason}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {dancer.danceStyles?.length > 0 && (
-                  <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap", marginBottom: "1rem" }}>
-                    {dancer.danceStyles.slice(0, 3).map(s => (
-                      <span key={s} style={{ fontSize: "0.65rem", padding: "0.2rem 0.5rem", borderRadius: "999px", background: "var(--bg-hover)", color: "var(--text-main)", border: "1px solid var(--border-light)" }}>{s}</span>
-                    ))}
-                    {dancer.danceStyles.length > 3 && <span style={{ fontSize: "0.65rem", color: "var(--text-muted)", padding: "0.2rem" }}>+{dancer.danceStyles.length - 3}</span>}
-                  </div>
-                )}
-
-                <div style={{ marginTop: "auto", display: "flex", gap: "0.5rem" }}>
-                  <a href={`/users/${dancer.id}`} target="_blank" rel="noopener noreferrer" className="btn-secondary" style={{ flex: 1, textAlign: "center", padding: "0.5rem", fontSize: "0.8rem", borderRadius: "999px", textDecoration: "none" }}>View Profile</a>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div style={{ padding: "3rem", textAlign: "center", background: "rgba(255,255,255,0.02)", borderRadius: "20px", border: "1px dashed var(--border-light)" }}>
-             <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", margin: 0 }}>
-               {loading ? "Searching for the perfect matches..." : "No recommended dancers found yet. Try adding more styles to your profile to improve matching!"}
-             </p>
-          </div>
-        )}
-      </section>
-
       {/* ── Collaborations Tab ── */}
       {activeTab === "collabs" && (
         <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
@@ -286,7 +216,7 @@ export default function AgencyManager() {
                   return (
                   <div key={c.studioId} style={{ display: "flex", alignItems: "flex-start", gap: "1rem", padding: "1rem 1.25rem", background: isEventInvite ? "rgba(99,102,241,0.07)" : "rgba(245,158,11,0.05)", borderRadius: "16px", border: `1px solid ${isEventInvite ? "rgba(99,102,241,0.3)" : "rgba(245,158,11,0.2)"}` }}>
                     <div style={{ width: "44px", height: "44px", borderRadius: "12px", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
-                      <img src={c.studio.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <img src={c.studio.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.2rem" }}>
@@ -325,7 +255,7 @@ export default function AgencyManager() {
                 {pendingFromAgency.map(c => (
                   <div key={c.studioId} style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "1rem 1.25rem", background: "var(--bg-hover)", borderRadius: "16px", border: "1px solid var(--border-light)" }}>
                     <div style={{ width: "44px", height: "44px", borderRadius: "12px", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
-                      <img src={c.studio.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <img src={c.studio.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700 }}>{c.studio.name || "Unnamed Studio"}</div>
@@ -351,7 +281,7 @@ export default function AgencyManager() {
                 {activeCollabs.map(c => (
                   <div key={c.studioId} style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "0.75rem 1.25rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px solid var(--border-light)" }}>
                     <div style={{ width: "40px", height: "40px", borderRadius: "10px", overflow: "hidden", background: "var(--bg-input)" }}>
-                      <img src={c.studio.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <img src={c.studio.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
                     </div>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: "0.95rem" }}>{c.studio.name || "Unnamed"}</div>
@@ -380,6 +310,8 @@ export default function AgencyManager() {
                 placeholder="Search studios..."
               />
               <textarea
+                id="invite-desc"
+                name="description"
                 value={inviteForm.description}
                 onChange={e => setInviteForm(f => ({ ...f, description: e.target.value }))}
                 placeholder="Message (optional)"
@@ -410,7 +342,7 @@ export default function AgencyManager() {
                     <button onClick={() => handleRemoveRoster(entry.dancerId)} style={{ position: "absolute", top: "0.75rem", right: "0.75rem", background: "rgba(239,68,68,0.1)", border: "none", color: "var(--warning)", cursor: "pointer", width: "24px", height: "24px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center" }}>&times;</button>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
                       <div style={{ width: "44px", height: "44px", borderRadius: "14px", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
-                        <img src={entry.dancer.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <img src={entry.dancer.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
                       </div>
                       <div>
                         <div style={{ fontWeight: 700 }}>{entry.dancer.name || "Unnamed"}</div>
@@ -447,8 +379,8 @@ export default function AgencyManager() {
                   <UserSelect role="DANCER" value={rosterForm.dancerId} onChange={id => setRosterForm({ ...rosterForm, dancerId: id })} placeholder="Type dancer name..." />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Internal Notes (Optional)</label>
-                  <input type="text" className="form-input" placeholder="e.g. Hip Hop specialist, available for tours" value={rosterForm.notes} onChange={e => setRosterForm({ ...rosterForm, notes: e.target.value })} />
+                  <label className="form-label" htmlFor="roster-notes">Internal Notes (Optional)</label>
+                  <input id="roster-notes" name="notes" type="text" className="form-input" placeholder="e.g. Hip Hop specialist, available for tours" value={rosterForm.notes} onChange={e => setRosterForm({ ...rosterForm, notes: e.target.value })} />
                 </div>
                 <button type="submit" className="btn-primary" style={{ alignSelf: "flex-start", padding: "0.75rem 2.5rem", borderRadius: "14px" }}>Add to Roster</button>
               </form>
@@ -469,7 +401,7 @@ export default function AgencyManager() {
               {cvTags.map(entry => (
                 <div key={entry.id} style={{ display: "flex", gap: "1rem", padding: "1.25rem", background: "var(--bg-hover)", borderRadius: "20px", border: "1px solid var(--border-light)", alignItems: "flex-start" }}>
                   <div style={{ width: "44px", height: "44px", borderRadius: "14px", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
-                    <img src={entry.user.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <img src={entry.user.avatarUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23666'%3E%3Ccircle cx='12' cy='12' r='12'/%3E%3C/svg%3E"} alt="" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", marginBottom: "0.4rem", flexWrap: "wrap" }}>

@@ -277,7 +277,7 @@ export default function EventDetailPage() {
                                         </p>
                                     </div>
                                     <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-                                        <input type="checkbox" checked={usePoints} onChange={e => setUsePoints(e.target.checked)} style={{ width: "1.2rem", height: "1.2rem", accentColor: "var(--accent)" }} />
+                                        <input id="use-points" name="usePoints" type="checkbox" checked={usePoints} onChange={e => setUsePoints(e.target.checked)} style={{ width: "1.2rem", height: "1.2rem", accentColor: "var(--accent)" }} />
                                         <span style={{ fontSize: "0.9rem", fontWeight: 600 }}>Use Points</span>
                                     </label>
                                 </div>

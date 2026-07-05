@@ -97,7 +97,7 @@ export default function FollowListModal({ isOpen, onClose, type, userId }) {
                                         flexShrink: 0
                                     }}>
                                         {u.avatarUrl ? (
-                                            <img src={u.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                            <img src={u.avatarUrl} alt="" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
                                         ) : (
                                             (u.name || "?").charAt(0).toUpperCase()
                                         )}

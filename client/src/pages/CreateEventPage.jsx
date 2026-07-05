@@ -29,8 +29,10 @@ export default function CreateEventPage() {
         description: "",
         location: "",
         imageUrl: "",
-        startAt: "",
-        endAt: "",
+        startDate: "",
+        startTime: "",
+        endDate: "",
+        endTime: "",
         priceCents: "",
         capacity: "",
     });
@@ -128,13 +130,26 @@ export default function CreateEventPage() {
                 }
             }
 
+            const startAt = form.startDate
+                ? (form.startTime ? `${form.startDate}T${form.startTime}` : form.startDate)
+                : "";
+            const endAt = form.endDate
+                ? (form.endTime ? `${form.endDate}T${form.endTime}` : form.endDate)
+                : undefined;
+
+            if (endAt && startAt && endAt <= startAt) {
+                setError("End date/time must be after the start date/time.");
+                setLoading(false);
+                return;
+            }
+
             const payload = {
                 title: form.title,
                 description: form.description || undefined,
                 location: form.location,
                 imageUrl: form.imageUrl?.trim() || "",
-                startAt: form.startAt,
-                endAt: form.endAt || undefined,
+                startAt,
+                endAt,
                 priceCents: Number(form.priceCents),
                 danceStyles: selectedStyles,
                 ...coords,
@@ -187,6 +202,9 @@ export default function CreateEventPage() {
                     </p>
                     <form onSubmit={handleInviteSearch} style={{ display: "flex", gap: "0.75rem", marginBottom: "1.25rem" }}>
                         <input
+                            id="invite-query"
+                            name="inviteQuery"
+                            autoComplete="off"
                             value={inviteQuery}
                             onChange={e => setInviteQuery(e.target.value)}
                             placeholder="Search dancers, studios, or agencies…"
@@ -202,7 +220,7 @@ export default function CreateEventPage() {
                             {inviteResults.map(user => (
                                 <div key={user.id} style={{ background: "var(--bg-hover)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", padding: "0.9rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
                                     <div style={{ width: 40, height: 40, borderRadius: "50%", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", color: "var(--text-muted)" }}>
-                                        {user.avatarUrl ? <img src={user.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (user.name || "?").charAt(0).toUpperCase()}
+                                        {user.avatarUrl ? <img src={user.avatarUrl} alt="" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} /> : (user.name || "?").charAt(0).toUpperCase()}
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ fontWeight: 600, fontSize: "0.92rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</div>
@@ -244,7 +262,7 @@ export default function CreateEventPage() {
                                         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                                             <div style={{ width: 44, height: 44, borderRadius: "50%", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0 }}>
                                                 {dancer.avatarUrl
-                                                    ? <img src={dancer.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                                    ? <img src={dancer.avatarUrl} alt="" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
                                                     : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.2rem", color: "var(--text-muted)" }}>{(dancer.name || "?").charAt(0).toUpperCase()}</div>
                                                 }
                                             </div>
@@ -307,52 +325,62 @@ export default function CreateEventPage() {
 
                 {error && <div className="form-error">{error}</div>}
 
-                <form onSubmit={handleSubmit} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) min(300px, 40%)", gap: "2rem", alignItems: "start" }}>
+                <form onSubmit={handleSubmit} className="create-event-form">
                     <div className="auth-form" style={{ margin: 0 }}>
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem" }}>
                             <label style={{ gridColumn: "1 / -1" }}>
                                 Title *
-                                <input name="title" value={form.title} onChange={handleChange} placeholder="Event name" required />
+                                <input id="create-ev-title" name="title" value={form.title} onChange={handleChange} placeholder="Event name" required autoComplete="off" />
                             </label>
 
                             <label style={{ gridColumn: "1 / -1" }}>
                                 Description
-                                <textarea name="description" value={form.description} onChange={handleChange} rows={4} placeholder="What's this event about?" />
+                                <textarea id="create-ev-desc" name="description" value={form.description} onChange={handleChange} rows={4} placeholder="What's this event about?" autoComplete="off" />
                             </label>
 
                             <label style={{ gridColumn: "1 / -1" }}>
                                 Location *
-                                <input name="location" value={form.location} onChange={handleChange} placeholder="e.g. Sofia Dance Studio, Berlin, or Vienna" required />
+                                <input id="create-ev-location" name="location" value={form.location} onChange={handleChange} placeholder="e.g. Sofia Dance Studio, Berlin, or Vienna" required autoComplete="off" />
                                 <small style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: "0.25rem" }}>We'll automatically place this on the map.</small>
                             </label>
 
                             <label>
-                                Start date &amp; time *
-                                <input type="datetime-local" name="startAt" value={form.startAt} onChange={handleChange} required />
+                                Start Date *
+                                <input id="create-ev-start-date" name="startDate" type="date" value={form.startDate} onChange={handleChange} required autoComplete="off" style={{ colorScheme: 'dark' }} />
                             </label>
 
                             <label>
-                                End date &amp; time
-                                <input type="datetime-local" name="endAt" value={form.endAt} onChange={handleChange} />
+                                Start Time *
+                                <input id="create-ev-start-time" name="startTime" type="time" value={form.startTime} onChange={handleChange} required autoComplete="off" style={{ colorScheme: 'dark' }} />
+                            </label>
+
+                            <label>
+                                End Date
+                                <input id="create-ev-end-date" name="endDate" type="date" value={form.endDate} onChange={handleChange} autoComplete="off" style={{ colorScheme: 'dark' }} />
+                            </label>
+
+                            <label>
+                                End Time
+                                <input id="create-ev-end-time" name="endTime" type="time" value={form.endTime} onChange={handleChange} autoComplete="off" style={{ colorScheme: 'dark' }} />
                             </label>
 
                             <label>
                                 Price (cents) *
-                                <input type="number" name="priceCents" value={form.priceCents} onChange={handleChange} min={0} placeholder="e.g. 2500 for €25.00" required />
+                                <input id="create-ev-price" type="number" name="priceCents" value={form.priceCents} onChange={handleChange} min={0} placeholder="e.g. 2500 for €25.00" required autoComplete="off" />
                             </label>
 
                             <label>
                                 Capacity
-                                <input type="number" name="capacity" value={form.capacity} onChange={handleChange} min={1} placeholder="Leave blank for unlimited" />
+                                <input id="create-ev-capacity" type="number" name="capacity" value={form.capacity} onChange={handleChange} min={1} placeholder="Leave blank for unlimited" autoComplete="off" />
                             </label>
                         </div>
 
                         {/* Dance Styles */}
                         <div style={{ marginTop: "1.5rem" }}>
-                            <label style={{ marginBottom: "0.5rem", display: "block", fontWeight: 600 }}>
+                            <p style={{ marginBottom: "0.5rem", display: "block", fontWeight: 600 }}>
                                 Dance Styles
                                 <small style={{ fontWeight: 400, color: "var(--text-muted)", marginLeft: "0.5rem" }}>Used to suggest matching dancers</small>
-                            </label>
+                            </p>
                             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "0.75rem" }}>
                                 {DANCE_STYLE_OPTIONS.map(s => (
                                     <button
@@ -377,6 +405,9 @@ export default function CreateEventPage() {
                             </div>
                             <div style={{ display: "flex", gap: "0.5rem" }}>
                                 <input
+                                    id="create-ev-style"
+                                    name="styleInput"
+                                    autoComplete="off"
                                     value={styleInput}
                                     onChange={e => setStyleInput(e.target.value)}
                                     onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addCustomStyle())}
@@ -408,7 +439,7 @@ export default function CreateEventPage() {
                         <div style={{ width: "100%", aspectRatio: "16/9", background: form.imageUrl ? `url(${form.imageUrl}) center/cover no-repeat` : "var(--bg-input)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-light)", marginBottom: "1rem", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
                             {!form.imageUrl && <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>Image Preview</span>}
                         </div>
-                        <label style={{ display: "block", marginBottom: "0.4rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>Image URL or Upload</label>
+                        <p style={{ display: "block", marginBottom: "0.4rem", fontSize: "0.85rem", color: "var(--text-muted)" }}>Image URL or Upload</p>
                         <ImageUploadInput
                             value={form.imageUrl}
                             onChange={url => setForm(prev => ({ ...prev, imageUrl: url }))}

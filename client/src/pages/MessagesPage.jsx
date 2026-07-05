@@ -17,6 +17,8 @@ export default function MessagesPage() {
     const [sending, setSending] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
     const [otherUserTyping, setOtherUserTyping] = useState(false);
+    const [pollFailCount, setPollFailCount] = useState(0);
+    const [mobileView, setMobileView] = useState("list"); // "list" | "thread"
     const threadEndRef = useRef(null);
     const activeThreadRef = useRef(null);
     const typingTimeoutRef = useRef(null);
@@ -34,14 +36,18 @@ export default function MessagesPage() {
     // Poll active thread for new messages every 3 seconds
     useEffect(() => {
         if (!activeThread) return;
+        setPollFailCount(0);
         const interval = setInterval(async () => {
             try {
                 const messages = await getThread(activeThread.id);
+                setPollFailCount(0);
                 setThreadMessages(prev => {
                     if (messages.length !== prev.length) return messages;
                     return prev;
                 });
-            } catch { /* non-critical */ }
+            } catch {
+                setPollFailCount(n => n + 1);
+            }
         }, 3000);
         return () => clearInterval(interval);
     }, [activeThread?.id]);
@@ -80,6 +86,7 @@ export default function MessagesPage() {
 
     async function openThread(otherUser) {
         setActiveThread(otherUser);
+        setMobileView("thread");
         setThreadLoading(true);
         try {
             const messages = await getThread(otherUser.id);
@@ -142,14 +149,9 @@ export default function MessagesPage() {
                 </div>
             )}
 
-            <div style={{ display: "flex", gap: "1.5rem", minHeight: "500px" }}>
+            <div className="messages-layout">
                 {/* ── Conversation Sidebar ── */}
-                <div style={{
-                    width: "300px", flexShrink: 0,
-                    background: "var(--bg-card)", borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--border-light)", overflow: "hidden",
-                    display: "flex", flexDirection: "column"
-                }}>
+                <div className={`messages-sidebar ${mobileView === "thread" ? "messages-sidebar--hidden" : ""}`}>
                     <div style={{ padding: "1rem", borderBottom: "1px solid var(--border-light)", fontWeight: 600, fontSize: "0.95rem" }}>
                         Conversations
                     </div>
@@ -184,7 +186,7 @@ export default function MessagesPage() {
                                             overflow: "hidden"
                                         }}>
                                             {conv.otherUser.avatarUrl ? (
-                                                <img src={conv.otherUser.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                                <img src={conv.otherUser.avatarUrl} alt="" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
                                             ) : (
                                                 (conv.otherUser.name || "?").charAt(0).toUpperCase()
                                             )}
@@ -216,12 +218,7 @@ export default function MessagesPage() {
                 </div>
 
                 {/* ── Thread Panel ── */}
-                <div style={{
-                    flex: 1,
-                    background: "var(--bg-card)", borderRadius: "var(--radius-md)",
-                    border: "1px solid var(--border-light)",
-                    display: "flex", flexDirection: "column"
-                }}>
+                <div className={`messages-thread ${mobileView === "list" && !activeThread ? "messages-thread--hidden-mobile" : ""}`}>
                     {!activeThread ? (
                         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", fontSize: "0.95rem" }}>
                             Select a conversation to view messages
@@ -234,7 +231,15 @@ export default function MessagesPage() {
                                 borderBottom: "1px solid var(--border-light)",
                                 display: "flex", alignItems: "center", gap: "0.75rem"
                             }}>
-                                <Link to={`/users/${activeThread.id}`} style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "inherit", textDecoration: "none" }}>
+                                {/* Back button — mobile only */}
+                                <button
+                                    className="messages-back-btn"
+                                    onClick={() => setMobileView("list")}
+                                    style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", fontSize: "1.1rem", padding: "0.25rem", display: "none" }}
+                                >
+                                    ←
+                                </button>
+                                <Link to={`/users/${activeThread.id}`} style={{ display: "flex", alignItems: "center", gap: "0.75rem", color: "inherit", textDecoration: "none", flex: 1 }}>
                                     <div style={{
                                         width: "36px", height: "36px", borderRadius: "50%",
                                         background: "var(--bg-input)", display: "flex",
@@ -242,7 +247,7 @@ export default function MessagesPage() {
                                         fontSize: "0.85rem", fontWeight: "bold", overflow: "hidden"
                                     }}>
                                         {activeThread.avatarUrl ? (
-                                            <img src={activeThread.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                            <img src={activeThread.avatarUrl} alt="" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
                                         ) : (
                                             (activeThread.name || "?").charAt(0).toUpperCase()
                                         )}
@@ -253,6 +258,12 @@ export default function MessagesPage() {
                                     </div>
                                 </Link>
                             </div>
+
+                            {pollFailCount >= 3 && (
+                                <div style={{ padding: "0.5rem 1rem", background: "rgba(239,68,68,0.08)", borderBottom: "1px solid rgba(239,68,68,0.25)", color: "var(--warning)", fontSize: "0.8rem", textAlign: "center" }}>
+                                    Connection issue — messages may not update automatically.
+                                </div>
+                            )}
 
                             {/* Thread Messages */}
                             <div style={{ flex: 1, overflowY: "auto", padding: "1.25rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
@@ -320,6 +331,9 @@ export default function MessagesPage() {
                                 display: "flex", gap: "0.75rem"
                             }}>
                                 <textarea
+                                    id="reply-content"
+                                    name="replyContent"
+                                    autoComplete="off"
                                     value={replyContent}
                                     onChange={handleReplyChange}
                                     onKeyDown={handleKeyDown}

@@ -60,6 +60,8 @@ export default function UserSelect({ role, value, onChange, placeholder = "Searc
       <div style={{ position: "relative" }}>
         <input
           type="text"
+          name="userSearch"
+          autoComplete="off"
           className="form-input"
           placeholder={placeholder}
           value={query}
@@ -109,7 +111,7 @@ export default function UserSelect({ role, value, onChange, placeholder = "Searc
                 border: "1px solid var(--border-light)"
               }}>
                 {u.avatarUrl ? (
-                  <img src={u.avatarUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <img src={u.avatarUrl} alt="" referrerPolicy="no-referrer" crossOrigin="anonymous" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} />
                 ) : (
                   <span style={{ fontSize: "1rem", color: "var(--text-muted)", fontWeight: 600 }}>{(u.name || u.email).charAt(0).toUpperCase()}</span>
                 )}

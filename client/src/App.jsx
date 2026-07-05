@@ -4,7 +4,9 @@ import { useAuth } from "./context/AuthContext.jsx";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+  : null;
 
 
 import Navbar from "./components/Navbar.jsx";
@@ -35,13 +37,13 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
-      <Route path="/events/:id" element={<EventDetailPage />} />
+      <Route path="/events/:id" element={<Elements stripe={stripePromise}><EventDetailPage /></Elements>} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
       <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
       <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
-      <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+      <Route path="/profile" element={<ProtectedRoute><Elements stripe={stripePromise}><ProfilePage /></Elements></ProtectedRoute>} />
       <Route path="/create-event" element={<ProtectedRoute><CreateEventPage /></ProtectedRoute>} />
       <Route path="/events/:id/edit" element={<ProtectedRoute><EditEventPage /></ProtectedRoute>} />
       <Route path="/my-tickets" element={<ProtectedRoute><MyTicketsPage /></ProtectedRoute>} />
@@ -64,13 +66,11 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <Elements stripe={stripePromise}>
-        <BrowserRouter>
-          <Navbar />
-          <AppRoutes />
-          <Footer />
-        </BrowserRouter>
-      </Elements>
+      <BrowserRouter>
+        <Navbar />
+        <AppRoutes />
+        <Footer />
+      </BrowserRouter>
     </AuthProvider>
   );
 }
