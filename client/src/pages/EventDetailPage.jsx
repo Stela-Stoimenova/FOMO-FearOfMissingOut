@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { getEventById, saveEvent, unsaveEvent, isEventSaved, createPaymentIntent, buyTicketWithPayment } from "../api/events.js";
+import { getEventById, saveEvent, unsaveEvent, isEventSaved, createPaymentIntent, buyTicketWithPayment, getMyTickets } from "../api/events.js";
 import { getMe } from "../api/users.js";
 import { getWallet } from "../api/payments.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -41,6 +41,7 @@ export default function EventDetailPage() {
     const [usePoints, setUsePoints] = useState(true);
     const [isSaved, setIsSaved] = useState(false);
     const [toast, setToast] = useState(null);
+    const [existingTicket, setExistingTicket] = useState(null); // VALID or CANCELLED ticket for this event
 
     // Payment modal state
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -69,6 +70,12 @@ export default function EventDetailPage() {
             getWallet()
                 .then(setSavedCards)
                 .catch(console.error);
+            getMyTickets()
+                .then(tickets => {
+                    const match = tickets.find(t => t.eventId === event.id);
+                    setExistingTicket(match ?? null);
+                })
+                .catch(() => {});
         }
     }, [isLoggedIn, user, event]);
 
@@ -199,7 +206,7 @@ export default function EventDetailPage() {
                             background: "linear-gradient(to top, rgba(24,24,27,1), transparent)",
                             padding: "2rem", display: "flex", alignItems: "flex-end",
                         }}>
-                            <h1 style={{ margin: 0, fontSize: "2.5rem", textShadow: "0 2px 10px rgba(0,0,0,0.8)", flex: 1 }}>{event.title}</h1>
+                            <h1 style={{ margin: 0, fontSize: "clamp(1.25rem, 4vw, 2.5rem)", textShadow: "0 2px 10px rgba(0,0,0,0.8)", flex: 1, wordBreak: "break-word" }}>{event.title}</h1>
                             <button onClick={handleToggleSave} style={{ background: "rgba(0,0,0,0.4)", border: "none", borderRadius: "50%", width: 50, height: 50, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: isSaved ? "#ff4757" : "#fff", fontSize: "1.5rem", transition: "all 0.3s", backdropFilter: "blur(10px)" }}
                                 onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"}
                                 onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
@@ -208,15 +215,15 @@ export default function EventDetailPage() {
                         </div>
                     </div>
                 ) : (
-                    <div style={{ width: "100%", height: "200px", background: "linear-gradient(135deg, rgba(99,102,241,0.25) 0%, rgba(124,58,237,0.1) 50%, rgba(24,24,27,1) 100%)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 2rem" }}>
-                        <h1 style={{ margin: 0, fontSize: "2rem" }}>{event.title}</h1>
-                        <button onClick={handleToggleSave} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "1.2rem", transition: "all 0.3s" }}>
+                    <div style={{ width: "100%", height: "200px", background: "linear-gradient(135deg, rgba(99,102,241,0.25) 0%, rgba(124,58,237,0.1) 50%, rgba(24,24,27,1) 100%)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1.25rem", gap: "1rem", flexWrap: "wrap" }}>
+                        <h1 style={{ margin: 0, fontSize: "clamp(1.1rem, 4vw, 2rem)", flex: 1, wordBreak: "break-word" }}>{event.title}</h1>
+                        <button onClick={handleToggleSave} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "1.2rem", transition: "all 0.3s", color: isSaved ? "#ff4757" : "var(--text-main)" }}>
                             {isSaved ? "♥" : "♡"}
                         </button>
                     </div>
                 )}
 
-                <div style={{ padding: "0 2rem 2rem 2rem" }}>
+                <div style={{ padding: "0 clamp(1rem, 4vw, 2rem) clamp(1rem, 4vw, 2rem)" }}>
                     {event.description && <p className="detail-description">{event.description}</p>}
 
                     {/* Dance styles tags */}
@@ -300,6 +307,22 @@ export default function EventDetailPage() {
 
                     {buyError && <div className="form-error">{buyError}</div>}
 
+                    {/* Existing ticket banner */}
+                    {isLoggedIn && user?.role === "DANCER" && existingTicket && existingTicket.status === "VALID" && !purchaseResult && (
+                        <div style={{ margin: "1rem 0", padding: "0.9rem 1.25rem", background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.3)", borderRadius: "var(--radius-sm)", display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                            <div>
+                                <strong style={{ color: "var(--success)", display: "block" }}>You already have a ticket for this event!</strong>
+                                <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>Paid {new Date(existingTicket.createdAt).toLocaleDateString()} · <Link to="/my-tickets" style={{ color: "var(--accent)" }}>View my tickets</Link></span>
+                            </div>
+                        </div>
+                    )}
+                    {isLoggedIn && user?.role === "DANCER" && existingTicket && existingTicket.status === "CANCELLED" && !purchaseResult && (
+                        <div style={{ margin: "1rem 0", padding: "0.9rem 1.25rem", background: "rgba(99,102,241,0.07)", border: "1px solid var(--accent-border)", borderRadius: "var(--radius-sm)" }}>
+                            <strong style={{ color: "var(--accent)", display: "block", marginBottom: "0.25rem" }}>You previously cancelled your ticket for this event.</strong>
+                            <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>You can buy a new ticket below.</span>
+                        </div>
+                    )}
+
                     {/* Role-based action area */}
                     {!isLoggedIn ? (
                         <button className="btn-primary" onClick={() => navigate("/login")}>Login to buy tickets</button>
@@ -325,11 +348,12 @@ export default function EventDetailPage() {
                                     </p>
                                 </div>
                             </div>
-                        ) : isSoldOut ? (
+                        ) : existingTicket?.status === "VALID" ? null
+                        : isSoldOut ? (
                             <button className="btn-primary btn-disabled" disabled>Sold Out</button>
                         ) : (
                             <button className="btn-primary" onClick={handleInitiatePurchase} disabled={buying}>
-                                {buying ? "Preparing payment…" : `Buy Ticket — ${formatPrice(ticketPrice)}`}
+                                {buying ? "Preparing payment…" : existingTicket?.status === "CANCELLED" ? `Rebuy Ticket — ${formatPrice(ticketPrice)}` : `Buy Ticket — ${formatPrice(ticketPrice)}`}
                             </button>
                         )
                     ) : isLoggedIn && (user.role === "STUDIO" || user.role === "AGENCY") && user.id === event.creatorId ? (

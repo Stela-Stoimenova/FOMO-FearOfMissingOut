@@ -1,4 +1,5 @@
 // Navbar — reads auth state from context to show the right links
+import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import NotificationBell from "./NotificationBell.jsx";
@@ -6,41 +7,55 @@ import NotificationBell from "./NotificationBell.jsx";
 export default function Navbar() {
     const { isLoggedIn, user, logout } = useAuth();
     const navigate = useNavigate();
+    const [menuOpen, setMenuOpen] = useState(false);
 
     function handleLogout() {
         logout();
-        navigate("/"); // go to home after logout
+        setMenuOpen(false);
+        navigate("/");
+    }
+
+    function closeMenu() {
+        setMenuOpen(false);
     }
 
     return (
         <nav className="navbar">
-            <NavLink to="/" className="navbar-brand">
+            <NavLink to="/" className="navbar-brand" onClick={closeMenu}>
                 FOMO
             </NavLink>
 
-            <div className="navbar-links">
-                <NavLink to="/" end>Home</NavLink>
-                <NavLink to="/discover">Discover</NavLink>
+            {/* Hamburger — only visible on mobile */}
+            <button
+                className="navbar-hamburger"
+                onClick={() => setMenuOpen(o => !o)}
+                aria-label="Toggle menu"
+            >
+                <span className={`hamburger-line ${menuOpen ? "open" : ""}`} />
+                <span className={`hamburger-line ${menuOpen ? "open" : ""}`} />
+                <span className={`hamburger-line ${menuOpen ? "open" : ""}`} />
+            </button>
+
+            <div className={`navbar-links ${menuOpen ? "navbar-links--open" : ""}`}>
+                <NavLink to="/" end onClick={closeMenu}>Home</NavLink>
+                <NavLink to="/discover" onClick={closeMenu}>Discover</NavLink>
 
                 {isLoggedIn ? (
-                    // ── Logged-in links ────────────────────────────────────────────────
                     <>
-                        <NavLink to="/dashboard">Dashboard</NavLink>
-                        <NavLink to="/messages">Messages</NavLink>
+                        <NavLink to="/dashboard" onClick={closeMenu}>Dashboard</NavLink>
+                        <NavLink to="/messages" onClick={closeMenu}>Messages</NavLink>
 
-                        {/* Role-specific quick links */}
                         {user.role === "DANCER" && (
-                            <NavLink to="/my-tickets">My Tickets</NavLink>
+                            <NavLink to="/my-tickets" onClick={closeMenu}>My Tickets</NavLink>
                         )}
                         {(user.role === "STUDIO" || user.role === "AGENCY") && (
-                            <NavLink to="/create-event">+ Event</NavLink>
+                            <NavLink to="/create-event" onClick={closeMenu}>+ Event</NavLink>
                         )}
 
                         <NotificationBell />
 
-                        {/* User info + logout */}
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                            <NavLink to="/profile" className="navbar-user" style={{ cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: 0, border: 'none' }}>
+                        <div className="navbar-user-block">
+                            <NavLink to="/profile" className="navbar-user" onClick={closeMenu} style={{ cursor: 'pointer', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.75rem', padding: 0, border: 'none' }}>
                                 {user.avatarUrl ? (
                                     <img src={user.avatarUrl} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-light)' }} />
                                 ) : (
@@ -53,17 +68,16 @@ export default function Navbar() {
                                     <span className="role-badge" style={{ fontSize: '0.65rem' }}>{user.role}</span>
                                 </span>
                             </NavLink>
-                            <div style={{ width: '1px', height: '24px', background: 'var(--border-light)' }}></div>
+                            <div className="navbar-divider" />
                             <button className="navbar-logout" onClick={handleLogout}>
                                 Logout
                             </button>
                         </div>
                     </>
                 ) : (
-                    // ── Guest links ────────────────────────────────────────────────────
                     <>
-                        <NavLink to="/login">Login</NavLink>
-                        <NavLink to="/register" className="navbar-register">Register</NavLink>
+                        <NavLink to="/login" onClick={closeMenu}>Login</NavLink>
+                        <NavLink to="/register" className="navbar-register" onClick={closeMenu}>Register</NavLink>
                     </>
                 )}
             </div>

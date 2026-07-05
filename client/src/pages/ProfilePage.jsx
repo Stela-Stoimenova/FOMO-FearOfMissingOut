@@ -836,14 +836,18 @@ export default function ProfilePage() {
                         <div style={{ display: 'flex', gap: '0.5rem' }}>
                             <select className="filter-select" value={selectedEventToTag} onChange={e => setSelectedEventToTag(e.target.value)} style={{ flex: 1 }}>
                                 <option value="">Select an event…</option>
-                                {myTickets.map(t => {
-                                    const isAlreadyTagged = user.taggedEvents?.some(te => te.id === t.event.id);
-                                    return (
-                                        <option key={t.event.id} value={t.event.id}>
-                                            {isAlreadyTagged ? "✓ " : ""}{t.event.title}
-                                        </option>
-                                    );
-                                })}
+                                {myTickets
+                                    .filter(t => t.status !== "CANCELLED")
+                                    .map(t => {
+                                        const isAlreadyTagged = user.taggedEvents?.some(te => te.id === t.event.id);
+                                        const isPast = new Date(t.event.startAt) < new Date();
+                                        const label = isPast ? "Attended" : "Will be there";
+                                        return (
+                                            <option key={t.event.id} value={t.event.id}>
+                                                {isAlreadyTagged ? "✓ " : ""}{t.event.title} — {label}
+                                            </option>
+                                        );
+                                    })}
                             </select>
                             <button type="button" onClick={handleTagEvent} className="btn-primary" style={{ padding: '0.6rem 1.5rem', borderRadius: '10px' }}>
                                 Toggle Tag
@@ -863,7 +867,6 @@ export default function ProfilePage() {
                 </div>
 
                 <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '2px solid rgba(239, 68, 68, 0.1)' }}>
-                    <h4 style={{ color: 'var(--danger)', fontSize: '0.9rem', marginBottom: '0.5rem' }}>Danger Zone</h4>
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>Once you delete your account, there is no going back. Please be certain.</p>
                     <button 
                         onClick={handleDeleteAccount}

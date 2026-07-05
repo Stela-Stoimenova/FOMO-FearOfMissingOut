@@ -28,6 +28,8 @@ export function AuthProvider({ children }) {
         const data = await loginUser(credentials);
         localStorage.setItem("token", data.token);
         setUserState(data.user);
+        // Fetch the full profile so followers/bio/avatarUrl etc. are immediately available
+        getMe().then(setUserState).catch(() => {});
         return data;
     }
 
@@ -35,6 +37,7 @@ export function AuthProvider({ children }) {
         const data = await registerUser(formData);
         localStorage.setItem("token", data.token);
         setUserState(data.user);
+        getMe().then(setUserState).catch(() => {});
         return data;
     }
 

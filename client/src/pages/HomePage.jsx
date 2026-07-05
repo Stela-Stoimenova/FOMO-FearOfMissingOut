@@ -84,7 +84,7 @@ export default function HomePage() {
             setError(null);
             try {
                 const finalQuery = filterStyle ? `${query} ${filterStyle}`.trim() : query;
-                const params = { q: finalQuery, limit: 12 };
+                const params = { q: finalQuery, limit: 12, from: new Date().toISOString() };
                 if (filterCity) params.city = filterCity;
                 if (filterMaxPrice) params.maxPrice = Number(filterMaxPrice) * 100;
                 if (filterMaxCapacity) params.maxCapacity = Number(filterMaxCapacity);

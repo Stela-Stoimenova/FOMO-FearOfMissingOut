@@ -130,22 +130,28 @@ export default function MyTicketsPage() {
         );
     }
 
-    return (
-        <main className="page">
-            <Toast toast={toast} onClose={() => setToast(null)} />
-            {confirmTicket && (
-                <ConfirmModal
-                    message={`Are you sure you want to cancel this ticket? ${getRefundTier(confirmTicket.event.startAt).label}.`}
-                    onConfirm={handleConfirmCancel}
-                    onCancel={() => setConfirmTicket(null)}
-                />
-            )}
+    const now = new Date();
+    const upcoming  = tickets.filter(t => t.status !== "CANCELLED" && new Date(t.event.startAt) > now);
+    const visited   = tickets.filter(t => t.status !== "CANCELLED" && new Date(t.event.startAt) <= now);
+    const cancelled = tickets.filter(t => t.status === "CANCELLED");
 
-            <h1 style={{ marginBottom: '0.5rem' }}>My Tickets</h1>
-            <p className="subtitle" style={{ marginBottom: '2.5rem' }}>You have {tickets.length} ticket(s).</p>
+    function TicketSection({ title, items, accent }) {
+        if (items.length === 0) return null;
+        return (
+            <section style={{ marginBottom: '3rem' }}>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: accent }} />
+                    {title} <span style={{ fontSize: '0.85rem', fontWeight: 400, color: 'var(--text-muted)' }}>({items.length})</span>
+                </h2>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                    {items.map(ticket => renderCard(ticket))}
+                </div>
+            </section>
+        );
+    }
 
-            <div className="ticket-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '2rem' }}>
-                {tickets.map((ticket) => (
+    function renderCard(ticket) {
+        return (
                     <Link to={`/events/${ticket.eventId}`} key={ticket.id} className="ticket-card" style={{
                         textDecoration: 'none',
                         color: 'inherit',
@@ -206,31 +212,51 @@ export default function MyTicketsPage() {
                                             <p style={{ margin: 0, fontWeight: 800, color: 'var(--accent)', fontSize: '1.1rem' }}>{formatPrice(ticket.priceCents)}</p>
                                             <span style={{ color: "var(--success)", fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Confirmed</span>
                                         </div>
-                                        <button
-                                            onClick={(e) => handleCancelClick(e, ticket)}
-                                            style={{
-                                                background: 'rgba(239, 68, 68, 0.1)',
-                                                border: '1px solid rgba(239, 68, 68, 0.2)',
-                                                color: '#ef4444',
-                                                padding: '0.6rem 1.2rem',
-                                                borderRadius: '12px',
-                                                fontSize: '0.85rem',
-                                                fontWeight: 700,
-                                                cursor: 'pointer',
-                                                transition: 'all 0.2s'
-                                            }}
-                                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
-                                            onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
-                                        >
-                                            Cancel
-                                        </button>
+                                        {new Date(ticket.event.startAt) > new Date() && (
+                                            <button
+                                                onClick={(e) => handleCancelClick(e, ticket)}
+                                                style={{
+                                                    background: 'rgba(239, 68, 68, 0.1)',
+                                                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                                                    color: '#ef4444',
+                                                    padding: '0.6rem 1.2rem',
+                                                    borderRadius: '12px',
+                                                    fontSize: '0.85rem',
+                                                    fontWeight: 700,
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                                            >
+                                                Cancel
+                                            </button>
+                                        )}
                                     </div>
                                 )}
                             </div>
                         </div>
                     </Link>
-                ))}
-            </div>
+        );
+    }
+
+    return (
+        <main className="page">
+            <Toast toast={toast} onClose={() => setToast(null)} />
+            {confirmTicket && (
+                <ConfirmModal
+                    message={`Are you sure you want to cancel this ticket? ${getRefundTier(confirmTicket.event.startAt).label}.`}
+                    onConfirm={handleConfirmCancel}
+                    onCancel={() => setConfirmTicket(null)}
+                />
+            )}
+
+            <h1 style={{ marginBottom: '0.5rem' }}>My Tickets</h1>
+            <p className="subtitle" style={{ marginBottom: '2.5rem' }}>You have {tickets.filter(t => t.status !== 'CANCELLED').length} active ticket(s).</p>
+
+            <TicketSection title="Upcoming Events" items={upcoming} accent="var(--accent)" />
+            <TicketSection title="Already Attended" items={visited} accent="var(--success)" />
+            <TicketSection title="Cancelled" items={cancelled} accent="var(--danger)" />
         </main>
     );
 }

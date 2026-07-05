@@ -86,7 +86,7 @@ export async function getPopularEvents() {
 
     // Fetch full event data for the candidates
     const events = await prisma.event.findMany({
-        where: { id: { in: eventIds } },
+        where: { id: { in: eventIds }, startAt: { gte: new Date() } },
         include: {
             creator: { select: { id: true, name: true, role: true } },
             _count: { select: { tickets: true } },
@@ -138,11 +138,12 @@ export async function getNearbyEvents({ lat, lng, radius = 10 }) {
         throw err;
     }
 
-    // Fetch only events that have coordinates
+    // Fetch only upcoming events that have coordinates
     const events = await prisma.event.findMany({
         where: {
             latitude: { not: null },
             longitude: { not: null },
+            startAt: { gte: new Date() },
         },
         include: {
             creator: { select: { id: true, name: true, role: true } },
@@ -374,6 +375,21 @@ export async function purchaseTicket(eventId, userId, usePoints = false, stripeP
         }
     }
 
+    // Block duplicate purchase if user already has a valid ticket
+    const existingValidTicket = await prisma.ticket.findFirst({
+        where: { userId, eventId, status: "VALID" },
+    });
+    if (existingValidTicket) {
+        const err = new Error("You already have a ticket for this event");
+        err.status = 409;
+        throw err;
+    }
+
+    // Allow rebuy: check for a previously cancelled ticket to reactivate
+    const cancelledTicket = await prisma.ticket.findFirst({
+        where: { userId, eventId, status: "CANCELLED" },
+    });
+
     // Determine Loyalty Discount
     let pointsToDeduct = 0;
     let discountCents = 0;
@@ -396,16 +412,26 @@ export async function purchaseTicket(eventId, userId, usePoints = false, stripeP
     const netCents = grossCents - commissionCents;
 
     try {
-        // Atomic: create ticket + transaction + loyalty together
+        // Atomic: create/reactivate ticket + transaction + loyalty together
         const result = await prisma.$transaction(async (tx) => {
-            const ticket = await tx.ticket.create({
-                data: {
-                    userId,
-                    eventId,
-                    priceCents: grossCents,
-                    stripePaymentIntentId: stripePaymentIntentId ?? null,
-                },
-            });
+            const ticket = cancelledTicket
+                ? await tx.ticket.update({
+                    where: { id: cancelledTicket.id },
+                    data: {
+                        status: "VALID",
+                        priceCents: grossCents,
+                        refundAmount: null,
+                        stripePaymentIntentId: stripePaymentIntentId ?? null,
+                    },
+                })
+                : await tx.ticket.create({
+                    data: {
+                        userId,
+                        eventId,
+                        priceCents: grossCents,
+                        stripePaymentIntentId: stripePaymentIntentId ?? null,
+                    },
+                });
 
             const transaction = await tx.transaction.create({
                 data: {
@@ -488,11 +514,6 @@ export async function purchaseTicket(eventId, userId, usePoints = false, stripeP
 
         return result;
     } catch (err) {
-        if (String(err).includes("Unique constraint")) {
-            const dupErr = new Error("You already have a ticket for this event");
-            dupErr.status = 409;
-            throw dupErr;
-        }
         throw err;
     }
 }

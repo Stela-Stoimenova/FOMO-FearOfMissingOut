@@ -56,7 +56,7 @@ export default function DiscoveryPage() {
             <section style={{ maxWidth: "900px", margin: "0 auto 3rem auto" }}>
                 <form onSubmit={handleSearch} style={{
                     display: "grid",
-                    gridTemplateColumns: "2fr 1fr 1fr 1fr",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
                     gap: "1rem",
                     background: "var(--bg-card)",
                     padding: "1.5rem",
@@ -146,7 +146,7 @@ export default function DiscoveryPage() {
                                             className="detail-card"
                                             style={{
                                                 width: "100%",
-                                                height: "220px",
+                                                height: "240px",
                                                 display: "flex",
                                                 flexDirection: "column",
                                                 padding: "1.5rem",
@@ -207,24 +207,27 @@ export default function DiscoveryPage() {
 
                                             {/* Dance styles */}
                                             <div style={{ flex: 1, overflow: "hidden", display: "flex", alignItems: "flex-start" }}>
-                                                {user.danceStyles?.length > 0 && (
+                                                {user.danceStyles?.length > 0 ? (
                                                     <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
-                                                        {user.danceStyles.slice(0, 3).map(s => (
+                                                        {user.danceStyles.slice(0, 4).map(s => (
                                                             <span key={s} style={{
-                                                                fontSize: "0.7rem", padding: "0.2rem 0.55rem",
+                                                                fontSize: "0.7rem", padding: "0.2rem 0.6rem",
                                                                 borderRadius: "999px",
-                                                                background: "var(--bg-hover)",
-                                                                color: "var(--text-muted)",
-                                                                border: "1px solid var(--border-light)",
+                                                                background: "rgba(99,102,241,0.12)",
+                                                                color: "var(--accent)",
+                                                                border: "1px solid var(--accent-border)",
                                                                 whiteSpace: "nowrap",
+                                                                fontWeight: 500,
                                                             }}>{s}</span>
                                                         ))}
-                                                        {user.danceStyles.length > 3 && (
-                                                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", padding: "0.2rem 0.2rem", alignSelf: "center" }}>
-                                                                +{user.danceStyles.length - 3}
+                                                        {user.danceStyles.length > 4 && (
+                                                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", padding: "0.2rem", alignSelf: "center" }}>
+                                                                +{user.danceStyles.length - 4}
                                                             </span>
                                                         )}
                                                     </div>
+                                                ) : (
+                                                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontStyle: "italic" }}>No styles listed</span>
                                                 )}
                                             </div>
 

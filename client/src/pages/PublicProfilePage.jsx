@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { getUserProfile, followUser, unfollowUser, getMe, getFollowers } from "../api/users.js";
 import { sendMessage } from "../api/messages.js";
 import { getEvents } from "../api/events.js";
@@ -17,6 +17,7 @@ export default function PublicProfilePage() {
     const { id } = useParams();
     const { user: me, setUser } = useAuth();
     const stripe = useStripe();
+    const navigate = useNavigate();
 
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -259,7 +260,7 @@ export default function PublicProfilePage() {
                 savedCards={membershipSavedCards}
                 description={selectedMembership ? `${selectedMembership.name} membership — ${selectedMembership.durationDays} days validity, ${selectedMembership.classLimit ? `${selectedMembership.classLimit} classes` : 'unlimited classes'}.` : undefined}
             />
-            <Link to="/" className="back-link">← Back to events</Link>
+            <button onClick={() => navigate(-1)} className="back-link" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit', color: 'inherit' }}>← Back</button>
 
             {errorMsg && (
                 <div style={{ padding: '0.75rem 1rem', background: 'rgba(239,68,68,0.1)', border: '1px solid var(--warning)', borderRadius: '16px', color: 'var(--warning)', marginBottom: '1.5rem', fontSize: '0.9rem', animation: 'fadeIn 0.3s ease' }}>
@@ -274,9 +275,9 @@ export default function PublicProfilePage() {
             )}
 
             {/* Profile Header */}
-            <div className="detail-card" style={{ display: 'flex', alignItems: 'flex-start', gap: '2rem', marginBottom: '2rem', padding: '2.5rem', borderRadius: '24px' }}>
+            <div className="detail-card" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '1.5rem', marginBottom: '2rem', padding: '2rem', borderRadius: '24px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
-                    <div style={{ width: '120px', height: '120px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--bg-hover), var(--bg-card))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem', fontWeight: 'bold', border: '3px solid var(--border-light)', overflow: 'hidden' }}>
+                    <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--bg-hover), var(--bg-card))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', fontWeight: 'bold', border: '3px solid var(--border-light)', overflow: 'hidden' }}>
                         {profile.avatarUrl ? (
                             <img src={profile.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         ) : (
@@ -284,9 +285,9 @@ export default function PublicProfilePage() {
                         )}
                     </div>
                 </div>
-                <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                        <h1 style={{ margin: 0, fontSize: '2rem' }}>{profile.name || "Unnamed"}</h1>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                        <h1 style={{ margin: 0, fontSize: 'clamp(1.25rem, 4vw, 2rem)', wordBreak: 'break-word' }}>{profile.name || "Unnamed"}</h1>
                         <span className="role-badge" style={{ fontSize: '0.75rem', padding: '0.25rem 0.7rem', borderRadius: '10px' }}>{profile.role}</span>
                         {profile.experienceLevel && (
                             <span style={{ fontSize: '0.8rem', padding: '0.25rem 0.7rem', borderRadius: '10px', background: 'var(--accent-soft)', color: 'var(--accent)', border: '1px solid var(--accent-border)' }}>{profile.experienceLevel}</span>

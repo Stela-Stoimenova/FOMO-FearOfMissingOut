@@ -92,8 +92,8 @@ export async function deleteStudioTeamMember(teamId) {
 }
 
 // --- Collaborations ---
-export async function getStudioCollaborations(_studioId) {
-  return apiRequest("/studios/me/collaborations");
+export async function getStudioCollaborations(studioId) {
+  return apiRequest(`/studios/${studioId}/collaborations`);
 }
 
 export async function createCollaboration(data) {

@@ -66,7 +66,7 @@ export default function EventMap({ events, userLocation, nearbyEventIds = [] }) 
     if (!MAPBOX_TOKEN || MAPBOX_TOKEN.length < 20) {
         return (
             <div style={{ width: '100%', height: '100%', minHeight: '400px', borderRadius: 'var(--radius-lg)', background: 'rgba(255,255,255,0.03)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '2rem', border: '1px solid var(--border-light)' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '1.5rem' }}>🌍</div>
+                <div style={{ width: '64px', height: '64px', marginBottom: '1.5rem', borderRadius: '50%', background: 'rgba(99,102,241,0.1)', border: '1px solid var(--accent-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: '1.5rem', opacity: 0.4, color: 'var(--accent)' }}>MAP</span></div>
                 <h3 style={{ margin: '0 0 0.75rem 0', fontFamily: 'var(--font-display)' }}>Map Not Configured</h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', maxWidth: '350px', lineHeight: 1.6 }}>
                     Your Mapbox token is missing or invalid. Please check <code>client/.env</code> and ensure <code>VITE_MAPBOX_TOKEN</code> is set correctly.

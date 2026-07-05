@@ -8,7 +8,7 @@ import { uploadImage } from "../api/uploads.js";
  *   onChange(url) – called with new URL when changed
  *   placeholder  – input placeholder text
  */
-export default function ImageUploadInput({ value, onChange, placeholder = "https://..." }) {
+export default function ImageUploadInput({ value, onChange, placeholder = "https://...", showPreview = true }) {
     const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState("");
     const fileInputRef = useRef(null);
@@ -71,7 +71,7 @@ export default function ImageUploadInput({ value, onChange, placeholder = "https
             {uploadError && (
                 <span style={{ fontSize: "0.78rem", color: "var(--warning)" }}>{uploadError}</span>
             )}
-            {value && (
+            {showPreview && value && (
                 <img
                     src={value}
                     alt="Preview"

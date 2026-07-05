@@ -86,7 +86,8 @@ export default function CreateEventPage() {
         setSendingId(user.id);
         try {
             if (user.role === "AGENCY") {
-                // Create a proper collaboration record so the request appears in the agency's dashboard
+                // Try to create a collaboration record (only works when caller is a STUDIO).
+                // On any failure, fall through to the standard event invite.
                 try {
                     await apiRequest("/studios/me/collaborations", {
                         method: "POST",
@@ -96,13 +97,10 @@ export default function CreateEventPage() {
                             eventId: createdEvent.id,
                         }),
                     });
-                } catch (err) {
-                    if (err.status !== 409 && err.status !== 403) throw err;
-                    // Already collaborating, or caller is not a STUDIO — fall through to standard invite
+                } catch {
                     await inviteEventParticipant(createdEvent.id, user.id);
                 }
             } else {
-                // STUDIO or DANCER: sends notification with event link so they can preview first
                 await inviteEventParticipant(createdEvent.id, user.id);
             }
             setInvitedIds(prev => new Set([...prev, user.id]));
@@ -309,9 +307,9 @@ export default function CreateEventPage() {
 
                 {error && <div className="form-error">{error}</div>}
 
-                <form onSubmit={handleSubmit} style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: "2.5rem", alignItems: "start" }}>
+                <form onSubmit={handleSubmit} style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) min(300px, 40%)", gap: "2rem", alignItems: "start" }}>
                     <div className="auth-form" style={{ margin: 0 }}>
-                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1.5rem" }}>
                             <label style={{ gridColumn: "1 / -1" }}>
                                 Title *
                                 <input name="title" value={form.title} onChange={handleChange} placeholder="Event name" required />
@@ -415,6 +413,7 @@ export default function CreateEventPage() {
                             value={form.imageUrl}
                             onChange={url => setForm(prev => ({ ...prev, imageUrl: url }))}
                             placeholder="https://... or click Upload"
+                            showPreview={false}
                         />
                         <p style={{ margin: "0.5rem 0 0", fontSize: "0.75rem", color: "var(--text-muted)", lineHeight: 1.5 }}>
                             Paste a direct image link. 16:9 ratio recommended.

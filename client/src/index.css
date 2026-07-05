@@ -164,12 +164,13 @@ h3 {
   align-items: center;
   padding: 1.25rem 2rem;
   background-color: rgba(9, 9, 11, 0.85);
-  /* Translucent obsidian */
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-light);
   position: sticky;
   top: 0;
   z-index: 100;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .navbar-brand {
@@ -182,20 +183,46 @@ h3 {
 
 .navbar-brand:hover {
   opacity: 1;
-  /* Brand shouldn't fade much on hover */
+}
+
+/* Hamburger button — hidden on desktop */
+.navbar-hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: 8px;
+  transition: background 0.2s;
+  margin-left: auto;
+}
+.navbar-hamburger:hover {
+  background: var(--bg-hover);
+}
+.hamburger-line {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: var(--text-main);
+  border-radius: 2px;
+  transition: transform 0.25s, opacity 0.25s;
 }
 
 .navbar-links {
   display: flex;
   align-items: center;
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
 .navbar-links a {
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 500;
   transition: color 0.2s ease;
+  white-space: nowrap;
 }
 
 .navbar-links a:hover,
@@ -206,11 +233,23 @@ h3 {
 .navbar-user {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
   font-size: 0.875rem;
   color: var(--text-main);
-  padding-left: 1.25rem;
+}
+
+.navbar-user-block {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-left: 1rem;
   border-left: 1px solid var(--border-light);
+}
+
+.navbar-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border-light);
 }
 
 .role-badge {
@@ -229,12 +268,13 @@ h3 {
   background: none;
   border: none;
   color: var(--text-muted);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
   padding: 0;
   font-family: var(--font-sans);
   transition: color 0.2s;
+  white-space: nowrap;
 }
 
 .navbar-logout:hover {
@@ -246,15 +286,110 @@ h3 {
   color: var(--primary-invert) !important;
   padding: 0.5rem 1.25rem;
   border-radius: 999px;
-  /* Pill shape for premium feel */
   font-weight: 600 !important;
   transition: transform 0.2s ease, background-color 0.2s;
+  white-space: nowrap;
 }
 
 .navbar-register:hover {
   background-color: var(--primary-hover);
   transform: scale(1.02);
   opacity: 1;
+}
+
+/* Medium screens — tighten gap */
+@media (max-width: 1024px) {
+  .navbar {
+    padding: 1rem 1.5rem;
+  }
+  .navbar-links {
+    gap: 1rem;
+  }
+  .navbar-links a {
+    font-size: 0.85rem;
+  }
+  .role-badge {
+    display: none;
+  }
+}
+
+/* Mobile — hamburger menu */
+@media (max-width: 768px) {
+  .navbar {
+    padding: 1rem;
+    position: relative;
+  }
+
+  .navbar-hamburger {
+    display: flex;
+  }
+
+  .navbar-links {
+    display: none;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    gap: 0;
+    background: rgba(9, 9, 11, 0.97);
+    border-top: 1px solid var(--border-light);
+    padding: 1rem 0;
+    margin-top: 0.25rem;
+  }
+
+  .navbar-links.navbar-links--open {
+    display: flex;
+  }
+
+  .navbar-links a {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border-radius: 0;
+  }
+
+  .navbar-links a:hover {
+    background: var(--bg-hover);
+  }
+
+  .navbar-user-block {
+    flex-direction: column;
+    align-items: flex-start;
+    border-left: none;
+    border-top: 1px solid var(--border-light);
+    padding-left: 0;
+    padding-top: 0.75rem;
+    margin-top: 0.25rem;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .navbar-user {
+    padding: 0.5rem 1rem;
+    width: 100%;
+  }
+
+  .navbar-divider {
+    display: none;
+  }
+
+  .navbar-logout {
+    padding: 0.75rem 1rem;
+    width: 100%;
+    text-align: left;
+    font-size: 1rem;
+  }
+
+  .navbar-register {
+    margin: 0.5rem 1rem;
+    display: inline-block;
+    width: calc(100% - 2rem);
+    text-align: center;
+    box-sizing: border-box;
+  }
+
+  .role-badge {
+    display: inline-block;
+  }
 }
 
 /* ─── Buttons ──────────────────────────────────────────────────────────── */
@@ -842,24 +977,149 @@ h3 {
   background: rgba(99, 102, 241, 0.2);
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .hero h1 {
-    font-size: 2.5rem;
+/* ─── Responsive: Tablet (≤ 900px) ─────────────────────────────────────── */
+@media (max-width: 900px) {
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.4rem; }
+
+  .hero h1 { font-size: 2.25rem; }
+  .hero p  { font-size: 1.05rem; }
+
+  .dashboard-actions {
+    grid-template-columns: 1fr 1fr;
   }
 
+  .detail-card {
+    padding: 2rem 1.5rem;
+  }
+}
+
+/* ─── Responsive: Mobile (≤ 640px) ─────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Typography */
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.05rem; }
+
+  /* Layout */
   .page {
-    padding: 2rem 1rem;
+    padding: 1.5rem 1rem;
+  }
+  .page-narrow {
+    padding: 1.5rem 1rem;
   }
 
+  /* Hero */
+  .hero {
+    padding: 2rem 0.5rem 2.5rem;
+  }
+  .hero h1 {
+    font-size: 1.75rem;
+    letter-spacing: -0.025em;
+  }
+  .hero p {
+    font-size: 0.95rem;
+  }
+
+  /* Search bar: stack button below */
+  .search-bar {
+    max-width: 100%;
+  }
+
+  /* Event grid: single column on narrow */
+  .event-grid,
+  .ticket-list {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Detail card */
+  .detail-card {
+    padding: 1.25rem 1rem;
+    border-radius: var(--radius-md);
+  }
+  .detail-card h1 {
+    font-size: 1.5rem;
+  }
   .detail-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  .detail-description {
+    font-size: 0.95rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
   }
 
-  .navbar {
-    padding: 1rem;
-    flex-wrap: wrap;
-    gap: 1rem;
+  /* Auth form */
+  .auth-form {
+    padding: 1.5rem 1rem;
+  }
+
+  /* Dashboard actions: single column */
+  .dashboard-actions {
+    grid-template-columns: 1fr;
+  }
+  .action-card {
+    padding: 1.5rem 1rem;
+    font-size: 1rem;
+  }
+
+  /* Profile section */
+  .profile-section {
+    padding: 1.25rem 1rem;
+  }
+
+  /* Nearby section header: stack */
+  .nearby-section > div:first-child {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  /* Surge badge wraps nicely */
+  .surge-badge {
+    display: block;
+    margin-left: 0;
+    margin-top: 0.35rem;
+    width: fit-content;
+  }
+
+  /* Subtitle */
+  .subtitle {
+    font-size: 0.95rem;
+  }
+
+  /* Back link */
+  .back-link {
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+  }
+}
+
+/* ─── Responsive: Extra small (≤ 480px) ─────────────────────────────────── */
+@media (max-width: 480px) {
+  /* Create-event two-panel form collapses to single column */
+  form[style*="minmax(0, 1fr) min(300px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Ticket cards: full width */
+  .ticket-card {
+    border-radius: var(--radius-md);
+  }
+
+  /* Action buttons: full width on very small screens */
+  .btn-primary,
+  .btn-secondary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Nearby section header */
+  .nearby-section {
+    padding: 1.25rem !important;
   }
 }
 

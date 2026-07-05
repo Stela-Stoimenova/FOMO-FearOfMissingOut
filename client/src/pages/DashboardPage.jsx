@@ -170,15 +170,15 @@ export default function DashboardPage() {
                             </strong>
                         </p>
                         <p className="hint" style={{ textAlign: 'left', marginTop: '0.25rem' }}>
-                            Earn 5% of every ticket price as points. 10 points = €0.10 off your next ticket.
+                            Earn 1% of every ticket price as points. 100 points = €1.00 off your next ticket.
                         </p>
 
                         {/* Loyalty mechanic explanation */}
                         <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--accent-soft)', borderRadius: 'var(--radius-md)', border: '1px solid var(--accent-border)' }}>
                             <h4 style={{ fontSize: '0.9rem', margin: '0 0 0.75rem 0', color: 'var(--accent)' }}>How Points Work</h4>
                             <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.8 }}>
-                                <li>You earn <strong>5%</strong> of the ticket price as points on every purchase</li>
-                                <li><strong>10 points = €0.10</strong> discount (exchange rate: 10 pts → 1 cent)</li>
+                                <li>You earn <strong>1%</strong> of the ticket price as points on every purchase</li>
+                                <li><strong>100 points = €1.00</strong> discount (exchange rate: 1 pt → 1 cent)</li>
                                 <li>Points are applied automatically — just check <strong>"Use Points"</strong> at checkout</li>
                                 <li>You currently have <strong>{loyalty?.points ?? user.loyaltyAccount.points} pts</strong> = up to <strong>€{((loyalty?.points ?? user.loyaltyAccount.points) / 10 / 10).toFixed(2)}</strong> off</li>
                             </ul>
@@ -379,39 +379,6 @@ export default function DashboardPage() {
 
                 return (
                     <div style={{ marginTop: '4rem' }}>
-                        {(user.role === "AGENCY" || user.role === "STUDIO") && (
-                            <section className="detail-card" style={{ marginBottom: "2rem", padding: "2rem", borderRadius: "24px", background: "linear-gradient(145deg, var(--bg-card), var(--bg-hover))", border: "1px solid var(--accent-border)", boxShadow: "0 10px 30px rgba(99,102,241,0.1)" }}>
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
-                                    <div>
-                                        <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>
-                                            Top Recommended Dancers
-                                        </h3>
-                                        <p style={{ margin: "0.4rem 0 0 0", fontSize: "0.85rem", color: "var(--text-muted)" }}>Based on your {user.role === "STUDIO" ? "studio's" : "agency's"} focus and location.</p>
-                                    </div>
-                                    <Link to="/profile" className="btn-secondary" style={{ fontSize: "0.75rem", padding: "0.4rem 0.8rem", borderRadius: "10px", textDecoration: "none" }}>Manage Recommendations</Link>
-                                </div>
-
-                                {loadingRecs ? (
-                                    <p className="hint">Scanning talent pool...</p>
-                                ) : recommendations.length > 0 ? (
-                                    <div style={{ display: "flex", gap: "1rem", overflowX: "auto", paddingBottom: "1rem" }}>
-                                        {recommendations.slice(0, 5).map(dancer => (
-                                            <div key={dancer.id} style={{ flex: "0 0 240px", padding: "1.25rem", background: "var(--bg-card)", borderRadius: "20px", border: "1px solid var(--border-light)", textAlign: "center" }}>
-                                                <div style={{ width: "60px", height: "60px", borderRadius: "50%", background: dancer.avatarUrl ? `url(${dancer.avatarUrl}) center/cover` : "var(--bg-input)", margin: "0 auto 0.75rem" }} />
-                                                <h4 style={{ margin: "0 0 0.25rem 0", fontSize: "0.95rem" }}>{dancer.name}</h4>
-                                                <div style={{ fontSize: "0.75rem", color: "var(--success)", fontWeight: 700, marginBottom: "0.5rem" }}>{dancer.matchScore}% Match</div>
-                                                <Link to={`/users/${dancer.id}`} className="btn-primary" style={{ padding: "0.4rem 1rem", fontSize: "0.75rem", textDecoration: "none", display: "inline-block" }}>View Profile</Link>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div style={{ padding: "2rem", textAlign: "center", background: "rgba(255,255,255,0.02)", borderRadius: "20px", border: "1px dashed var(--border-light)" }}>
-                                        <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: 0 }}>No matches yet. Add styles to your profile to get suggestions!</p>
-                                    </div>
-                                )}
-                            </section>
-                        )}
-
                         <h2 style={{ marginBottom: '0.4rem' }}>{user.role === "AGENCY" ? "Agency Insights" : "Studio Analytics"}</h2>
 
                         <p className="subtitle" style={{ marginBottom: '2rem', fontSize: '0.95rem' }}>
@@ -507,10 +474,15 @@ export default function DashboardPage() {
                                 </div>
                             )}
 
-                            {/* Per-event breakdown */}
-                            <h3 style={{ marginBottom: '1rem', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', fontWeight: 700 }}>Per-Event Breakdown</h3>
+                            {/* Per-event breakdown — split Upcoming / Past */}
+                            {[
+                                { label: "Upcoming Events", events: withFill.filter(e => e.upcoming), accent: "var(--accent)" },
+                                { label: "Past Events", events: withFill.filter(e => !e.upcoming), accent: "var(--text-muted)" },
+                            ].filter(g => g.events.length > 0).map(group => (
+                                <div key={group.label} style={{ marginBottom: '2.5rem' }}>
+                                    <h3 style={{ marginBottom: '1rem', fontSize: '1rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: group.accent, fontWeight: 700 }}>{group.label}</h3>
                             <div style={{ display: 'grid', gap: '1rem' }}>
-                                {withFill.map(event => (
+                                {group.events.map(event => (
                                     <div key={event.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '1.25rem 1.5rem', boxShadow: 'var(--shadow-sm)' }}>
                                         {/* Header row */}
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
@@ -518,9 +490,6 @@ export default function DashboardPage() {
                                                 <h4 style={{ margin: '0 0 0.2rem', fontSize: '1rem' }}>{event.title}</h4>
                                                 <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                                                     {new Date(event.startAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                                    {event.upcoming
-                                                        ? <span style={{ marginLeft: '0.5rem', color: 'var(--accent)', fontWeight: 600 }}>Upcoming</span>
-                                                        : <span style={{ marginLeft: '0.5rem', color: 'var(--text-muted)' }}>Past</span>}
                                                 </span>
                                             </div>
                                             <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -530,7 +499,7 @@ export default function DashboardPage() {
                                         </div>
 
                                         {/* Stats row */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
                                             {[
                                                 { label: 'Tickets', value: `${event.sold}${event.cap ? ` / ${event.cap}` : ''}` },
                                                 { label: 'Fill Rate', value: event.fill !== null ? `${event.fill}%` : 'No cap' },
@@ -553,14 +522,18 @@ export default function DashboardPage() {
                                             </div>
                                         )}
 
-                                        {/* Recommendation */}
-                                        <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem' }}>
-                                            <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Insight: </span>
-                                            {recommendation(event)}
-                                        </p>
+                                        {/* Recommendation — only for upcoming events */}
+                                        {event.upcoming && (
+                                            <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem' }}>
+                                                <span style={{ color: 'var(--accent)', fontWeight: 600 }}>Insight: </span>
+                                                {recommendation(event)}
+                                            </p>
+                                        )}
                                     </div>
                                 ))}
                             </div>
+                                </div>
+                            ))}
                         </>)}
 
                         {/* ── Wishlist Analytics ── */}
@@ -597,7 +570,7 @@ export default function DashboardPage() {
                                 return (
                                     <>
                                         {/* Summary KPIs */}
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2.5rem' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '2.5rem' }}>
                                             {[
                                                 { label: 'Total Saves', value: summary.totalSaved, color: 'var(--accent)' },
                                                 { label: 'Converted to Purchase', value: summary.totalConversions, color: 'var(--success)' },
@@ -643,7 +616,7 @@ export default function DashboardPage() {
                                                         </div>
 
                                                         {/* Funnel stats */}
-                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1rem' }}>
+                                                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
                                                             {[
                                                                 { label: 'Total Saves', value: ev.savedCount, color: 'var(--accent)' },
                                                                 { label: 'Saved & Purchased', value: ev.savedAndPurchased, color: 'var(--success)' },
@@ -750,6 +723,40 @@ export default function DashboardPage() {
                                 <span style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>Browse Studio Plans</span>
                                 <span style={{ fontSize: '0.75rem', textDecoration: 'underline', marginTop: '0.25rem' }}>Find local studios</span>
                             </Link>
+                        </div>
+                    )}
+                </section>
+            )}
+
+            {/* Recommended Dancers — shown at bottom for AGENCY / STUDIO */}
+            {(user.role === "AGENCY" || user.role === "STUDIO") && (
+                <section className="detail-card" style={{ marginTop: "3rem", padding: "2rem", borderRadius: "24px", background: "linear-gradient(145deg, var(--bg-card), var(--bg-hover))", border: "1px solid var(--accent-border)", boxShadow: "0 10px 30px rgba(99,102,241,0.1)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: "1.1rem", fontWeight: 700 }}>
+                                Top Recommended Dancers
+                            </h3>
+                            <p style={{ margin: "0.4rem 0 0 0", fontSize: "0.85rem", color: "var(--text-muted)" }}>Based on your {user.role === "STUDIO" ? "studio's" : "agency's"} focus and location.</p>
+                        </div>
+                        <Link to="/profile" className="btn-secondary" style={{ fontSize: "0.75rem", padding: "0.4rem 0.8rem", borderRadius: "10px", textDecoration: "none" }}>Manage Recommendations</Link>
+                    </div>
+
+                    {loadingRecs ? (
+                        <p className="hint">Scanning talent pool...</p>
+                    ) : recommendations.length > 0 ? (
+                        <div style={{ display: "flex", gap: "1rem", overflowX: "auto", paddingBottom: "1rem" }}>
+                            {recommendations.slice(0, 5).map(dancer => (
+                                <div key={dancer.id} style={{ flex: "0 0 240px", padding: "1.25rem", background: "var(--bg-card)", borderRadius: "20px", border: "1px solid var(--border-light)", textAlign: "center" }}>
+                                    <div style={{ width: "60px", height: "60px", borderRadius: "50%", background: dancer.avatarUrl ? `url(${dancer.avatarUrl}) center/cover` : "var(--bg-input)", margin: "0 auto 0.75rem" }} />
+                                    <h4 style={{ margin: "0 0 0.25rem 0", fontSize: "0.95rem" }}>{dancer.name}</h4>
+                                    <div style={{ fontSize: "0.75rem", color: "var(--success)", fontWeight: 700, marginBottom: "0.5rem" }}>{dancer.matchScore}% Match</div>
+                                    <Link to={`/users/${dancer.id}`} className="btn-primary" style={{ padding: "0.4rem 1rem", fontSize: "0.75rem", textDecoration: "none", display: "inline-block" }}>View Profile</Link>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div style={{ padding: "2rem", textAlign: "center", background: "rgba(255,255,255,0.02)", borderRadius: "20px", border: "1px dashed var(--border-light)" }}>
+                            <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: 0 }}>No matches yet. Add styles to your profile to get suggestions!</p>
                         </div>
                     )}
                 </section>
