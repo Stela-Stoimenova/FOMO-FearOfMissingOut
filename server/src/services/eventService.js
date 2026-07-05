@@ -62,7 +62,7 @@ export async function listEvents({ q, city, from, to, minPrice, maxPrice, maxCap
             take,
             include: {
                 creator: { select: { id: true, name: true, role: true } },
-                _count: { select: { tickets: true } },
+                _count: { select: { tickets: { where: { status: "VALID" } } } },
             },
         }),
         prisma.event.count({ where }),
@@ -75,9 +75,10 @@ export async function getPopularEvents() {
     // Aggregate ticket counts per event using groupBy
     const ticketCounts = await prisma.ticket.groupBy({
         by: ["eventId"],
+        where: { status: "VALID" },
         _count: { eventId: true },
         orderBy: { _count: { eventId: "desc" } },
-        take: 20, // fetch extra to allow recency reranking
+        take: 20,
     });
 
     if (ticketCounts.length === 0) return [];
@@ -89,7 +90,7 @@ export async function getPopularEvents() {
         where: { id: { in: eventIds }, startAt: { gte: new Date() } },
         include: {
             creator: { select: { id: true, name: true, role: true } },
-            _count: { select: { tickets: true } },
+            _count: { select: { tickets: { where: { status: "VALID" } } } },
         },
     });
 
@@ -147,7 +148,7 @@ export async function getNearbyEvents({ lat, lng, radius = 10 }) {
         },
         include: {
             creator: { select: { id: true, name: true, role: true } },
-            _count: { select: { tickets: true } },
+            _count: { select: { tickets: { where: { status: "VALID" } } } },
         },
     });
 
@@ -174,7 +175,7 @@ export async function getEventById(id) {
         where: { id },
         include: {
             creator: { select: { id: true, name: true, role: true } },
-            _count: { select: { tickets: true } },
+            _count: { select: { tickets: { where: { status: "VALID" } } } },
         },
     });
 
@@ -621,7 +622,7 @@ export async function getUserSavedEvents(userId) {
             event: {
                 include: {
                     creator: { select: { id: true, name: true, role: true } },
-                    _count: { select: { tickets: true } },
+                    _count: { select: { tickets: { where: { status: "VALID" } } } },
                 },
             },
         },
@@ -758,7 +759,7 @@ export async function inviteToEvent(eventId, actorId, receiverId) {
 export async function cancelTicketById(userId, ticketId) {
     const ticket = await prisma.ticket.findUnique({
         where: { id: ticketId },
-        include: { event: true }
+        include: { event: true, user: { select: { id: true, name: true } } }
     });
 
     if (!ticket || ticket.userId !== userId) {
@@ -842,6 +843,15 @@ export async function cancelTicketById(userId, ticketId) {
 
         return { success: true, refundAmount, refundTier, ticket: updated };
     });
+
+    // Notify the event creator (studio/agency) that a spot has freed up
+    const dancerName = ticket.user?.name || "A dancer";
+    createNotification({
+        userId: ticket.event.creatorId,
+        type: "TICKET_CANCELLED",
+        message: `${dancerName} cancelled their ticket for "${ticket.event.title}". A spot is now available.`,
+        linkPath: `/events/${ticket.event.id}`,
+    }).catch(() => {});
 
     return result;
 }

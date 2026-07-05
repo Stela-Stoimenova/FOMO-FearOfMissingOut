@@ -11,6 +11,7 @@ const TYPE_CONFIG = {
   CV_TAG_DECLINED:  { bg: "rgba(239,68,68,0.15)",   stroke: "#ef4444",  d: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M9.5 12.5l5 5m0-5-5 5" },
   ROSTER_INVITE:    { bg: "rgba(245,158,11,0.15)",  stroke: "#f59e0b",  d: "M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" },
   TICKET_PURCHASE:  { bg: "rgba(99,102,241,0.15)",  stroke: "#6366f1",  d: "M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2z" },
+  TICKET_CANCELLED: { bg: "rgba(245,158,11,0.15)",  stroke: "#f59e0b",  d: "M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2zM9.5 14.5l5-5m0 5-5-5" },
 };
 const DEFAULT_ICON = { bg: "rgba(99,102,241,0.15)", stroke: "#6366f1", d: "M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" };
 
