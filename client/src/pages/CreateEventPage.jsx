@@ -97,7 +97,6 @@ export default function CreateEventPage() {
                         body: JSON.stringify({
                             agencyId: user.id,
                             description: `Invited to co-organize "${createdEvent.title}"`,
-                            eventId: createdEvent.id,
                         }),
                     });
                 } catch {
@@ -168,8 +167,8 @@ export default function CreateEventPage() {
             const data = await createEvent(payload);
             setCreatedEvent(data);
 
-            // Load dancer suggestions if dance styles were set
-            if (selectedStyles.length > 0) {
+            // Load dancer suggestions only for regular (non-portfolio) events
+            if (!isPortfolio && selectedStyles.length > 0) {
                 setLoadingSuggestions(true);
                 try {
                     const dancers = await getSuggestedDancers(data.id);
@@ -193,9 +192,11 @@ export default function CreateEventPage() {
         return (
             <main className="page" style={{ maxWidth: "900px", margin: "0 auto" }}>
                 <div style={{ textAlign: "center", marginBottom: "2rem" }}>
-                    <h1 style={{ marginBottom: "0.5rem" }}>Event Created!</h1>
+                    <h1 style={{ marginBottom: "0.5rem" }}>{createdEvent.isPortfolio ? "Portfolio Event Added!" : "Event Created!"}</h1>
                     <p className="subtitle" style={{ marginBottom: "1.5rem" }}>
-                        <strong>{createdEvent.title}</strong> is now live on the platform.
+                        {createdEvent.isPortfolio
+                            ? <><strong>{createdEvent.title}</strong> has been saved to your portfolio archive.</>
+                            : <><strong>{createdEvent.title}</strong> is now live on the platform.</>}
                     </p>
                     <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
                         <Link to={`/events/${createdEvent.id}`} className="btn-primary">View Event →</Link>
@@ -205,10 +206,21 @@ export default function CreateEventPage() {
 
                 {/* Unified invite section */}
                 <div style={{ background: "var(--bg-card)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-lg)", padding: "2rem", marginBottom: "2rem" }}>
-                    <h2 style={{ marginBottom: "0.5rem" }}>Invite Participants</h2>
-                    <p className="subtitle" style={{ marginBottom: "1.25rem" }}>
-                        Search for dancers, studios, or agencies to invite. They'll receive a notification with a link to view the event before deciding.
-                    </p>
+                    {createdEvent.isPortfolio ? (
+                        <>
+                            <h2 style={{ marginBottom: "0.5rem" }}>Tag Collaborators</h2>
+                            <p className="subtitle" style={{ marginBottom: "1.25rem" }}>
+                                Search for studios or agencies who contributed to this past event. They'll be notified and linked to this portfolio entry.
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <h2 style={{ marginBottom: "0.5rem" }}>Invite Participants</h2>
+                            <p className="subtitle" style={{ marginBottom: "1.25rem" }}>
+                                Search for dancers, studios, or agencies to invite. They'll receive a notification with a link to view the event before deciding.
+                            </p>
+                        </>
+                    )}
                     <form onSubmit={handleInviteSearch} style={{ display: "flex", gap: "0.75rem", marginBottom: "1.25rem" }}>
                         <input
                             id="invite-query"
@@ -216,7 +228,7 @@ export default function CreateEventPage() {
                             autoComplete="off"
                             value={inviteQuery}
                             onChange={e => setInviteQuery(e.target.value)}
-                            placeholder="Search dancers, studios, or agencies…"
+                            placeholder={createdEvent.isPortfolio ? "Search studios or agencies…" : "Search dancers, studios, or agencies…"}
                             style={{ flex: 1, background: "var(--bg-input)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", padding: "0.6rem 0.9rem", color: "var(--text-main)", fontSize: "0.9rem" }}
                         />
                         <button type="submit" disabled={inviteLoading} style={{ padding: "0.6rem 1.25rem", background: "var(--accent)", border: "none", borderRadius: "999px", color: "#fff", fontWeight: 600, cursor: inviteLoading ? "not-allowed" : "pointer", fontSize: "0.88rem" }}>
@@ -224,9 +236,9 @@ export default function CreateEventPage() {
                         </button>
                     </form>
 
-                    {inviteResults.length > 0 && (
+                    {inviteResults.filter(u => !createdEvent.isPortfolio || u.role !== "DANCER").length > 0 && (
                         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "0.75rem" }}>
-                            {inviteResults.map(user => (
+                            {inviteResults.filter(u => !createdEvent.isPortfolio || u.role !== "DANCER").map(user => (
                                 <div key={user.id} style={{ background: "var(--bg-hover)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-md)", padding: "0.9rem", display: "flex", alignItems: "center", gap: "0.75rem" }}>
                                     <div style={{ width: 40, height: 40, borderRadius: "50%", overflow: "hidden", background: "var(--bg-input)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", color: "var(--text-muted)" }}>
                                         {user.avatarUrl ? <img src={user.avatarUrl} alt="" referrerPolicy="no-referrer" style={{ width: "100%", height: "100%", objectFit: "cover" }} onError={e => { e.target.style.display = "none"; }} /> : (user.name || "?").charAt(0).toUpperCase()}
@@ -246,12 +258,16 @@ export default function CreateEventPage() {
                             ))}
                         </div>
                     )}
-                    {inviteResults.length === 0 && inviteQuery && !inviteLoading && (
-                        <p style={{ color: "var(--text-muted)", fontSize: "0.88rem" }}>No users found for "{inviteQuery}".</p>
+                    {inviteResults.filter(u => !createdEvent.isPortfolio || u.role !== "DANCER").length === 0 && inviteQuery && !inviteLoading && (
+                        <p style={{ color: "var(--text-muted)", fontSize: "0.88rem" }}>
+                            {createdEvent.isPortfolio
+                                ? `No studios or agencies found for "${inviteQuery}".`
+                                : `No users found for "${inviteQuery}".`}
+                        </p>
                     )}
                 </div>
 
-                {selectedStyles.length > 0 && (
+                {!createdEvent.isPortfolio && selectedStyles.length > 0 && (
                     <div style={{ background: "var(--bg-card)", border: "1px solid var(--border-light)", borderRadius: "var(--radius-lg)", padding: "2rem" }}>
                         <h2 style={{ marginBottom: "0.5rem" }}>Suggested Dancers to Invite</h2>
                         <p className="subtitle" style={{ marginBottom: "1.5rem" }}>

@@ -49,7 +49,7 @@ function AppRoutes() {
       <Route path="/my-tickets" element={<ProtectedRoute><MyTicketsPage /></ProtectedRoute>} />
 
       <Route path="/discover" element={<DiscoveryPage />} />
-      <Route path="/users/:id" element={<PublicProfilePage />} />
+      <Route path="/users/:id" element={<Elements stripe={stripePromise}><PublicProfilePage /></Elements>} />
       <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
 

@@ -6,7 +6,7 @@ import { updateMe, getMe, addPortfolioItem, deletePortfolioItem, tagEvent, delet
 import { getStripeOnboardingLink, checkStripeStatus, getWallet, deleteCard } from "../api/payments.js";
 import AddCardModal from "../components/AddCardModal.jsx";
 
-import { getMyTickets, getPortfolioEvents } from "../api/events.js";
+import { getMyTickets, getPortfolioEvents, getEvents } from "../api/events.js";
 import FollowListModal from "../components/FollowListModal.jsx";
 import CvManager from "../components/CvManager.jsx";
 import StudioManager from "../components/StudioManager.jsx";
@@ -46,6 +46,7 @@ export default function ProfilePage() {
     const [wallet, setWallet] = useState([]);
     const [stripeStatus, setStripeStatus] = useState(null);
     const [myPortfolioEvents, setMyPortfolioEvents] = useState([]);
+    const [myRegularEvents, setMyRegularEvents] = useState([]);
 
     // Reset and Load fresh profile data
     const resetAndLoad = useCallback(async () => {
@@ -113,6 +114,7 @@ export default function ProfilePage() {
         if (user?.role === "STUDIO" || user?.role === "AGENCY") {
             checkStripeStatus().then(setStripeStatus).catch(console.error);
             getPortfolioEvents(user.id).then(setMyPortfolioEvents).catch(console.error);
+            getEvents({ creatorId: user.id, limit: 100 }).then(d => setMyRegularEvents(d.items ?? [])).catch(console.error);
         }
     }, [user?.role, editing, loadWallet]);
 
@@ -433,14 +435,38 @@ export default function ProfilePage() {
                 )}
 
                 {/* Portfolio / Past Events — own view */}
-                {isMyProfile && (user?.role === "STUDIO" || user?.role === "AGENCY") && myPortfolioEvents.length > 0 && (
+                {isMyProfile && (user?.role === "STUDIO" || user?.role === "AGENCY") && (() => {
+                    const profileNow = new Date();
+                    const myUpcoming = myRegularEvents.filter(e => new Date(e.startAt) >= profileNow);
+                    const myExpired = myRegularEvents.filter(e => new Date(e.startAt) < profileNow);
+                    const allMyPast = [...myExpired, ...myPortfolioEvents].sort((a, b) => new Date(b.startAt) - new Date(a.startAt));
+                    return (
+                        <>
+                            {myUpcoming.length > 0 && (
+                                <section className="detail-card" style={{ marginBottom: "2rem" }}>
+                                    <h3 style={{ margin: '0 0 1.25rem', fontSize: '1.1rem', fontWeight: 700 }}>Upcoming Events</h3>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                                        {myUpcoming.map(evt => (
+                                            <a key={evt.id} href={`/events/${evt.id}`} style={{ display: 'flex', alignItems: 'center', gap: '1rem', padding: '0.85rem 1rem', background: 'var(--bg-hover)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-light)', textDecoration: 'none', color: 'inherit' }}>
+                                                <div style={{ width: '48px', height: '48px', borderRadius: '10px', flexShrink: 0, backgroundImage: evt.imageUrl ? `url(${evt.imageUrl})` : 'linear-gradient(135deg, rgba(99,102,241,0.3), rgba(124,58,237,0.15))', backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <p style={{ margin: 0, fontWeight: 600, fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{evt.title}</p>
+                                                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>{evt.location} &bull; {new Date(evt.startAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                                </div>
+                                                <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '0.2rem 0.5rem', borderRadius: '999px', background: 'rgba(99,102,241,0.12)', color: 'var(--accent)', flexShrink: 0 }}>Upcoming</span>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
+                            {allMyPast.length > 0 && (
                     <section className="detail-card" style={{ marginBottom: "2rem" }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.25rem' }}>
                             <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>Past Events</h3>
                             <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>Archive</span>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                            {myPortfolioEvents.map(evt => (
+                            {allMyPast.map(evt => (
                                 <a
                                     key={evt.id}
                                     href={`/events/${evt.id}`}
@@ -469,7 +495,10 @@ export default function ProfilePage() {
                             ))}
                         </div>
                     </section>
-                )}
+                            )}
+                        </>
+                    );
+                })()}
 
                 {/* Payout / Stripe Section */}
                 {isMyProfile && (user?.role === "STUDIO" || user?.role === "AGENCY") && (

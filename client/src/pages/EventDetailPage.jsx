@@ -207,19 +207,19 @@ export default function EventDetailPage() {
                             padding: "2rem", display: "flex", alignItems: "flex-end",
                         }}>
                             <h1 style={{ margin: 0, fontSize: "clamp(1.25rem, 4vw, 2.5rem)", textShadow: "0 2px 10px rgba(0,0,0,0.8)", flex: 1, wordBreak: "break-word" }}>{event.title}</h1>
-                            <button onClick={handleToggleSave} style={{ background: "rgba(0,0,0,0.4)", border: "none", borderRadius: "50%", width: 50, height: 50, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: isSaved ? "#ff4757" : "#fff", fontSize: "1.5rem", transition: "all 0.3s", backdropFilter: "blur(10px)" }}
+                            {user?.role === "DANCER" && <button onClick={handleToggleSave} style={{ background: "rgba(0,0,0,0.4)", border: "none", borderRadius: "50%", width: 50, height: 50, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: isSaved ? "#ff4757" : "#fff", fontSize: "1.5rem", transition: "all 0.3s", backdropFilter: "blur(10px)" }}
                                 onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"}
                                 onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
                                 {isSaved ? "♥" : "♡"}
-                            </button>
+                            </button>}
                         </div>
                     </div>
                 ) : (
                     <div style={{ width: "100%", height: "200px", background: "linear-gradient(135deg, rgba(99,102,241,0.25) 0%, rgba(124,58,237,0.1) 50%, rgba(24,24,27,1) 100%)", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 1.25rem", gap: "1rem", flexWrap: "wrap" }}>
                         <h1 style={{ margin: 0, fontSize: "clamp(1.1rem, 4vw, 2rem)", flex: 1, wordBreak: "break-word" }}>{event.title}</h1>
-                        <button onClick={handleToggleSave} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "1.2rem", transition: "all 0.3s", color: isSaved ? "#ff4757" : "var(--text-main)" }}>
+                        {user?.role === "DANCER" && <button onClick={handleToggleSave} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: "50%", width: 44, height: 44, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "1.2rem", transition: "all 0.3s", color: isSaved ? "#ff4757" : "var(--text-main)" }}>
                             {isSaved ? "♥" : "♡"}
-                        </button>
+                        </button>}
                     </div>
                 )}
 

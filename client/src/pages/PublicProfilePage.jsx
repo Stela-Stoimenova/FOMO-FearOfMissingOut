@@ -253,6 +253,11 @@ export default function PublicProfilePage() {
     const Initials = (profile.name || "?").charAt(0).toUpperCase();
     const isOwnProfile = me && me.id === profile.id;
 
+    const now = new Date();
+    const upcomingCreated = createdEvents.filter(e => new Date(e.startAt) >= now);
+    const pastCreated = createdEvents.filter(e => new Date(e.startAt) < now);
+    const allPastEvents = [...pastCreated, ...portfolioEvents].sort((a, b) => new Date(b.startAt) - new Date(a.startAt));
+
     return (
         <main className="page" style={{ maxWidth: '800px' }}>
             <Toast toast={toast} onClose={() => setToast(null)} />
@@ -731,11 +736,11 @@ export default function PublicProfilePage() {
 
             {/* Created Events — only shown for STUDIO / AGENCY profiles */}
             {
-                createdEvents.length > 0 && (
+                upcomingCreated.length > 0 && (
                     <section className="detail-card" style={{ marginBottom: '1.5rem', padding: '2rem', borderRadius: '24px' }}>
-                        <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem', fontWeight: 700 }}>Events by this Organiser</h3>
+                        <h3 style={{ marginBottom: '1.5rem', fontSize: '1.25rem', fontWeight: 700 }}>Upcoming Events</h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                            {createdEvents.map(evt => (
+                            {upcomingCreated.map(evt => (
                                 <Link
                                     to={`/events/${evt.id}`}
                                     key={evt.id}
@@ -784,15 +789,15 @@ export default function PublicProfilePage() {
                 )
             }
 
-            {/* Portfolio Events — past events archived by this organiser */}
-            {portfolioEvents.length > 0 && (
+            {/* Past Events — auto-expired + manually archived portfolio events */}
+            {allPastEvents.length > 0 && (
                 <section className="detail-card" style={{ marginBottom: '1.5rem', padding: '2rem', borderRadius: '24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '1.5rem' }}>
                         <h3 style={{ fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Past Events</h3>
                         <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '0.2rem 0.6rem', borderRadius: '999px', background: 'rgba(245,158,11,0.15)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.3)' }}>Archive</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        {portfolioEvents.map(evt => (
+                        {allPastEvents.map(evt => (
                             <Link
                                 to={`/events/${evt.id}`}
                                 key={evt.id}
