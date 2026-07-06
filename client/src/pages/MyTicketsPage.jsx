@@ -86,10 +86,10 @@ export default function MyTicketsPage() {
     }
 
     async function handleConfirmCancel() {
-        const ticketId = confirmTicket.id;
+        const ticket = confirmTicket;
         setConfirmTicket(null);
         try {
-            const result = await cancelTicket(ticketId);
+            const result = await cancelTicket(ticket.id);
             const refundEuros = (result.refundAmount / 100).toFixed(2);
             const tierMessages = {
                 early: `Ticket cancelled. You will receive a €${refundEuros} refund (80% — cancelled 7+ days before the event).`,
@@ -97,7 +97,11 @@ export default function MyTicketsPage() {
                 late:  "Ticket cancelled. No refund applies — cancellation was under 48 hours before the event.",
             };
             showToast(setToast, tierMessages[result.refundTier] ?? "Ticket cancelled.", "success");
-            fetchTickets();
+            setTickets(prev => prev.map(t =>
+                t.id === ticket.id
+                    ? { ...t, status: "CANCELLED", refundAmount: result.refundAmount }
+                    : t
+            ));
         } catch (err) {
             showToast(setToast, friendlyError(err));
         }
